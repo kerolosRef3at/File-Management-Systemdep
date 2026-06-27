@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AITU Admin Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="auth-layout">
+        <div class="auth-brand">
+            <div class="auth-brand-content">
+                <div class="auth-logo">
+                    <img src="logos/aitu_logo.png" alt="AITU" width="50" height="50" onerror="this.style.display='none'">
+                    AITU File System
+                </div>
+                <h1>Manage Academic Tasks with Precision.</h1>
+                <p>Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
+                
+                <div class="auth-badges">
+                    <span class="badge">Kanban Boards</span>
+                    <span class="badge">Team Management</span>
+                    <span class="badge">Auto Reports</span>
+                    <span class="badge">Role-Based Access</span>
+                </div>
+            </div>
+            <div style="position: absolute; bottom: 30px; left: 60px; font-size: 0.85rem; color: #94a3b8;">
+                &copy; 2026 Assiut International Technological University
+            </div>
+        </div>
+
+        <div class="auth-form-container">
+            <div class="auth-form-wrapper">
+                <h2>Welcome back</h2>
+                <p>Sign in to your AITU account to continue.</p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">Username or Email Address</label>
+                        <input type="text" id="username" class="form-control" placeholder="Enter Your Email/Username" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" class="form-control has-icon" placeholder="********" required>
+                        <span class="toggle-password" id="togglePasswordBtn">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </span>
+                    </div>
+
+                    <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+
+                    <button type="submit" class="btn-primary btn-block" id="submitBtn">Login</button>
+                    
+                    <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+                </form>
+
+                <div class="info-alert">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                    <span>Enter your email and password to sign in to your account.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/pages/login.js"></script>
+</body>
+</html>

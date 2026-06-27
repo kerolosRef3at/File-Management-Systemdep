@@ -1,0 +1,494 @@
+/* =========================================
+   Global Variables & Reset
+========================================= */
+:root {
+    --primary-dark: #072247;
+    --primary-blue: #0b3b70;
+    --primary-hover: #0e4f96;
+    --bg-light: #f4f7f9;
+    --white: #ffffff;
+    --text-dark: #1a202c;
+    --text-gray: #64748b;
+    --border-color: #e2e8f0;
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    
+    --font-main: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* =========================================
+   Typography & Shared Classes
+========================================= */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.btn-primary {
+    background-color: var(--primary-dark);
+    color: var(--white);
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--text-dark);
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    background-color: var(--border-color);
+}
+
+/* =========================================
+   Navbar (Header)
+========================================= */
+.navbar {
+    background-color: var(--white);
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    font-size: 1.2rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 30px;
+    list-style: none;
+}
+
+.nav-links a {
+    color: var(--text-gray);
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    color: var(--primary-dark);
+    border-bottom: 2px solid var(--primary-dark);
+    padding-bottom: 5px;
+}
+
+/* =========================================
+   Hero Section
+========================================= */
+.hero {
+    padding: 60px 0;
+    background-color: var(--white);
+}
+
+.hero .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 40px;
+}
+
+.hero-content {
+    flex: 1;
+}
+
+.hero-content h1 {
+    font-size: 2.8rem;
+    color: var(--primary-blue);
+    line-height: 1.2;
+    margin-bottom: 20px;
+}
+
+.hero-content p {
+    color: var(--text-gray);
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    max-width: 500px;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+}
+
+.hero-image {
+    flex: 1;
+    background-color: #E2E8F0;
+    border-radius: 12px;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden; /* 👈 هذا السطر يمنع الصورة من الخروج برا الشيب */
+    position: relative;
+}
+.hero-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 👈 يخلي الصورة تغطي المساحة بالكامل بدون تشوه */
+    display: block;
+}
+
+/* =========================================
+   Departments Section
+========================================= */
+.departments-section {
+    padding: 60px 0;
+}
+
+.departments-section h2 {
+    color: var(--primary-dark);
+    margin-bottom: 30px;
+    font-size: 1.8rem;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+.dept-card {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dept-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.dept-icon {
+    width: 40px;
+    height: 40px;
+    background-color: var(--primary-blue);
+    color: var(--white);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.dept-card h3 {
+    color: var(--text-dark);
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.dept-card p {
+    color: var(--text-gray);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+.view-files-link {
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* =========================================
+   Trust Banner (Footer)
+========================================= */
+.trust-banner {
+    background-color: var(--primary-dark);
+    color: var(--white);
+    padding: 40px 0;
+    margin-top: 40px;
+}
+
+.trust-banner .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.trust-content h2 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.trust-content p {
+    color: #94a3b8;
+    max-width: 600px;
+    font-size: 0.95rem;
+}
+
+.trust-stats h3 {
+    font-size: 3rem;
+    line-height: 1;
+}
+
+.trust-stats p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+/* تنسيق أيقونات الأقسام (SVG) */
+.dept-icon svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+
+/* =========================================
+   Auth Pages (Login, OTP, Reset) - Split Layout
+========================================= */
+.auth-layout {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-light);
+}
+
+.auth-brand {
+    flex: 1;
+    background: linear-gradient(135deg, #072247 0%, #0b3b70 100%);
+    color: var(--white);
+    padding: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Decorative circles matching design */
+.auth-brand::before, .auth-brand::after {
+    content: '';
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+}
+.auth-brand::before {
+    width: 600px;
+    height: 600px;
+    top: -100px;
+    right: -200px;
+}
+.auth-brand::after {
+    width: 400px;
+    height: 400px;
+    bottom: -150px;
+    left: -100px;
+}
+
+.auth-brand-content {
+    position: relative;
+    z-index: 2;
+    max-width: 450px;
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+.auth-brand-content h1 {
+    font-size: 3rem;
+    line-height: 1.1;
+    margin-bottom: 20px;
+}
+
+.auth-brand-content p {
+    color: #cbd5e1;
+    margin-bottom: 40px;
+    font-size: 1.1rem;
+}
+
+.auth-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    backdrop-filter: blur(4px);
+}
+
+.auth-form-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.auth-form-wrapper {
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-form-wrapper h2 {
+    font-size: 2.2rem;
+    color: var(--primary-dark);
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.auth-form-wrapper > p {
+    color: var(--text-gray);
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--primary-dark);
+}
+
+.form-control {
+    width: 100%;
+    padding: 14px 16px; /* تم التكبير هنا */
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1.05rem; /* تكبير خط الكتابة */
+    color: var(--text-dark);
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+}
+
+.form-control.has-icon {
+    padding-right: 45px; /* space for icon */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px;
+    bottom: 14px; /* ربطناها من تحت عشان نتجاهل مساحة الـ Label */
+    cursor: pointer;
+    z-index: 10; /* ده بيخلي الأيقونة فوق الحقل مباشرة */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-gray);
+    transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+    color: var(--primary-dark);
+}
+
+.toggle-password svg {
+    pointer-events: none; /* عشان الضغطة تروح للـ span مش للرسمة */
+}
+
+.forgot-link {
+    display: block;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--primary-dark);
+    font-weight: 600;
+    margin-top: 8px;
+    margin-bottom: 20px;
+}
+
+.btn-block {
+    width: 100%;
+    justify-content: center;
+    padding: 14px; /* تم التكبير هنا */
+    font-size: 1.1rem;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.info-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #eff6ff;
+    color: var(--primary-dark);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 25px;
+    font-size: 0.85rem;
+}
+
+.info-alert svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
