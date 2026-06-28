@@ -1,14 +1,30 @@
 // js/pages/profile.js
+import { protectPage, getCurrentUser } from '../shared/auth.js';
+import { profileService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
-import { fetchAPI } from '../shared/api.js';
+import { showAlert } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // رسم الـ Layout وتحديد الصفحة النشطة كـ profile
+    // Guards access: requires authenticated active admin session
+    if (!protectPage(['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'])) {
+        return;
+    }
+
+    // Render shared layouts
     renderLayout('profile');
 
     const contentArea = document.getElementById('page-content');
+    if (!contentArea) return;
 
-    // حقن محتوى الصفحة
+    const user = getCurrentUser();
+
+    // Standardize role presentation label
+    function getRoleDisplay(role) {
+        if (role === 'Mechanic Manager') return 'Mechanical Manager';
+        return role;
+    }
+
+    // Inject outer layout framework
     contentArea.innerHTML = `
         <div class="page-header-actions" style="margin-bottom: 30px;">
             <div>
@@ -17,116 +33,122 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
 
-        <div class="profile-grid">
-            <div class="profile-card">
-                <div class="profile-card-header">
+        <div class="profile-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:25px; align-items:start;">
+            <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
+                <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
                     Account Information
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
-                <div class="profile-card-body">
+                <div class="profile-card-body" style="padding:25px;">
                     
-                    <div class="photo-upload-section">
-                        <img src="avatar-placeholder.png" alt="Profile" class="profile-img-preview" id="profileImagePreview" onerror="this.src='https://ui-avatars.com/api/?name=Admin&background=072247&color=fff'">
+                    <div class="photo-upload-section" style="display:flex; align-items:center; gap:20px; margin-bottom:30px;">
+                        <img src="https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff" alt="Profile avatar" class="profile-img-preview" id="profileImagePreview" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color);">
                         <div>
-                            <div class="photo-upload-actions">
-                                <button type="button" class="btn-text-primary">Change Photo</button>
-                                <button type="button" class="btn-text-danger">Remove</button>
+                            <div class="photo-upload-actions" style="display:flex; gap:15px; margin-bottom:5px;">
+                                <button type="button" class="btn-text-primary" id="changePhotoBtn" style="background:none; border:none; color:var(--primary-blue); font-weight:600; cursor:pointer;">Change Photo</button>
+                                <button type="button" class="btn-text-danger" id="removePhotoBtn" style="background:none; border:none; color:#ef4444; font-weight:600; cursor:pointer;">Remove</button>
                             </div>
-                            <p style="font-size: 0.8rem; color: var(--text-gray);">JPG, GIF or PNG. Max size of 800K</p>
+                            <p style="font-size: 0.8rem; color: var(--text-gray); margin:0;">JPG, GIF or PNG. Max size of 800K</p>
                         </div>
                     </div>
 
                     <form id="profileForm">
-                        <div class="form-group">
-                            <label>Username (Read-only)</label>
-                            <input type="text" class="form-control" value="admin_jsmith23" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>First Name</label>
-                                <input type="text" id="firstName" class="form-control" value="John">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Username (Read-only)</label>
+                                <input type="text" class="form-control" value="${user.username}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
                             </div>
-                            <div class="form-group">
-                                <label>Last Name</label>
-                                <input type="text" id="lastName" class="form-control" value="Smith">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Full Name</label>
+                                <input type="text" id="fullName" class="form-control" value="${user.name || user.username}" required>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Email Address</label>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Role / Designation</label>
+                                <input type="text" class="form-control" value="${getRoleDisplay(user.role)}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Date Joined</label>
+                                <input type="text" class="form-control" value="${user.joined}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Email Address</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                <input type="email" id="email" class="form-control" value="jsmith23@university.edu" style="padding-left: 40px;" required>
+                                <input type="email" id="email" class="form-control" value="${user.email}" style="padding-left: 40px;" required>
                             </div>
                         </div>
 
-                        <div class="form-group">
-                            <label>Phone Number</label>
+                        <div class="form-group" style="margin-bottom:15px;">
+                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Phone Number</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                <input type="text" id="mobile" class="form-control" value="+1 (555) 123-4567" style="padding-left: 40px;" required>
+                                <input type="text" id="mobile" class="form-control" value="${user.phone || ''}" style="padding-left: 40px;" required>
                             </div>
                         </div>
 
-                        <div style="text-align: right; margin-top: 20px;">
+                        <div style="text-align: right; margin-top: 25px;">
                             <button type="submit" class="btn-primary" id="saveProfileBtn">Save Changes</button>
                         </div>
-                        <div class="form-alert" id="profileAlert"></div>
+                        <div class="form-alert" id="profileAlert" style="margin-top:15px; display:none;"></div>
                     </form>
                 </div>
             </div>
 
             <div>
-                <div class="profile-card">
-                    <div class="profile-card-header">
+                <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden; margin-bottom:25px;">
+                    <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
                         Security
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
-                    <div class="profile-card-body">
+                    <div class="profile-card-body" style="padding:25px;">
                         <form id="securityForm">
-                            <div class="form-group">
-                                <label>Current Password</label>
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Current Password</label>
                                 <input type="password" id="oldPassword" class="form-control" placeholder="********" required>
                             </div>
-                            <div class="form-group">
-                                <label>New Password</label>
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">New Password</label>
                                 <input type="password" id="newPassword" class="form-control" placeholder="Create new password" required>
                             </div>
-                            <div class="form-group">
-                                <label>Confirm New Password</label>
+                            <div class="form-group" style="margin-bottom:15px;">
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Confirm New Password</label>
                                 <input type="password" id="repeatPassword" class="form-control" placeholder="Confirm new password" required>
                             </div>
                             <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--primary-blue); color: var(--primary-blue);" id="updatePasswordBtn">Update Password</button>
-                            <div class="form-alert" id="securityAlert"></div>
+                            <div class="form-alert" id="securityAlert" style="margin-top:15px; display:none;"></div>
                         </form>
                     </div>
                 </div>
 
-                <div class="profile-card">
-                    <div class="profile-card-header">
+                <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
+                    <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
                         Activity Summary
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                     </div>
-                    <div class="profile-card-body">
+                    <div class="profile-card-body" style="padding:25px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid var(--border-color);">
                             <span style="color:var(--text-gray); display:flex; align-items:center; gap:8px;">
                                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
                                 Last Login
                             </span>
-                            <span style="color:var(--primary-dark); font-weight:600;">Oct 24, 09:41 AM</span>
+                            <span style="color:var(--primary-dark); font-weight:600;">Today, 09:41 AM</span>
                         </div>
                         
-                        <div class="activity-summary">
-                            <div class="activity-box">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                                <h4>1,248</h4>
-                                <span>Uploads</span>
+                        <div class="activity-summary" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                            <div class="activity-box" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; text-align:center;">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:10px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                <h4 style="font-size:1.8rem; color:var(--primary-dark); margin:0;">24</h4>
+                                <span style="font-size:0.75rem; color:var(--text-gray); font-weight:600; text-transform:uppercase;">Uploads</span>
                             </div>
-                            <div class="activity-box">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                                <h4>8,932</h4>
-                                <span>Downloads</span>
+                            <div class="activity-box" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; text-align:center;">
+                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:10px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                <h4 style="font-size:1.8rem; color:var(--primary-dark); margin:0;">185</h4>
+                                <span style="font-size:0.75rem; color:var(--text-gray); font-weight:600; text-transform:uppercase;">Downloads</span>
                             </div>
                         </div>
                     </div>
@@ -135,80 +157,106 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    // دالة مساعدة لإظهار التنبيهات
-    function showAlert(elementId, message, type) {
-        const alertBox = document.getElementById(elementId);
-        alertBox.innerText = message;
-        alertBox.className = `form-alert ${type}`;
-        alertBox.style.display = 'block';
-        setTimeout(() => alertBox.style.display = 'none', 5000);
+    // 1. Submit Profile Settings form
+    const profileForm = document.getElementById('profileForm');
+    const profileAlert = document.getElementById('profileAlert');
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+            const fullName = document.getElementById('fullName').value.trim();
+
+            saveProfileBtn.disabled = true;
+            saveProfileBtn.innerText = 'Saving...';
+            profileAlert.style.display = 'none';
+
+            try {
+                // TODO: PUT /api/Admin/profile
+                await profileService.updateProfile(email, mobile, fullName);
+                
+                showAlert(profileAlert, 'Profile information updated successfully.', 'success');
+                
+                // Update header displays in-place instead of reloading layout (which clears forms)
+                const freshUser = getCurrentUser();
+                if (freshUser) {
+                    const newInitial = (freshUser.name || freshUser.username).charAt(0).toUpperCase();
+                    const newName = freshUser.name || freshUser.username;
+                    
+                    const initialEl = document.querySelector('#userAvatarBtn span:first-child');
+                    if (initialEl) initialEl.textContent = newInitial;
+                    
+                    const nameSpan = document.querySelector('#userAvatarBtn div span:first-child');
+                    if (nameSpan) nameSpan.textContent = newName;
+                    
+                    const dropdownInitial = document.querySelector('#userDropdown .avatar-lg');
+                    if (dropdownInitial) dropdownInitial.textContent = newInitial;
+                    
+                    const dropdownName = document.querySelector('#userDropdown .name');
+                    if (dropdownName) dropdownName.textContent = newName;
+                    
+                    const dropdownEmail = document.querySelector('#userDropdown .email');
+                    if (dropdownEmail) dropdownEmail.textContent = freshUser.email;
+                }
+            } catch (err) {
+                showAlert(profileAlert, err.message || 'Failed to update profile.', 'error');
+            } finally {
+                saveProfileBtn.disabled = false;
+                saveProfileBtn.innerText = 'Save Changes';
+            }
+        });
     }
 
-    // 1. معالجة تحديث البيانات (Profile Info)
-    document.getElementById('profileForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('saveProfileBtn');
-        const email = document.getElementById('email').value;
-        const mobile = document.getElementById('mobile').value;
-        
-        btn.disabled = true;
-        btn.innerText = 'Saving...';
+    // 2. Submit Security Password form
+    const securityForm = document.getElementById('securityForm');
+    const securityAlert = document.getElementById('securityAlert');
+    const updatePasswordBtn = document.getElementById('updatePasswordBtn');
 
-        try {
-            // حسب ملف Swagger، الـ DTO يقبل email و mobile فقط
-            // await fetchAPI('/api/Admin/profile', {
-            //     method: 'PUT',
-            //     body: JSON.stringify({ email, mobile })
-            // });
-            
-            // محاكاة نجاح العملية
-            setTimeout(() => {
-                showAlert('profileAlert', 'Profile information updated successfully.', 'success');
-                btn.disabled = false;
-                btn.innerText = 'Save Changes';
-            }, 800);
-        } catch (error) {
-            showAlert('profileAlert', error.message || 'Failed to update profile.', 'error');
-            btn.disabled = false;
-            btn.innerText = 'Save Changes';
-        }
+    if (securityForm) {
+        securityForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const repeatPassword = document.getElementById('repeatPassword').value;
+
+            if (newPassword !== repeatPassword) {
+                showAlert(securityAlert, 'New passwords do not match.', 'error');
+                return;
+            }
+
+            if (newPassword.length < 8) {
+                showAlert(securityAlert, 'New password must be at least 8 characters long.', 'error');
+                return;
+            }
+
+            updatePasswordBtn.disabled = true;
+            updatePasswordBtn.innerText = 'Updating...';
+            securityAlert.style.display = 'none';
+
+            try {
+                // TODO: POST /api/Auth/change-password
+                await profileService.changePassword(oldPassword, newPassword);
+                showAlert(securityAlert, 'Password updated successfully.', 'success');
+                securityForm.reset();
+            } catch (err) {
+                showAlert(securityAlert, err.message || 'Failed to update password.', 'error');
+            } finally {
+                updatePasswordBtn.disabled = false;
+                updatePasswordBtn.innerText = 'Update Password';
+            }
+        });
+    }
+
+    // Mock buttons triggers
+    document.getElementById('changePhotoBtn').addEventListener('click', () => {
+        alert('Selecting profile photo from local files...');
     });
-
-    // 2. معالجة تغيير كلمة المرور (Security Form)
-    document.getElementById('securityForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('updatePasswordBtn');
-        const oldPassword = document.getElementById('oldPassword').value;
-        const newPassword = document.getElementById('newPassword').value;
-        const repeatPassword = document.getElementById('repeatPassword').value;
-
-        // التحقق من تطابق كلمتي المرور
-        if (newPassword !== repeatPassword) {
-            showAlert('securityAlert', 'New passwords do not match.', 'error');
-            return;
-        }
-
-        btn.disabled = true;
-        btn.innerText = 'Updating...';
-
-        try {
-            // حسب ملف Swagger
-            // await fetchAPI('/api/Auth/change-password', {
-            //     method: 'POST',
-            //     body: JSON.stringify({ oldPassword, newPassword, repeatPassword })
-            // });
-
-            // محاكاة نجاح العملية
-            setTimeout(() => {
-                showAlert('securityAlert', 'Password changed successfully.', 'success');
-                e.target.reset(); // تفريغ الحقول
-                btn.disabled = false;
-                btn.innerText = 'Update Password';
-            }, 800);
-        } catch (error) {
-            showAlert('securityAlert', error.message || 'Failed to change password.', 'error');
-            btn.disabled = false;
-            btn.innerText = 'Update Password';
+    document.getElementById('removePhotoBtn').addEventListener('click', () => {
+        const preview = document.getElementById('profileImagePreview');
+        if (preview) {
+            preview.src = `https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff`;
         }
     });
 });

@@ -5,21 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AITU Repository - Academic Infrastructure</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/repository.css">
 </head>
 <body>
 
-    <header class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="30" height="30" onerror="this.style.display='none'">
-                AITU Repository
+    <!-- Unified Navbar matching other pages -->
+    <header class="repo-navbar" id="repoNavbar">
+        <div class="repo-navbar-inner">
+            <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
+                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="48" height="48" onerror="this.src='logos/aitu_logo.png'" style="border-radius:50%; border:1px solid #e2e8f0;">
+                <div style="display:flex; flex-direction:column; line-height:1.2;">
+                    <span class="repo-brand-name" style="font-size:1.3rem; font-weight:800; color:var(--primary-dark);">AITU</span>
+                    <span class="repo-brand-sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
+                </div>
             </div>
-            <ul class="nav-links">
-                <li><a href="index.html" class="active">Home</a></li>
-                <li><a href="repository.html">Explore</a></li>
-                <li><a href="#">Support</a></li>
-            </ul>
-            <button class="btn-primary" id="loginBtn"><a href="login.html">Login</a></button>
+            <nav class="repo-nav-links" id="repoNavLinks">
+                <a href="index.html" class="active">Home</a>
+                <a href="repository.html">Repository</a>
+                <a href="courses.html">Courses</a>
+            </nav>
+            <div class="repo-nav-right">
+                <button class="repo-login-btn" id="loginBtn" onclick="window.location.href='login.html'">Login</button>
+            </div>
         </div>
     </header>
 
@@ -30,9 +38,8 @@
                     <h1>Academic Infrastructure Repository</h1>
                     <p>The institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.</p>
                     <div class="hero-buttons">
-                        <button class="btn-primary" id="browseRepoBtn">Browse Public Repository</button>
-                        <button class="btn-outline">Get Help</button>
-                        <button class="btn-primary" style="background-color: var(--primary-blue);">Join AITU Academy</button>
+                        <button class="btn-primary" id="browseRepoBtn" onclick="window.location.href='repository.html'">Browse Public Repository</button>
+                        <button class="btn-outline" onclick="window.location.href='https://academy.aitu.edu.eg/'">Join AITU Academy</button>
                     </div>
                 </div>
                 <section class="hero">
@@ -50,7 +57,7 @@
                 <h2>Supported Departments</h2>
                 <div class="cards-grid">
                     
-                    <div class="dept-card">
+                    <div class="dept-card" onclick="window.location.href='repository.html?dept=IT'" style="cursor: pointer;">
                         <div class="dept-icon">
                             <svg viewBox="0 0 24 24">
                                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -65,7 +72,7 @@
                         <a href="repository.html?dept=IT" class="view-files-link">VIEW FILES &rarr;</a>
                     </div>
 
-                    <div class="dept-card">
+                    <div class="dept-card" onclick="window.location.href='repository.html?dept=EL'" style="cursor: pointer;">
                         <div class="dept-icon">
                             <svg viewBox="0 0 24 24">
                                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -76,7 +83,7 @@
                         <a href="repository.html?dept=EL" class="view-files-link">VIEW FILES &rarr;</a>
                     </div>
 
-                    <div class="dept-card">
+                    <div class="dept-card" onclick="window.location.href='repository.html?dept=ME'" style="cursor: pointer;">
                         <div class="dept-icon">
                             <svg viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="3"></circle>

@@ -1,14 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Repository - AITU Admin</title>
+    <title>Explore Programs - AITU File Management System</title>
+    <meta name="description"
+        content="Discover professional and academic courses tailored for the next generation of technological leaders at AITU.">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/repository.css">
+    <link rel="stylesheet" href="css/courses.css">
 </head>
+
 <body>
-    <div id="app"></div>
+    <!-- Public layout shell (hidden when admin) -->
+    <div id="publicShell" style="display:none;">
+        <!-- Public Navbar -->
+        <header class="repo-navbar" id="coursesNavbar">
+            <div class="repo-navbar-inner">
+                <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer;">
+                    <img src="logos/aitu_logo.png" alt="AITU Logo" width="32" height="32"
+                        onerror="this.src='logos/logo_AITU.jpg'">
+                    <div>
+                        <span class="repo-brand-name">AITU</span>
+                        <span class="repo-brand-sub">FILE MANAGEMENT SYSTEM</span>
+                    </div>
+                </div>
+                <nav class="repo-nav-links">
+                    <a href="index.html">Home</a>
+                    <a href="repository.html">Repository</a>
+                    <a href="courses.html" class="active">Courses</a>
+                </nav>
+                <div class="repo-nav-right">
+                    <div class="repo-global-search">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                        </svg>
+                        <input type="text" id="publicGlobalSearch" placeholder="Global search...">
+                    </div>
+                    <button class="repo-login-btn" id="coursesLoginBtn" onclick="window.location.href='login.html'">Login</button>
+                    <button class="repo-login-btn" id="coursesJoinBtn" style="background:var(--primary-blue);"
+                        onclick="window.location.href='login.html'">Join AITU</button>
+                </div>
+                <button class="repo-mobile-menu-btn" id="coursesMobileMenuBtn">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Two-column body -->
+        <div class="courses-public-body">
+            <!-- Left panel: sidebar + filters + CTA -->
+            <div class="courses-left-panel" id="coursesLeftPanel">
+                <div>
+                    <div class="dept-sidebar-title">ACADEMIC<br>DEPARTMENTS</div>
+                    <div id="coursesDeptTree"></div>
+                </div>
+
+                <div class="resource-type-box">
+                    <div class="resource-type-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4M12 8h.01" />
+                        </svg>
+                        Resource Type
+                    </div>
+                    <label class="resource-type-option"><input type="radio" name="resType" value="all" checked> Course
+                        Materials</label>
+                    <label class="resource-type-option"><input type="radio" name="resType" value="tools"> Software
+                        Tools</label>
+                    <label class="resource-type-option"><input type="radio" name="resType" value="papers"> Research
+                        Papers</label>
+                </div>
+
+                <div class="bulk-download-cta">
+                    <div class="bulk-icon">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                        </svg>
+                    </div>
+                    <h4>Bulk Downloads</h4>
+                    <p>Download entire semesters of technical resources in one click.</p>
+                    <a href="repository.html" class="browse-pkg-btn">Browse Packages</a>
+                </div>
+            </div>
+
+            <!-- Sidebar overlay for mobile -->
+            <div class="dept-sidebar-overlay" id="courseSidebarOverlay"></div>
+
+            <!-- Main content -->
+            <div class="courses-main" id="coursesMainContent">
+                <div class="courses-title-section">
+                    <h1>Explore Our Programs</h1>
+                    <p>Discover professional and academic courses tailored for the next generation of technological
+                        leaders.</p>
+                </div>
+
+                <div class="courses-search-bar">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" id="coursesSearchInput" placeholder="Search courses, professors, or keywords...">
+                </div>
+
+                <div class="courses-card-grid" id="publicCourseGrid"></div>
+
+                <div class="courses-pagination" id="coursesPagination"></div>
+            </div>
+        </div>
+
+        <!-- Public Footer -->
+        <footer class="repo-footer">
+            <div class="repo-footer-inner">
+                <div class="repo-footer-brand">
+                    <img src="logos/aitu_logo.png" alt="AITU" width="28" height="28"
+                        onerror="this.src='logos/logo_AITU.jpg'">
+                    <div>
+                        <strong>AITU File Sharing System</strong>
+                        <span>Centralizing academic intelligence with precision.</span>
+                    </div>
+                </div>
+                <div class="repo-footer-copy">&copy; 2026 Assiut International Technological University. All rights
+                    reserved.</div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Admin layout shell -->
+    <div id="app" style="display:none;"></div>
+
     <script type="module" src="js/pages/courses.js"></script>
 </body>
+
 </html>

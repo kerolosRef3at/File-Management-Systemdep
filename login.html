@@ -1,31 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AITU Admin Portal</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
     <div class="auth-layout">
         <div class="auth-brand">
-            <div class="auth-brand-content">
-                <div class="auth-logo">
-                    <img src="logos/aitu_logo.png" alt="AITU" width="50" height="50" onerror="this.style.display='none'">
-                    AITU File System
-                </div>
-                <h1>Manage Academic Tasks with Precision.</h1>
-                <p>Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
-                
-                <div class="auth-badges">
-                    <span class="badge">Kanban Boards</span>
-                    <span class="badge">Team Management</span>
-                    <span class="badge">Auto Reports</span>
-                    <span class="badge">Role-Based Access</span>
+            <!-- Top Header info -->
+            <div class="auth-brand-header">
+                <img src="logos/logo_AITU.jpg" alt="AITU Logo" class="auth-brand-logo" onerror="this.src='logos/aitu_logo.png'">
+                <div class="auth-brand-header-text">
+                    <div class="auth-brand-uni-name">Assiut International Technological University - AITU</div>
+                    <div class="auth-brand-system-name">File Management System</div>
                 </div>
             </div>
-            <div style="position: absolute; bottom: 30px; left: 60px; font-size: 0.85rem; color: #94a3b8;">
+
+            <div class="auth-brand-content">
+                <!-- Green Dot File System pill -->
+                <div class="auth-system-pill">
+                    <span class="auth-pill-dot"></span>
+                    File System
+                </div>
+
+                <h1 class="auth-main-title">File Management System</h1>
+                <p class="auth-main-desc">Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
+
+                <!-- List items with icons -->
+                <div class="auth-features-list">
+                    <div class="auth-feature-item">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22h20M6 12v5c0 2 2 3 6 3s6-1 6-3v-5M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
+                        </div>
+                        <div class="auth-feature-text">
+                            <h3>Course</h3>
+                            <p>All the Course you need in one place</p>
+                        </div>
+                    </div>
+                    
+                    <div class="auth-feature-item">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        </div>
+                        <div class="auth-feature-text">
+                            <h3>Programs</h3>
+                            <p>All the programs you need in one place</p>
+                        </div>
+                    </div>
+
+                    <div class="auth-feature-item">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 14v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="auth-feature-text">
+                            <h3>Department</h3>
+                            <p>-----</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="auth-stats-row">
+                    <div class="auth-stat-col">
+                        <div class="auth-stat-num">6</div>
+                        <div class="auth-stat-lbl">Course</div>
+                    </div>
+                    <div class="auth-stat-col">
+                        <div class="auth-stat-num">20+</div>
+                        <div class="auth-stat-lbl">Programs</div>
+                    </div>
+                    <div class="auth-stat-col">
+                        <div class="auth-stat-num">3</div>
+                        <div class="auth-stat-lbl">Departments</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer copyright at bottom -->
+            <div class="auth-brand-footer">
                 &copy; 2026 Assiut International Technological University
             </div>
         </div>
@@ -38,14 +95,17 @@
                 <form id="loginForm">
                     <div class="form-group">
                         <label for="username">Username or Email Address</label>
-                        <input type="text" id="username" class="form-control" placeholder="Enter Your Email/Username" required>
+                        <input type="text" id="username" class="form-control" placeholder="Enter Your Email/Username"
+                            required>
                     </div>
 
                     <div class="form-group">
                         <label for="password">Password</label>
-                        <input type="password" id="password" class="form-control has-icon" placeholder="********" required>
+                        <input type="password" id="password" class="form-control has-icon" placeholder="********"
+                            required>
                         <span class="toggle-password" id="togglePasswordBtn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
+                                fill="none" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                 <circle cx="12" cy="12" r="3"></circle>
                             </svg>
@@ -55,18 +115,16 @@
                     <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
 
                     <button type="submit" class="btn-primary btn-block" id="submitBtn">Login</button>
-                    
-                    <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+
+                    <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;">
+                    </div>
                 </form>
 
-                <div class="info-alert">
-                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                    <span>Enter your email and password to sign in to your account.</span>
-                </div>
             </div>
         </div>
     </div>
 
     <script type="module" src="js/pages/login.js"></script>
 </body>
+
 </html>

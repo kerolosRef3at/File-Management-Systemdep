@@ -1,29 +1,40 @@
 // js/pages/logs.js
+import { protectPage } from '../shared/auth.js';
+import { logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
-import { fetchAPI } from '../shared/api.js';
+import { renderSkeleton, showAlert } from '../shared/components.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // رسم الـ Layout وتحديد الصفحة النشطة كـ logs
+document.addEventListener('DOMContentLoaded', async () => {
+    // Guards access: Logs Page is strictly restricted to Supervisor role
+    if (!protectPage(['Supervisor'])) {
+        return;
+    }
+
+    // Render navigation bar
     renderLayout('logs');
 
     const contentArea = document.getElementById('page-content');
+    if (!contentArea) return;
+
     let allLogs = [];
 
-    // حقن محتوى الصفحة
+    // Inject outer layout framework
     contentArea.innerHTML = `
-        <div class="page-header-actions">
+        <div class="page-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:15px;">
             <div>
                 <h1 style="color: var(--primary-dark); font-size: 2rem;">AITU System Logs</h1>
                 <p style="color: var(--text-gray);"><strong style="color:var(--text-dark);" id="logCount">0</strong> events recorded — full administrator activity trail</p>
             </div>
-            <button class="btn-outline" style="display:flex; align-items:center; gap:8px;">
+            <button class="btn-outline" id="exportCSVBtn" style="display:flex; align-items:center; gap:8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                 Export CSV
             </button>
         </div>
 
+        <div id="logsPageAlerts"></div>
+
         <div class="logs-filters-container">
-            <div class="chips-wrapper" id="actionChips">
+            <div class="chips-wrapper" id="actionChips" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border-color);">
                 <button class="chip-btn active" data-action="all">ALL</button>
                 <button class="chip-btn" data-action="Login"><span class="action-dot dot-blue"></span> Login</button>
                 <button class="chip-btn" data-action="Add File"><span class="action-dot dot-green"></span> Add File</button>
@@ -36,16 +47,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="chip-btn" data-action="Update Profile"><span class="action-dot dot-blue"></span> Update Profile</button>
             </div>
 
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <div class="search-bar" style="flex: 1;">
+            <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
+                <div class="search-bar" style="flex: 1; min-width: 250px;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="logSearch" placeholder="Search by admin or target...">
                 </div>
-                <input type="date" id="dateFilter" class="form-control" style="width: auto;">
+                <input type="date" id="dateFilter" class="form-control" style="width: auto; height: 38px;">
             </div>
         </div>
 
-        <div class="dashboard-panel" style="padding: 0; overflow: hidden;">
+        <div class="dashboard-panel" style="padding: 0; overflow: hidden; background:white; border: 1px solid var(--border-color); border-radius:10px;">
             <table class="data-table" style="width: 100%;">
                 <thead style="background: #f8fafc;">
                     <tr>
@@ -63,20 +74,40 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
-    // دالة مساعدة لتحديد ستايل الـ Badge بناءً على الـ Role
+    const logsTableBody = document.getElementById('logsTableBody');
+    const alertsContainer = document.getElementById('logsPageAlerts');
+    const logCountEl = document.getElementById('logCount');
+
+    // Load logs from logService
+    async function loadLogs() {
+        renderSkeleton(logsTableBody, 'table', 5);
+        try {
+            // TODO: GET /api/Admin/logs
+            allLogs = await logService.getLogs();
+            applyFilters();
+        } catch (error) {
+            showAlert(alertsContainer, error.message || 'Failed to fetch system logs.', 'error');
+        }
+    }
+
+    // Role styling utility
     function getRoleBadgeClass(role) {
-        if(role === 'Supervisor') return 'role-supervisor';
-        if(role === 'IT Manager') return 'role-it';
-        if(role === 'EL Manager') return 'role-el';
+        const r = role.toLowerCase();
+        if (r === 'supervisor') return 'role-supervisor';
+        if (r === 'it manager') return 'role-it';
+        if (r === 'el manager') return 'role-el';
         return 'role-me';
     }
 
-    // دالة مساعدة لتحديد لون النقطة بناءً على العملية
+    // Color code log action category dots
     function getActionDotColor(action) {
         const actionMap = {
-            'Login': 'dot-blue', 'Update Profile': 'dot-blue',
-            'Add File': 'dot-green', 'Create Folder': 'dot-green',
-            'Delete File': 'dot-red', 'Delete User': 'dot-red',
+            'Login': 'dot-blue', 
+            'Update Profile': 'dot-blue',
+            'Add File': 'dot-green', 
+            'Create Folder': 'dot-green',
+            'Delete File': 'dot-red', 
+            'Delete User': 'dot-red',
             'Change Password': 'dot-orange',
             'Upload Video': 'dot-purple',
             'Add User': 'dot-cyan'
@@ -84,75 +115,55 @@ document.addEventListener('DOMContentLoaded', () => {
         return actionMap[action] || 'dot-blue';
     }
 
-    // جلب الداتا
-    async function loadLogs() {
-        try {
-            // حسب ملف Swagger، الـ endpoint هو /api/Admin/logs
-            const response = await fetchAPI('/api/Admin/logs');
-            allLogs = response.data || generateMockLogs();
-        } catch (error) {
-            console.warn("API failed. Loading mock logs.");
-            allLogs = generateMockLogs();
-        }
-        renderLogs(allLogs);
-    }
-
-    function generateMockLogs() {
-        return [
-            { id: 1, admin: "admin", role: "Supervisor", action: "Login", target: "System", datetime: "2026-06-23 08:14:32" },
-            { id: 2, admin: "j.carter", role: "IT Manager", action: "Upload Video", target: "Python for Engineers", datetime: "2026-06-23 09:02:18" },
-            { id: 3, admin: "admin", role: "Supervisor", action: "Add User", target: "k.nguyen", datetime: "2026-06-23 10:35:44" },
-            { id: 4, admin: "m.silva", role: "EL Manager", action: "Create Folder", target: "Power Systems Analysis", datetime: "2026-06-22 14:22:07" },
-            { id: 5, admin: "r.hayes", role: "Mechanic Manager", action: "Add File", target: "GD&T Advisor 4.0", datetime: "2026-06-22 15:48:33" },
-            { id: 6, admin: "admin", role: "Supervisor", action: "Change Password", target: "Own Account", datetime: "2026-06-21 11:05:19" },
-            { id: 7, admin: "j.carter", role: "IT Manager", action: "Update Profile", target: "Own Account", datetime: "2026-06-21 13:17:55" }
-        ];
-    }
-
+    // Draw logs table lines
     function renderLogs(logsToRender) {
-        const tbody = document.getElementById('logsTableBody');
-        tbody.innerHTML = '';
-        document.getElementById('logCount').innerText = logsToRender.length;
+        logsTableBody.innerHTML = '';
+        logCountEl.innerText = logsToRender.length;
 
-        if(logsToRender.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">No logs match your filter.</td></tr>';
+        if (logsToRender.length === 0) {
+            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">No logs match filter guidelines.</td></tr>';
             return;
         }
 
         logsToRender.forEach(log => {
             const initial = log.admin.charAt(0).toUpperCase();
             const tr = document.createElement('tr');
+            
+            // Format datetime: split space and add sub label span
+            const formattedTime = log.datetime.replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal; font-size:0.8rem;">') + '</span>';
+
             tr.innerHTML = `
                 <td style="padding: 15px 20px;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                        <div class="user-avatar" style="width:30px; height:30px; font-size:0.8rem;">${initial}</div>
+                        <div class="user-avatar" style="
+                            width:30px; height:30px; border-radius: 50%; background-color: var(--primary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
+                        ">${initial}</div>
                         <span style="font-weight:600; color:var(--primary-dark);">${log.admin}</span>
                     </div>
                 </td>
-                <td><span class="role-badge ${getRoleBadgeClass(log.role)}">${log.role}</span></td>
+                <td><span class="role-badge ${getRoleBadgeClass(log.role)}" style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block;">${log.role === 'Mechanic Manager' ? 'Mechanical Manager' : log.role}</span></td>
                 <td style="font-weight:600; color:var(--primary-dark);">
-                    <span class="action-dot ${getActionDotColor(log.action)}" style="margin-right:8px;"></span>${log.action}
+                    <span class="action-dot ${getActionDotColor(log.action)}" style="
+                        width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;
+                    "></span>${log.action}
                 </td>
                 <td style="color: var(--text-gray);">${log.target}</td>
-                <td style="font-size:0.85rem; font-weight:600; color:var(--primary-dark);">${log.datetime.replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal;">')}</span></td>
+                <td style="font-size:0.85rem; font-weight:600; color:var(--primary-dark); line-height:1.2;">${formattedTime}</td>
             `;
-            tbody.appendChild(tr);
+            logsTableBody.appendChild(tr);
         });
     }
 
-    // --- الفلترة والبحث ---
+    // Unified filter execution
     const searchInput = document.getElementById('logSearch');
     const dateFilter = document.getElementById('dateFilter');
-    const actionChips = document.querySelectorAll('.chip-btn');
     let currentActionFilter = 'all';
 
     function applyFilters() {
-        const term = searchInput.value.toLowerCase();
-        const selectedDate = dateFilter.value; // format: YYYY-MM-DD
+        const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedDate = dateFilter ? dateFilter.value : ''; // format: YYYY-MM-DD
 
-        let filtered = allLogs.filter(log => 
-            log.admin.toLowerCase().includes(term) || log.target.toLowerCase().includes(term)
-        );
+        let filtered = allLogs;
 
         if (currentActionFilter !== 'all') {
             filtered = filtered.filter(log => log.action === currentActionFilter);
@@ -162,13 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
             filtered = filtered.filter(log => log.datetime.startsWith(selectedDate));
         }
 
+        if (term) {
+            filtered = filtered.filter(log => 
+                log.admin.toLowerCase().includes(term) || 
+                log.target.toLowerCase().includes(term)
+            );
+        }
+
         renderLogs(filtered);
     }
 
-    // تشغيل الـ Chips
-    actionChips.forEach(chip => {
+    // Attach actions chips select event listener
+    document.querySelectorAll('.chip-btn').forEach(chip => {
         chip.addEventListener('click', (e) => {
-            actionChips.forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('active'));
             const targetChip = e.currentTarget;
             targetChip.classList.add('active');
             
@@ -177,8 +195,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    searchInput.addEventListener('input', applyFilters);
-    dateFilter.addEventListener('change', applyFilters);
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (dateFilter) dateFilter.addEventListener('change', applyFilters);
 
-    loadLogs();
+    // Export log registry handler
+    const csvBtn = document.getElementById('exportCSVBtn');
+    if (csvBtn) {
+        csvBtn.addEventListener('click', () => {
+            alert('Exporting system log trails spreadsheet registry...');
+        });
+    }
+
+    // First load
+    await loadLogs();
 });

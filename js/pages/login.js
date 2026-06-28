@@ -1,94 +1,109 @@
 // js/pages/login.js
-import { fetchAPI } from '../shared/api.js';
+import { authService } from '../shared/services.js';
+import { showAlert } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
     const togglePasswordBtn = document.getElementById('togglePasswordBtn');
     const passwordInput = document.getElementById('password');
     const usernameInput = document.getElementById('username');
-    const errorMessage = document.getElementById('errorMessage');
+    const alertContainer = document.getElementById('errorMessage');
     const submitBtn = document.getElementById('submitBtn');
 
-    // 1. تشغيل زر إظهار/إخفاء الباسورد
+    // 1. Password eye visibility toggle
     if (togglePasswordBtn && passwordInput) {
         togglePasswordBtn.addEventListener('click', () => {
             const isPassword = passwordInput.getAttribute('type') === 'password';
             passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
-            
-            // تغيير لون الأيقونة لما الباسورد يكون ظاهر
             togglePasswordBtn.style.color = isPassword ? 'var(--primary-blue)' : 'var(--text-gray)';
         });
     }
 
-    // دالة مساعدة لإظهار رسائل الخطأ
-    function showError(msg) {
-        errorMessage.innerText = msg;
-        errorMessage.style.display = 'block';
-    }
-
-    // 2. التحقق الذكي (Smart Validation) وإرسال الفورم
+    // 2. Submit form and validate fields
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // منع إعادة تحميل الصفحة
+            e.preventDefault(); 
             
-            errorMessage.style.display = 'none'; // إخفاء الخطأ القديم
-            
+            // Hide previous alerts
+            if (alertContainer) {
+                alertContainer.style.display = 'none';
+            }
+
             const usernameValue = usernameInput.value.trim();
             const passwordValue = passwordInput.value;
 
-            // --- بداية التحقق (Validation) ---
-            
-            // إذا كان النص يحتوي على @، افحصه كإيميل
+            // Form validations
             if (usernameValue.includes('@')) {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(usernameValue)) {
-                    showError('Please enter a valid email address.');
-                    return; // إيقاف الإرسال
+                    showAlert(alertContainer, 'Please enter a valid email address.', 'error');
+                    return;
                 }
             } else {
-                // إذا لم يحتوي على @، افحصه كـ Username
                 if (usernameValue.length < 3) {
-                    showError('Username must be at least 3 characters long.');
-                    return; // إيقاف الإرسال
+                    showAlert(alertContainer, 'Username must be at least 3 characters long.', 'error');
+                    return;
                 }
             }
 
-            // فحص طول الباسورد
             if (passwordValue.length < 6) {
-                showError('Password must be at least 6 characters.');
+                showAlert(alertContainer, 'Password must be at least 6 characters.', 'error');
                 return;
             }
-            
-            // --- نهاية التحقق ---
 
-            // تفعيل حالة الـ Loading
+            // Set loading state
             const originalBtnText = submitBtn.innerText;
-            submitBtn.innerText = 'Logging in...';
+            submitBtn.innerText = 'Signing In...';
             submitBtn.disabled = true;
 
             try {
-                // إرسال البيانات للـ API
-                const response = await fetchAPI('/api/Auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({ username: usernameValue, password: passwordValue })
-                });
-
-                // التحقق من نجاح الرد
+                // TODO: POST /api/Auth/login
+                const response = await authService.login(usernameValue, passwordValue);
+                
                 if (response && response.token) {
-                    localStorage.setItem('aitu_token', response.token);
-                    window.location.href = 'repository.html'; 
-                } else {
-                    // (مؤقت لحين تشغيل الباك اند الحقيقي: توجيه مباشر للاختبار)
-                    console.warn("API token not found. Simulating successful login for frontend testing.");
-                    window.location.href = 'repository.html';
+                    // Redirect based on role permissions
+                    if (response.role === 'Public User') {
+                        window.location.href = 'repository.html';
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
                 }
-
             } catch (error) {
-                showError(error.message || 'Login failed. Please check your credentials.');
+                showAlert(alertContainer, error.message || 'Login failed. Please check credentials.', 'error');
             } finally {
                 submitBtn.innerText = originalBtnText;
                 submitBtn.disabled = false;
             }
         });
     }
+
+    // 3. Stats counter animation (only for login page)
+    const statsNumEls = document.querySelectorAll('.auth-stat-num');
+    statsNumEls.forEach(el => {
+        const originalText = el.textContent.trim();
+        const hasPlus = originalText.includes('+');
+        const target = parseInt(originalText, 10);
+        if (isNaN(target)) return;
+
+        // Set to 0 immediately
+        el.textContent = '0' + (hasPlus ? '+' : '');
+
+        let current = 0;
+        const duration = 600; // 0.6 seconds (very fast)
+        const frameRate = 1000 / 60; // 60 fps
+        const totalFrames = Math.round(duration / frameRate);
+        const increment = target / totalFrames;
+        let frame = 0;
+
+        const counter = setInterval(() => {
+            frame++;
+            current += increment;
+            if (frame >= totalFrames) {
+                clearInterval(counter);
+                el.textContent = originalText;
+            } else {
+                el.textContent = Math.floor(current) + (hasPlus ? '+' : '');
+            }
+        }, frameRate);
+    });
 });

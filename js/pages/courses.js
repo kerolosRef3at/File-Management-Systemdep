@@ -1,129 +1,406 @@
 // js/pages/courses.js
 import { renderLayout } from '../shared/layout.js';
+import { courseService } from '../shared/services.js';
+import { getCurrentUser } from '../shared/auth.js';
+import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
+import { mockDepartments } from '../shared/mockData.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. رسم القائمة الجانبية (active page = courses)
-    renderLayout('courses');
+document.addEventListener('DOMContentLoaded', async () => {
+    const user = getCurrentUser();
+    const isAdmin = user && !['Public User'].includes(user.role);
+    const canManageCourses = user && ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'].includes(user.role);
 
-    const contentArea = document.getElementById('page-content');
+    let allCourses = [];
+    let currentDeptFilter = 'all';
+    let searchTerm = '';
+    let currentPage = 1;
+    const coursesPerPage = 6;
 
-    // 2. الداتا الوهمية للكورسات (لعدم وجود API حالياً)
-    const mockCourses = [
-        { id: 1, title: "Advanced Software Architecture & Design Patterns", dept: "IT", img: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=500", lessons: 24, size: "1.2 GB" },
-        { id: 2, title: "Fluid Dynamics and Thermodynamics Laboratory", dept: "ME", img: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&q=80&w=500", lessons: 18, size: "850 MB" },
-        { id: 3, title: "Digital Logic Design & Microprocessors", dept: "EL", img: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=500", lessons: 32, size: "2.4 GB" },
-        { id: 4, title: "Introduction to Machine Learning & Neural Networks", dept: "IT", img: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=500", lessons: 28, size: "3.1 GB" },
-        { id: 5, title: "Robotics Systems Engineering & Automation", dept: "ME", img: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=500", lessons: 42, size: "5.2 GB" }
-    ];
-
-    // 3. دالة تحديد لون الـ Badge حسب القسم
-    function getDeptColor(dept) {
-        if (dept === 'IT') return '#0284c7'; // Blue
-        if (dept === 'ME') return '#ef4444'; // Red
-        if (dept === 'EL') return '#d97706'; // Yellow/Orange
-        return 'var(--primary-dark)';
+    // ============================
+    // DECIDE: PUBLIC or ADMIN
+    // ============================
+    if (isAdmin) {
+        renderAdminView();
+    } else {
+        renderPublicView();
     }
 
-    // 4. بناء الهيكل الأساسي للواجهة
-    contentArea.innerHTML = `
-        <div class="courses-header">
-            <div>
-                <h1 style="color: var(--primary-dark); font-size: 2rem;">Course Repository</h1>
-                <p style="color: var(--text-gray);">Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.</p>
-            </div>
-            <div class="dept-tabs" id="deptTabs">
-                <button class="dept-tab active" data-dept="all">All Departments</button>
-                <button class="dept-tab" data-dept="IT">IT</button>
-                <button class="dept-tab" data-dept="ME">ME</button>
-                <button class="dept-tab" data-dept="EL">EL</button>
-            </div>
-        </div>
+    // ============================
+    // PUBLIC VIEW
+    // ============================
+    function renderPublicView() {
+        document.getElementById('publicShell').style.display = 'block';
+        document.getElementById('app').style.display = 'none';
 
-        <div class="course-grid" id="courseGrid"></div>
+        // Handle logged-in navbar state
+        const loginBtnEl = document.getElementById('coursesLoginBtn');
+        const joinBtnEl = document.getElementById('coursesJoinBtn');
+        if (user) {
+            if (joinBtnEl) joinBtnEl.style.display = 'none';
+            if (loginBtnEl) {
+                loginBtnEl.textContent = 'Logout';
+                loginBtnEl.style.backgroundColor = '#E63946';
+                loginBtnEl.onclick = () => {
+                    import('../shared/auth.js').then(auth => auth.logout());
+                };
+            }
+        }
 
-        <div style="text-align: center; padding-top: 20px; border-top: 1px solid var(--border-color);">
-            <p style="color: var(--text-gray); font-size: 0.85rem; margin-bottom: 15px;">Showing <span id="visibleCount">0</span> of 124 Courses</p>
-            <button class="btn-outline">Load More Resources</button>
-        </div>
-    `;
+        // Mobile sidebar toggle
+        const mobileBtn = document.getElementById('coursesMobileMenuBtn');
+        const leftPanel = document.getElementById('coursesLeftPanel');
+        const overlay = document.getElementById('courseSidebarOverlay');
 
-    const courseGrid = document.getElementById('courseGrid');
-
-    // 5. دالة رسم الكروت
-    // 5. دالة رسم الكروت (بعد التعديل لربطها بصفحة التفاصيل)
-    function renderCourses(courses) {
-        courseGrid.innerHTML = ''; // تفريغ الشبكة
-
-        // رسم كروت الكورسات
-        courses.forEach(course => {
-            // إنشاء الكارت كعنصر HTML
-            const card = document.createElement('div');
-            card.className = 'course-card';
-            card.style.cursor = 'pointer';
-            
-            // ربط الكارت بصفحة التفاصيل وتمرير الـ ID
-            card.addEventListener('click', () => { 
-                window.location.href = `course-details.html?id=${course.id}`; 
+        if (mobileBtn && leftPanel && overlay) {
+            mobileBtn.addEventListener('click', () => {
+                leftPanel.classList.toggle('open');
+                overlay.classList.toggle('active');
             });
+            overlay.addEventListener('click', () => {
+                leftPanel.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
 
-            // إضافة المحتوى الداخلي
-            card.innerHTML = `
-                <div class="course-thumbnail">
-                    <span class="course-badge" style="background-color: ${getDeptColor(course.dept)};">${course.dept}</span>
-                    <img src="${course.img}" alt="${course.title}" style="width:100%; height:100%; object-fit:cover;">
-                </div>
-                <div class="course-info">
-                    <h3>${course.title}</h3>
-                    <div class="course-meta">
-                        <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> ${course.lessons} Lessons</span>
-                        <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg> ${course.size}</span>
+        // Department sidebar tree
+        renderPublicDeptTree();
+
+        // Search
+        const searchInput = document.getElementById('coursesSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                searchTerm = searchInput.value.trim().toLowerCase();
+                currentPage = 1;
+                renderPublicCourses();
+            });
+        }
+
+        // Load courses
+        loadAndRenderPublic();
+    }
+
+    async function loadAndRenderPublic() {
+        try {
+            allCourses = await courseService.getCourses();
+            renderPublicCourses();
+        } catch (e) {
+            document.getElementById('publicCourseGrid').innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">Failed to load courses.</p>';
+        }
+    }
+
+    function renderPublicDeptTree() {
+        const tree = document.getElementById('coursesDeptTree');
+        if (!tree) return;
+
+        let html = '';
+        mockDepartments.forEach(dept => {
+            const isExpanded = currentDeptFilter === dept.id;
+            const deptIconSvg = getDeptIconSvg(dept.icon);
+
+            html += `
+                <div class="dept-group">
+                    <div class="dept-group-header ${isExpanded ? 'expanded' : ''}" data-dept="${dept.id}">
+                        <svg class="dept-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${deptIconSvg}</svg>
+                        <span class="dept-group-name">${dept.name}</span>
+                        <svg class="dept-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </div>
+                    <div class="dept-programs ${isExpanded ? 'open' : ''}" data-dept-programs="${dept.id}">
+                        ${dept.programs.map(prog => `
+                            <div class="dept-program-item" data-program="${prog.id}" data-dept="${dept.id}">
+                                ${prog.name}
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
-
-            courseGrid.appendChild(card);
         });
 
-        // إضافة كارت (إنشاء كورس جديد) في النهاية
-        const addCard = document.createElement('div');
-        addCard.className = 'add-course-card';
-        addCard.innerHTML = `
-            <div class="add-course-icon">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            </div>
-            <h3>Upload New Course</h3>
-            <p>Standardize curriculum by adding new course modules to the central repository.</p>
-        `;
-        
-        // توجيه كارت الإنشاء لصفحة Builder
-        addCard.addEventListener('click', () => {
-            window.location.href = 'create-course.html';
-        });
-        
-        courseGrid.appendChild(addCard);
+        tree.innerHTML = html;
 
-        document.getElementById('visibleCount').innerText = courses.length;
+        // Click handlers
+        tree.querySelectorAll('.dept-group-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const deptId = header.dataset.dept;
+                const isOpen = header.classList.contains('expanded');
+
+                tree.querySelectorAll('.dept-group-header').forEach(h => h.classList.remove('expanded'));
+                tree.querySelectorAll('.dept-programs').forEach(p => p.classList.remove('open'));
+
+                if (!isOpen) {
+                    header.classList.add('expanded');
+                    tree.querySelector(`[data-dept-programs="${deptId}"]`).classList.add('open');
+                    currentDeptFilter = deptId;
+                } else {
+                    currentDeptFilter = 'all';
+                }
+
+                currentPage = 1;
+                renderPublicCourses();
+            });
+        });
     }
 
-    // 6. تفعيل أزرار الفلترة
-    const tabs = document.querySelectorAll('.dept-tab');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            // تظبيط الـ UI للأزرار
-            tabs.forEach(t => t.classList.remove('active'));
-            e.target.classList.add('active');
+    function renderPublicCourses() {
+        const grid = document.getElementById('publicCourseGrid');
+        if (!grid) return;
 
-            // فلترة الداتا
-            const dept = e.target.getAttribute('data-dept');
-            if (dept === 'all') {
-                renderCourses(mockCourses);
-            } else {
-                const filtered = mockCourses.filter(c => c.dept === dept);
-                renderCourses(filtered);
-            }
+        let filtered = [...allCourses];
+
+        if (currentDeptFilter !== 'all') {
+            filtered = filtered.filter(c => c.dept === currentDeptFilter);
+        }
+
+        if (searchTerm) {
+            filtered = filtered.filter(c =>
+                c.title.toLowerCase().includes(searchTerm) ||
+                (c.description && c.description.toLowerCase().includes(searchTerm)) ||
+                c.dept.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        const total = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(total / coursesPerPage));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const startIdx = (currentPage - 1) * coursesPerPage;
+        const pageCourses = filtered.slice(startIdx, startIdx + coursesPerPage);
+
+        if (total === 0) {
+            grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">No courses match your criteria.</p>';
+            document.getElementById('coursesPagination').innerHTML = '';
+            return;
+        }
+
+        grid.innerHTML = pageCourses.map(course => {
+            const deptClass = course.dept.toLowerCase();
+            return `
+                <div class="course-card-public" data-course-id="${course.id}">
+                    <div class="course-card-thumb">
+                        <img src="${course.img}" alt="${course.title}" loading="lazy">
+                        <div class="course-card-badges">
+                            <span class="course-badge-dept ${deptClass}">${course.dept}</span>
+                            ${course.category ? `<span class="course-badge-cat">${course.category}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="course-card-body">
+                        <h3>${course.title}</h3>
+                        <p class="course-card-desc">${course.description || ''}</p>
+                        <div class="course-card-meta">
+                            <span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                ${course.lessons} Lessons
+                            </span>
+                            <span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                                ${course.size}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Card click → course details
+        grid.querySelectorAll('.course-card-public').forEach(card => {
+            card.addEventListener('click', () => {
+                window.location.href = `course-details.html?id=${card.dataset.courseId}`;
+            });
         });
-    });
 
-    // رسم كل الكورسات عند بداية التحميل
-    renderCourses(mockCourses);
+        // Pagination
+        renderPublicPagination(total, totalPages);
+    }
+
+    function renderPublicPagination(total, totalPages) {
+        const pag = document.getElementById('coursesPagination');
+        if (!pag || totalPages <= 1) {
+            if (pag) pag.innerHTML = '';
+            return;
+        }
+
+        let html = `<button class="repo-page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>`;
+
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button class="repo-page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+        }
+
+        html += `<button class="repo-page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>`;
+
+        pag.innerHTML = html;
+
+        pag.querySelectorAll('.repo-page-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
+                if (page === 'prev') currentPage = Math.max(1, currentPage - 1);
+                else if (page === 'next') currentPage = Math.min(totalPages, currentPage + 1);
+                else currentPage = parseInt(page);
+                renderPublicCourses();
+            });
+        });
+    }
+
+    // ============================
+    // ADMIN VIEW
+    // ============================
+    function renderAdminView() {
+        document.getElementById('publicShell').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+
+        renderLayout('courses');
+
+        const contentArea = document.getElementById('page-content');
+        if (!contentArea) return;
+
+        contentArea.innerHTML = `
+            <div class="admin-courses-header">
+                <div>
+                    <h1>Course Repository</h1>
+                    <p>Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.</p>
+                </div>
+                <div class="admin-dept-tabs" id="adminDeptTabs">
+                    <button class="admin-dept-tab active" data-dept="all">All Departments</button>
+                    <button class="admin-dept-tab" data-dept="IT">IT</button>
+                    <button class="admin-dept-tab" data-dept="ME">ME</button>
+                    <button class="admin-dept-tab" data-dept="EL">EL</button>
+                </div>
+            </div>
+            <div id="adminAlerts"></div>
+            <div class="admin-course-grid" id="adminCourseGrid"></div>
+            <div class="admin-course-footer">
+                <p>Showing <span id="adminVisibleCount">0</span> of <span id="adminTotalCount">124</span> Courses</p>
+                <button class="btn-outline" id="adminLoadMoreBtn">Load More Resources</button>
+            </div>
+        `;
+
+        // Tab click handlers
+        const tabs = document.querySelectorAll('.admin-dept-tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentDeptFilter = tab.dataset.dept;
+                renderAdminCourses();
+            });
+        });
+
+        // Load More
+        document.getElementById('adminLoadMoreBtn').addEventListener('click', () => {
+            alert('Loading additional archived curriculum entries...');
+        });
+
+        // Top search bar integration
+        const layoutSearch = document.getElementById('globalSearchInput');
+        if (layoutSearch) {
+            layoutSearch.addEventListener('input', (e) => {
+                searchTerm = e.target.value.toLowerCase().trim();
+                renderAdminCourses();
+            });
+        }
+
+        loadAndRenderAdmin();
+    }
+
+    async function loadAndRenderAdmin() {
+        const grid = document.getElementById('adminCourseGrid');
+        const alertsContainer = document.getElementById('adminAlerts');
+
+        try {
+            allCourses = await courseService.getCourses();
+            renderAdminCourses();
+        } catch (error) {
+            showAlert(alertsContainer, error.message || 'Failed to fetch course repository.', 'error');
+            renderEmptyState(grid, 'Unable to load courses.');
+        }
+    }
+
+    function getDeptBadgeColor(dept) {
+        if (dept === 'IT') return 'it';
+        if (dept === 'ME') return 'me';
+        if (dept === 'EL') return 'el';
+        return 'it';
+    }
+
+    function renderAdminCourses() {
+        const grid = document.getElementById('adminCourseGrid');
+        if (!grid) return;
+
+        let filtered = [...allCourses];
+
+        if (currentDeptFilter !== 'all') {
+            filtered = filtered.filter(c => c.dept === currentDeptFilter);
+        }
+
+        if (searchTerm) {
+            filtered = filtered.filter(c => c.title.toLowerCase().includes(searchTerm));
+        }
+
+        grid.innerHTML = filtered.map(course => `
+            <div class="admin-course-card" data-id="${course.id}">
+                <div class="admin-card-thumb">
+                    <img src="${course.img}" alt="${course.title}" loading="lazy">
+                    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${course.dept}</span>
+                </div>
+                <div class="admin-card-body">
+                    <h3>${course.title}</h3>
+                    <div class="admin-card-meta">
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            ${course.lessons} Lessons
+                        </span>
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            ${course.size}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Add "Upload New Course" card if allowed
+        if (canManageCourses) {
+            grid.innerHTML += `
+                <div class="admin-add-course-card" id="addNewCourseCard">
+                    <div class="admin-add-icon">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </div>
+                    <h3>Upload New Course</h3>
+                    <p>Standardize curriculum by adding new course modules to the central repository.</p>
+                </div>
+            `;
+            document.getElementById('addNewCourseCard').addEventListener('click', () => {
+                window.location.href = 'create-course.html';
+            });
+        }
+
+        // Card clicks → course details
+        grid.querySelectorAll('.admin-course-card').forEach(card => {
+            card.addEventListener('click', () => {
+                window.location.href = `course-details.html?id=${card.dataset.id}`;
+            });
+        });
+
+        // Update counts
+        const visible = document.getElementById('adminVisibleCount');
+        if (visible) visible.innerText = filtered.length;
+    }
+
+    // ============================
+    // UTILITY
+    // ============================
+    function getDeptIconSvg(icon) {
+        switch (icon) {
+            case 'monitor':
+                return '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>';
+            case 'zap':
+                return '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>';
+            case 'settings':
+                return '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>';
+            default:
+                return '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>';
+        }
+    }
 });

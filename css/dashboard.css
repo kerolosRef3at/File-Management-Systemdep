@@ -1,0 +1,740 @@
+/* =========================================
+   Dashboard Page Styles
+   Matches Figma design pixel-perfect
+========================================= */
+
+/* --- Page Header --- */
+.dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.dash-header-left h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1A1F36;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+}
+
+.dash-header-left p {
+    font-size: 13px;
+    font-weight: 400;
+    color: #6B7A99;
+    margin: 0;
+}
+
+.dash-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dash-filter-select {
+    appearance: none;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B7A99' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1px solid #E8ECF4;
+    border-radius: 8px;
+    padding: 8px 32px 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1A1F36;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.dash-filter-select:hover {
+    border-color: #c0c8d8;
+}
+
+.dash-filter-select:focus {
+    border-color: #1A3CAA;
+}
+
+.dash-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1B2340;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dash-export-btn:hover {
+    background: #2A3558;
+}
+
+.dash-export-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* --- Stat Cards Row --- */
+.dash-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.dash-stat-card {
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 120px;
+}
+
+.dash-stat-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.dash-stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6B7A99;
+}
+
+.dash-stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dash-stat-icon.blue {
+    background: #EBF0FF;
+    color: #1A3CAA;
+}
+
+.dash-stat-icon.red {
+    background: #FEE2E2;
+    color: #E63946;
+}
+
+.dash-stat-icon.green {
+    background: #DCFCE7;
+    color: #22C55E;
+}
+
+.dash-stat-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.dash-stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #1A1F36;
+    line-height: 1.2;
+    margin-top: 4px;
+}
+
+.dash-stat-value .unit {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6B7A99;
+    margin-left: 2px;
+}
+
+.dash-stat-value .percent {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1A3CAA;
+    margin-left: auto;
+    float: right;
+    line-height: 32px;
+}
+
+.dash-stat-change {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.dash-stat-change.positive {
+    color: #22C55E;
+}
+
+.dash-stat-change.negative {
+    color: #E63946;
+}
+
+.dash-stat-change.muted {
+    color: #6B7A99;
+    font-weight: 400;
+}
+
+/* Storage progress bar */
+.dash-progress-track {
+    width: 100%;
+    height: 6px;
+    background: #E8ECF4;
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.dash-progress-fill {
+    height: 100%;
+    background: #1A3CAA;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+/* --- Charts Row --- */
+.dash-charts-row {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+/* Download Velocity Chart Card */
+.dash-chart-card {
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    position: relative;
+}
+
+.dash-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.dash-chart-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A1F36;
+}
+
+.dash-chart-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6B7A99;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.dash-chart-menu-btn:hover {
+    background: #F4F6FB;
+}
+
+.dash-chart-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 100;
+    min-width: 180px;
+    padding: 4px 0;
+    display: none;
+}
+
+.dash-chart-dropdown.open {
+    display: block;
+}
+
+.dash-chart-dropdown button {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #1A1F36;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.dash-chart-dropdown button:hover {
+    background: #F4F6FB;
+}
+
+.dash-chart-dropdown button.active {
+    color: #1A3CAA;
+    font-weight: 600;
+}
+
+/* SVG Chart */
+.dash-velocity-chart {
+    width: 100%;
+    height: 260px;
+}
+
+.dash-velocity-chart svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Resource Mix Card */
+.dash-donut-card {
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+}
+
+.dash-donut-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 170px;
+}
+
+.dash-donut-wrapper svg {
+    width: 170px;
+    height: 170px;
+}
+
+.dash-donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.dash-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dash-legend-item:hover {
+    opacity: 0.8;
+}
+
+.dash-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dash-legend-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #6B7A99;
+    flex: 1;
+}
+
+.dash-legend-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1A1F36;
+}
+
+/* --- Bottom Row --- */
+.dash-bottom-row {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 16px;
+}
+
+/* High-Impact Documents Table */
+.dash-docs-card {
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+
+.dash-docs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #E8ECF4;
+}
+
+.dash-docs-header h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A1F36;
+}
+
+.dash-docs-viewall {
+    font-size: 13px;
+    font-weight: 700;
+    color: #E63946;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.dash-docs-viewall:hover {
+    opacity: 0.8;
+}
+
+.dash-docs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dash-docs-table thead th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6B7A99;
+    padding: 10px 20px;
+    text-align: left;
+    background: #F8FAFC;
+    border-bottom: 1px solid #E8ECF4;
+}
+
+.dash-docs-table thead th.align-center {
+    text-align: center;
+}
+
+.dash-docs-table thead th.align-right {
+    text-align: right;
+}
+
+.dash-docs-table tbody tr {
+    border-bottom: 1px solid #E8ECF4;
+    transition: background 0.15s;
+}
+
+.dash-docs-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.dash-docs-table tbody tr:hover {
+    background: #F8FAFC;
+}
+
+.dash-docs-table tbody td {
+    padding: 12px 20px;
+    font-size: 13px;
+    color: #1A1F36;
+}
+
+.dash-docs-table tbody td.align-center {
+    text-align: center;
+    font-weight: 700;
+}
+
+.dash-docs-table tbody td.align-right {
+    text-align: right;
+    color: #6B7A99;
+}
+
+.dash-file-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dash-file-type-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.dash-file-type-badge.pdf  { background: #FEE2E2; color: #DC2626; }
+.dash-file-type-badge.xlsx { background: #DCFCE7; color: #16A34A; }
+.dash-file-type-badge.docx { background: #DBEAFE; color: #2563EB; }
+.dash-file-type-badge.zip  { background: #FEF9C3; color: #CA8A04; }
+
+/* System Events */
+.dash-events-card {
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    max-height: 400px;
+}
+
+.dash-events-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A1F36;
+    margin-bottom: 16px;
+}
+
+.dash-events-list {
+    flex: 1;
+    overflow-y: auto;
+    padding-left: 16px;
+    position: relative;
+}
+
+/* Timeline line */
+.dash-events-list::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    background: #E8ECF4;
+}
+
+.dash-event-item {
+    position: relative;
+    padding-left: 20px;
+    padding-bottom: 20px;
+}
+
+.dash-event-item:last-child {
+    padding-bottom: 0;
+}
+
+.dash-event-dot {
+    position: absolute;
+    left: -1px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px #E8ECF4;
+}
+
+.dash-event-dot.info     { background: #1A3CAA; }
+.dash-event-dot.critical { background: #E63946; }
+.dash-event-dot.neutral  { background: #CBD5E1; }
+
+.dash-event-text {
+    font-size: 13px;
+    color: #1A1F36;
+    line-height: 1.5;
+}
+
+.dash-event-text strong {
+    font-weight: 700;
+}
+
+.dash-event-text .event-link {
+    color: #E63946;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.dash-event-text .event-link.info-link {
+    color: #1A3CAA;
+}
+
+.dash-event-time {
+    font-size: 12px;
+    color: #6B7A99;
+    margin-top: 2px;
+}
+
+
+
+
+/* --- Skeleton loaders --- */
+.dash-skeleton {
+    background: linear-gradient(90deg, #F0F2F5 25%, #E8ECF4 50%, #F0F2F5 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.dash-skeleton-stat {
+    height: 120px;
+    border-radius: 12px;
+}
+
+.dash-skeleton-chart {
+    height: 340px;
+    border-radius: 12px;
+}
+
+.dash-skeleton-table {
+    height: 300px;
+    border-radius: 12px;
+}
+
+/* --- Year selector dropdown for chart --- */
+.dash-year-picker {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: #fff;
+    border: 1px solid #E8ECF4;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    z-index: 100;
+    padding: 8px;
+    display: none;
+}
+
+.dash-year-picker.open {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dash-year-picker button {
+    background: none;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #1A1F36;
+    transition: background 0.15s;
+}
+
+.dash-year-picker button:hover {
+    background: #F4F6FB;
+}
+
+.dash-year-picker button.active {
+    background: #1A3CAA;
+    color: #fff;
+}
+
+/* --- Responsive --- */
+@media (max-width: 1100px) {
+    .dash-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .dash-charts-row,
+    .dash-bottom-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .dash-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .dash-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .dash-stat-value {
+        font-size: 26px;
+    }
+}
+
+/* --- Chart Animations (Fast & Premium) --- */
+@keyframes revealChart {
+    from { width: 0; }
+    to { width: 700; }
+}
+
+@keyframes scaleUp {
+    from { transform: scale(0); }
+    to { transform: scale(1); }
+}
+
+@keyframes scaleRotateDonut {
+    from {
+        transform: scale(0.6) rotate(-120deg);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLegend {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Velocity Chart reveal & dots */
+.chart-clip-rect {
+    animation: revealChart 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.dash-velocity-chart circle {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.dash-velocity-chart circle:nth-of-type(1) { animation-delay: 0.08s; }
+.dash-velocity-chart circle:nth-of-type(2) { animation-delay: 0.11s; }
+.dash-velocity-chart circle:nth-of-type(3) { animation-delay: 0.14s; }
+.dash-velocity-chart circle:nth-of-type(4) { animation-delay: 0.17s; }
+.dash-velocity-chart circle:nth-of-type(5) { animation-delay: 0.20s; }
+.dash-velocity-chart circle:nth-of-type(6) { animation-delay: 0.23s; }
+.dash-velocity-chart circle:nth-of-type(7) { animation-delay: 0.26s; }
+.dash-velocity-chart circle:nth-of-type(8) { animation-delay: 0.29s; }
+.dash-velocity-chart circle:nth-of-type(9) { animation-delay: 0.32s; }
+.dash-velocity-chart circle:nth-of-type(10) { animation-delay: 0.35s; }
+.dash-velocity-chart circle:nth-of-type(11) { animation-delay: 0.38s; }
+.dash-velocity-chart circle:nth-of-type(12) { animation-delay: 0.41s; }
+
+/* Donut Chart spin & scale */
+.dash-donut-wrapper svg {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: scaleRotateDonut 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.15) both;
+}
+
+/* Legend items slide-in */
+.dash-legend-item {
+    animation: slideInLegend 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+.dash-legend-item:nth-child(1) { animation-delay: 0.12s; }
+.dash-legend-item:nth-child(2) { animation-delay: 0.16s; }
+.dash-legend-item:nth-child(3) { animation-delay: 0.20s; }

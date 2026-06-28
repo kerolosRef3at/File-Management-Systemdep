@@ -1,38 +1,42 @@
 // js/pages/forgot-password.js
-import { fetchAPI } from '../shared/api.js';
+import { authService } from '../shared/services.js';
+import { showAlert } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const forgotForm = document.getElementById('forgotPasswordForm');
-    const sendBtn = document.getElementById('confirmBtn'); // تم التعديل هنا
+    const sendBtn = document.getElementById('confirmBtn');
     const alertBox = document.getElementById('forgotAlert');
 
-    function showAlert(message, type) {
-        alertBox.innerText = message;
-        alertBox.className = `form-alert ${type}`;
-        alertBox.style.display = 'block';
-    }
+    if (forgotForm) {
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
 
-    forgotForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('forgotEmail').value;
+            if (!email) {
+                showAlert(alertBox, 'Please enter your email address.', 'error');
+                return;
+            }
 
-        sendBtn.disabled = true;
-        sendBtn.innerText = 'Sending...';
-        alertBox.style.display = 'none';
+            sendBtn.disabled = true;
+            sendBtn.innerText = 'Sending OTP...';
+            alertBox.style.display = 'none';
 
-        try {
-            // محاكاة إرسال الـ API
-            setTimeout(() => {
+            try {
+                // TODO: POST /api/Auth/forgot-password
+                await authService.forgotPassword(email);
+                
+                showAlert(alertBox, 'Verification code sent! Redirecting to verification page...', 'success');
+                
+                setTimeout(() => {
+                    window.location.href = `otp.html?email=${encodeURIComponent(email)}`;
+                }, 1500);
+
+            } catch (error) {
+                showAlert(alertBox, error.message || 'Something went wrong. Please try again.', 'error');
+            } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerText = 'Confirm';
-                // الانتقال لصفحة الـ OTP مع الإيميل
-                window.location.href = `otp.html?email=${encodeURIComponent(email)}`;
-            }, 1000);
-
-        } catch (error) {
-            showAlert(error.message || 'Something went wrong. Please try again.', 'error');
-            sendBtn.disabled = false;
-            sendBtn.innerText = 'Confirm';
-        }
-    });
+            }
+        });
+    }
 });

@@ -3,12 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Viewer - AITU Learning</title>
+    <title>Course Details - AITU File Management System</title>
+    <meta name="description" content="View course resource bundle details, module contents, and download academic materials from AITU.">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/repository.css">
+    <link rel="stylesheet" href="css/courses.css">
 </head>
 <body>
-    <div id="app"></div>
+
+    <!-- Public Navbar -->
+    <header class="repo-navbar" id="detailNavbar">
+        <div class="repo-navbar-inner">
+            <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer;">
+                <img src="logos/aitu_logo.png" alt="AITU Logo" width="32" height="32" onerror="this.src='logos/logo_AITU.jpg'">
+                <div>
+                    <span class="repo-brand-name">AITU</span>
+                    <span class="repo-brand-sub">FILE MANAGEMENT SYSTEM</span>
+                </div>
+            </div>
+            <nav class="repo-nav-links">
+                <a href="index.html">Home</a>
+                <a href="repository.html">Repository</a>
+                <a href="courses.html" class="active">Courses</a>
+            </nav>
+            <div class="repo-nav-right">
+                <button class="repo-login-btn" onclick="window.location.href='login.html'">Login</button>
+                <button class="repo-login-btn" style="background:var(--primary-blue);" onclick="window.location.href='login.html'">Join AITU</button>
+            </div>
+            <button class="repo-mobile-menu-btn" id="detailMobileMenu">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="course-detail-body" id="courseDetailBody">
+        <!-- JS will inject breadcrumb, hero, layout here -->
+        <div style="text-align:center; padding:80px 20px; color:var(--text-gray);">Loading course details...</div>
+    </div>
+
+    <!-- Download Confirmation Modal -->
+    <div class="course-download-modal-overlay" id="courseDownloadModal">
+        <div class="course-download-modal">
+            <div class="cdm-header">
+                <div class="cdm-header-left">
+                    <div class="cdm-header-logo">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    </div>
+                    <div>
+                        <span class="cdm-header-label">AITU ACADEMIC PORTAL</span>
+                        <span class="cdm-header-title">Confirm Course Download</span>
+                    </div>
+                </div>
+                <button class="cdm-header-close" id="closeModal">&times;</button>
+            </div>
+            <div class="cdm-body">
+                <div class="cdm-course-info">
+                    <div>
+                        <div class="cdm-course-name" id="modalCourseName"></div>
+                        <div class="cdm-course-desc" id="modalCourseDesc"></div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="cdm-total-size-label">TOTAL SIZE</div>
+                        <div class="cdm-total-size-value" id="modalTotalSize"></div>
+                    </div>
+                </div>
+                <div class="cdm-content-grid" id="modalContentGrid"></div>
+                <div class="cdm-policy-warning">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <div>
+                        <h5>Usage Restriction Policy</h5>
+                        <p>Redistribution, public sharing, or commercial use of these materials is strictly prohibited under Assiut International Technological University Terms of Service and Intellectual Property regulations. Resources are for individual educational use only.</p>
+                    </div>
+                </div>
+                <div class="cdm-actions">
+                    <button class="cdm-cancel-btn" id="cancelModal">Cancel</button>
+                    <button class="cdm-download-btn" id="confirmModal">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                        Download Course Archive
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="repo-footer">
+        <div class="repo-footer-inner">
+            <div class="repo-footer-brand">
+                <img src="logos/aitu_logo.png" alt="AITU" width="28" height="28" onerror="this.src='logos/logo_AITU.jpg'">
+                <div>
+                    <strong>AITU File Sharing System</strong>
+                    <span>Centralizing academic intelligence with precision.</span>
+                </div>
+            </div>
+            <div class="repo-footer-copy">&copy; 2026 Assiut International Technological University. All rights reserved.</div>
+        </div>
+    </footer>
+
     <script type="module" src="js/pages/course-details.js"></script>
 </body>
 </html>
