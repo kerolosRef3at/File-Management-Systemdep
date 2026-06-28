@@ -335,9 +335,11 @@ a {
 }
 
 .auth-brand-content {
-    position: relative;
-    z-index: 2;
-    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* التوسيط الرأسي */
+    align-items: flex-start;
+    flex-grow: 1; /* يجعله يأخذ المساحة بين الهيدر والفوتر */
 }
 
 .auth-logo {
@@ -560,16 +562,16 @@ a {
     font-size: 2.8rem !important;
     font-weight: 800;
     line-height: 1.15;
-    margin-bottom: 12px !important;
+    margin-bottom: 20px !important;
     color: #fff;
 }
 
 .auth-main-desc {
-    font-size: 0.95rem !important;
+    font-size: 1.1rem !important;
     color: rgba(255, 255, 255, 0.75) !important;
-    line-height: 1.5;
+    line-height: 1.7;
     margin-bottom: 32px !important;
-    max-width: 440px;
+    max-width: 90%;
 }
 
 .auth-features-list {
@@ -672,5 +674,77 @@ a {
 }
 .switch input:checked + .slider::before {
     transform: translateX(24px);
+}
+
+/* =========================================
+   Login Page Floating Card & Background
+========================================= */
+body.login-page-bg {
+   /* 1. التثبيت من اليسار: (left center) بتجبر المتصفح يبدأ رسم الصورة من الشمال دايماً */
+    background: url('../images/University_Background.png') no-repeat left center fixed;
+    
+    /* 2. التحكم في الحجم: */
+    /* الخيار الأفضل (cover): بيكبر ويصغر الصورة عشان تملى الشاشة مع الحفاظ على جودتها (بدون ما تتمط بشكل وحش)، وبما إننا مثبتين الشمال، أي قص هيحصل من اليمين فقط */
+    background-size: cover; 
+    
+    /* ملاحظة: لو عايز الصورة تتمط حرفياً وتتفرد على الشاشة كلها (ممكن شكلها يطول أو يعرض)، الغي السطر اللي فوق واستخدم ده:
+    background-size: 100% 100%; 
+    */
+    
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-centered-wrapper {
+ /* تطبيق الأبعاد والمسافات الجديدة بدقة */
+    width: 48vw;         /* عرض الكارت */
+    margin-left: 38vw;   /* يسيب 38% من الشمال */
+    margin-right: 14vw;  /* يسيب 14% من اليمين */
+    height: 80vh;        /* يسيب 10% فوق و 10% تحت */
+    
+    background: var(--white);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+}
+
+/* تعديل الـ auth-layout ليتناسب مع الحاوية الجديدة */
+.login-centered-wrapper .auth-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: unset;
+}
+
+.login-centered-wrapper .auth-brand {
+    border-top-left-radius: 24px;
+    border-bottom-left-radius: 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.auth-brand-header .auth-brand-logo {
+    width: 80px; /* كان 60px تقريباً */
+    height: 80px;
+}
+
+/* تكبير أسماء الجامعة والنظام */
+.auth-brand-header .auth-brand-uni-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+.auth-brand-header .auth-brand-system-name {
+    font-size: 0.95rem;
+}
+
+.login-centered-wrapper .auth-form-container {
+    border-top-right-radius: 24px;
+    border-bottom-right-radius: 24px;
 }
 

@@ -57,23 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.disabled = true;
 
             try {
-                // TODO: POST /api/Auth/login
+                // POST /api/Auth/login
                 const response = await authService.login(usernameValue, passwordValue);
                 
-               if (response && response.token) {
-    localStorage.setItem('aitu_token', response.token);
-    localStorage.setItem('aitu_role', response.role);
-    localStorage.setItem('aitu_username', response.username);
+                if (response && response.token) {
+                    localStorage.setItem('aitu_token', response.token);
+                    localStorage.setItem('aitu_role', response.role);
+                    localStorage.setItem('aitu_username', response.username);
 
-    if (response.role === 'Supervisor' ||
-        response.role === 'IT Manager' ||
-        response.role === 'EL Manager' ||
-        response.role === 'Mechanic Manager') {
-        window.location.href = 'dashboard.html';
-    } else {
-        window.location.href = 'repository.html';
-    }
-}
+                    if (response.role === 'Supervisor' ||
+                        response.role === 'IT Manager' ||
+                        response.role === 'EL Manager' ||
+                        response.role === 'Mechanic Manager') {
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        window.location.href = 'repository.html';
+                    }
+                }
             } catch (error) {
                 showAlert(alertContainer, error.message || 'Login failed. Please check credentials.', 'error');
             } finally {
@@ -82,34 +82,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    // 3. Stats counter animation (only for login page)
-    const statsNumEls = document.querySelectorAll('.auth-stat-num');
-    statsNumEls.forEach(el => {
-        const originalText = el.textContent.trim();
-        const hasPlus = originalText.includes('+');
-        const target = parseInt(originalText, 10);
-        if (isNaN(target)) return;
-
-        // Set to 0 immediately
-        el.textContent = '0' + (hasPlus ? '+' : '');
-
-        let current = 0;
-        const duration = 600; // 0.6 seconds (very fast)
-        const frameRate = 1000 / 60; // 60 fps
-        const totalFrames = Math.round(duration / frameRate);
-        const increment = target / totalFrames;
-        let frame = 0;
-
-        const counter = setInterval(() => {
-            frame++;
-            current += increment;
-            if (frame >= totalFrames) {
-                clearInterval(counter);
-                el.textContent = originalText;
-            } else {
-                el.textContent = Math.floor(current) + (hasPlus ? '+' : '');
-            }
-        }, frameRate);
-    });
 });

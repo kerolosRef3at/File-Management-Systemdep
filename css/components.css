@@ -1386,12 +1386,18 @@
 
 .toggle-password {
     position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 15px;          /* المسافة من اليمين */
+    
+    /* السحر هنا: هنلغي الـ top ونثبتها من تحت */
+    top: auto; 
+    bottom: 14px;         /* غير الرقم ده (مثلاً 12 أو 16) لحد ما تظبط في نص المربع بالظبط لعينك */
+    
+    transform: none;      /* بنلغي أي توسيط قديم */
     cursor: pointer;
     color: var(--text-gray);
-    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .toggle-password:hover {

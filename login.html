@@ -6,120 +6,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - AITU Admin Portal</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
 </head>
 
-<body>
+<body class="login-page-bg">
 
-    <div class="auth-layout">
-        <div class="auth-brand">
-            <!-- Top Header info -->
-            <div class="auth-brand-header">
-                <img src="logos/logo_AITU.jpg" alt="AITU Logo" class="auth-brand-logo" onerror="this.src='logos/aitu_logo.png'">
-                <div class="auth-brand-header-text">
-                    <div class="auth-brand-uni-name">Assiut International Technological University - AITU</div>
-                    <div class="auth-brand-system-name">File Management System</div>
+    <div class="login-centered-wrapper">
+        <div class="auth-layout">
+            <div class="auth-brand">
+                <div class="auth-brand-header">
+                    <img src="logos/logo_AITU.jpg" alt="AITU Logo" class="auth-brand-logo" onerror="this.src='logos/aitu_logo.png'" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Back to Home">                    <div class="auth-brand-header-text">
+                        <div class="auth-brand-uni-name">Assiut International Technological University - AITU</div>
+                        <div class="auth-brand-system-name">File Management System</div>
+                    </div>
+                </div>
+
+                <div class="auth-brand-content">
+                    <div class="auth-system-pill" style="margin-bottom: 15px; margin-top: 15px;">
+                        <span class="auth-pill-dot"></span>
+                        File System
+                    </div>
+
+                    <h1 class="auth-main-title">File Management System</h1>
+                    <p class="auth-main-desc">Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
+                </div>
+
+                <div class="auth-brand-footer">
+                    &copy; 2026 Assiut International Technological University
                 </div>
             </div>
 
-            <div class="auth-brand-content">
-                <!-- Green Dot File System pill -->
-                <div class="auth-system-pill">
-                    <span class="auth-pill-dot"></span>
-                    File System
+            <div class="auth-form-container">
+                <div class="auth-form-wrapper">
+                    <h2>Welcome back</h2>
+                    <p>Sign in to your AITU account to continue.</p>
+
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="username">Username or Email Address</label>
+                            <input type="text" id="username" class="form-control" placeholder="Enter Your Email/Username" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" class="form-control has-icon" placeholder="********" required>
+                            <span class="toggle-password" id="togglePasswordBtn">
+                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </span>
+                        </div>
+
+                        <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+
+                        <button type="submit" class="btn-primary btn-block" id="submitBtn">Login</button>
+
+                        <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
+                    </form>
+
                 </div>
-
-                <h1 class="auth-main-title">File Management System</h1>
-                <p class="auth-main-desc">Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
-
-                <!-- List items with icons -->
-                <div class="auth-features-list">
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22h20M6 12v5c0 2 2 3 6 3s6-1 6-3v-5M22 10v6M2 10l10-5 10 5-10 5z"/></svg>
-                        </div>
-                        <div class="auth-feature-text">
-                            <h3>Course</h3>
-                            <p>All the Course you need in one place</p>
-                        </div>
-                    </div>
-                    
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                        </div>
-                        <div class="auth-feature-text">
-                            <h3>Programs</h3>
-                            <p>All the programs you need in one place</p>
-                        </div>
-                    </div>
-
-                    <div class="auth-feature-item">
-                        <div class="auth-feature-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm14 14v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                        <div class="auth-feature-text">
-                            <h3>Department</h3>
-                            <p>-----</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Stats Row -->
-                <div class="auth-stats-row">
-                    <div class="auth-stat-col">
-                        <div class="auth-stat-num">6</div>
-                        <div class="auth-stat-lbl">Course</div>
-                    </div>
-                    <div class="auth-stat-col">
-                        <div class="auth-stat-num">20+</div>
-                        <div class="auth-stat-lbl">Programs</div>
-                    </div>
-                    <div class="auth-stat-col">
-                        <div class="auth-stat-num">3</div>
-                        <div class="auth-stat-lbl">Departments</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer copyright at bottom -->
-            <div class="auth-brand-footer">
-                &copy; 2026 Assiut International Technological University
-            </div>
-        </div>
-
-        <div class="auth-form-container">
-            <div class="auth-form-wrapper">
-                <h2>Welcome back</h2>
-                <p>Sign in to your AITU account to continue.</p>
-
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="username">Username or Email Address</label>
-                        <input type="text" id="username" class="form-control" placeholder="Enter Your Email/Username"
-                            required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" class="form-control has-icon" placeholder="********"
-                            required>
-                        <span class="toggle-password" id="togglePasswordBtn">
-                            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2"
-                                fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                        </span>
-                    </div>
-
-                    <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
-
-                    <button type="submit" class="btn-primary btn-block" id="submitBtn">Login</button>
-
-                    <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;">
-                    </div>
-                </form>
-
             </div>
         </div>
     </div>
