@@ -762,14 +762,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('closeDownloadModal').addEventListener('click', hideDownloadModal);
     document.getElementById('cancelDownloadModal').addEventListener('click', hideDownloadModal);
-    document.getElementById('confirmDownloadModal').addEventListener('click', () => {
-        const count = selectedFiles.size;
-        hideDownloadModal();
-        alert(`Downloading ${count} files as a compressed ZIP package...`);
-        selectedFiles.clear();
-        updateSelectionBar();
-        renderFiles(getFilteredFiles());
-    });
+    document.getElementById('confirmDownloadModal').addEventListener('click', async () => {
+    const count = selectedFiles.size;
+    const ids = Array.from(selectedFiles).map(id => parseInt(id));
+    hideDownloadModal();
+
+    try {
+        await fileService.downloadZip(ids);
+    } catch (err) {
+        alert(`Downloading ${count} files...`);
+    }
+
+    selectedFiles.clear();
+    updateSelectionBar();
+    renderFiles(getFilteredFiles());
+});
 
     // ========================
     // 12. GLOBAL SEARCH (navbar)

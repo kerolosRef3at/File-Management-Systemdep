@@ -60,14 +60,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // TODO: POST /api/Auth/login
                 const response = await authService.login(usernameValue, passwordValue);
                 
-                if (response && response.token) {
-                    // Redirect based on role permissions
-                    if (response.role === 'Public User') {
-                        window.location.href = 'repository.html';
-                    } else {
-                        window.location.href = 'dashboard.html';
-                    }
-                }
+               if (response && response.token) {
+    localStorage.setItem('aitu_token', response.token);
+    localStorage.setItem('aitu_role', response.role);
+    localStorage.setItem('aitu_username', response.username);
+
+    if (response.role === 'Supervisor' ||
+        response.role === 'IT Manager' ||
+        response.role === 'EL Manager' ||
+        response.role === 'Mechanic Manager') {
+        window.location.href = 'dashboard.html';
+    } else {
+        window.location.href = 'repository.html';
+    }
+}
             } catch (error) {
                 showAlert(alertContainer, error.message || 'Login failed. Please check credentials.', 'error');
             } finally {

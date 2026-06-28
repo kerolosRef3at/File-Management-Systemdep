@@ -3,7 +3,7 @@ import { fetchAPI, BASE_URL } from './api.js';
 import * as mock from './mockData.js';
 
 // Toggle to force mock data or let it attempt real API first
-const USE_MOCK = true; 
+const USE_MOCK = false;
 
 // Helper for emulating network latency
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
@@ -97,106 +97,236 @@ export const authService = {
         if (!token) return null;
         const decoded = decodeJWT(token);
         if (!decoded) return null;
+
+        // ✅ جيب الـ role من الـ claim الصح
+        const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+            decoded.role ||
+            localStorage.getItem('aitu_role') ||
+            'User';
+
+        const username = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+            decoded.sub ||
+            localStorage.getItem('aitu_username') || '';
+
+        const userId = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+            decoded.sub || '';
+
         return {
-            username: decoded.sub,
-            email: decoded.email,
-            role: decoded.role,
-            phone: decoded.phone,
-            joined: decoded.joined,
-            name: decoded.name || decoded.sub
+            id: userId,
+            username: username,
+            email: decoded.email || '',
+            role: role,
+            phone: decoded.phone || '',
+            joined: decoded.joined || '',
+            name: decoded.name || username,
+            departmentId: decoded.DepartmentId || ''
         };
     },
 
     // TODO: POST /api/Auth/forgot-password
-    async forgotPassword(email) {
-        await delay();
-        // Mimic API post
-        const userExists = mock.mockUsers.some(u => u.email === email);
-        if (!userExists) {
-            throw new Error("No account found with this email address.");
-        }
-        return { message: "OTP sent successfully" };
-    },
-
-    // TODO: POST /api/Auth/verify-otp
-    async verifyOTP(email, code) {
-        await delay();
-        if (code !== "123456" && code.length === 6) {
-            // Let's accept 123456 as the valid OTP for verification simplicity
-            throw new Error("Invalid verification code.");
-        }
-        return { verified: true };
-    },
-
-    // TODO: POST /api/Auth/reset-password
-    async resetPassword(email, code, newPassword) {
-        await delay();
-        const user = mock.mockUsers.find(u => u.email === email);
-        if (user) {
-            // Update password in mock storage
-            user.password = newPassword;
-            logService.addLog(user.username, user.role, "Change Password", "Own Account");
-        }
-        return { success: true };
+async forgotPassword(email) {
+    await delay();
+    try {
+        return await fetchAPI('/api/Auth/forgot-password', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    } catch (err) {
+        throw new Error(err.message || 'Email not found.');
     }
-};
+},
 
+async verifyOTP(email, code) {
+    await delay();
+    try {
+        return await fetchAPI('/api/Auth/verify-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email, code })
+        });
+    } catch (err) {
+        throw new Error('Invalid or expired OTP.');
+    }
+},
+
+async resetPassword(email, code, newPassword) {
+    await delay();
+    try {
+        return await fetchAPI('/api/Auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, code, newPassword })
+        });
+    } catch (err) {
+        throw new Error('Reset password failed.');
+    }
+}
+};
+//===========================================
+// ✅ Helper Functions
+function getFileTypeLabel(mimeType) {
+    if (!mimeType) return 'FILE';
+    const m = mimeType.toLowerCase();
+    if (m.includes('pdf')) return 'PDF';
+    if (m.includes('sheet') || m.includes('excel') || m.includes('xlsx')) return 'XLSX';
+    if (m.includes('word') || m.includes('docx')) return 'DOCX';
+    if (m.includes('dwg') || m.includes('autocad')) return 'DWG';
+    if (m.includes('mp4') || m.includes('video')) return 'MP4';
+    return mimeType.split('/').pop().toUpperCase().substring(0, 4);
+}
+
+function formatFileSize(bytes) {
+    if (!bytes || bytes === 0) return '0 KB';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+}
+
+function getDeptId(deptStr) {
+    if (!deptStr) return 'IT';
+    const d = deptStr.toLowerCase();
+    if (d.includes('it') || d.includes('information')) return 'IT';
+    if (d.includes('el') || d.includes('elec')) return 'EL';
+    if (d.includes('me') || d.includes('mech')) return 'ME';
+    return 'IT';
+}
 // ==========================================
 // 2. File Repository Service
 // ==========================================
 export const fileService = {
-    // TODO: GET /api/Files
-    async getFiles() {
-        await delay();
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Files');
-            } catch (err) {
-                console.warn("Real API failed, returning mock files.");
-            }
-        }
+ async getFiles(dept = null, search = null) {
+    await delay();
+    try {
+        let url = '/api/Files';
+        const params = [];
+        if (dept) params.push(`department=${dept}`);
+        if (search) params.push(`search=${search}`);
+        if (params.length > 0) url += '?' + params.join('&');
+
+        const backendFiles = await fetchAPI(url);
+
+        // ✅ تحويل الداتا للشكل اللي الـ Frontend بيتوقعه
+        return backendFiles.map(f => ({
+            id: f.id,
+            name: f.name,
+            type: getFileTypeLabel(f.type),
+            version: f.version || 'v1.0',
+            size: formatFileSize(f.size),
+            dept: f.dept || 'IT DEPT',
+            deptId: getDeptId(f.dept),
+            downloads: f.downloadCount || 0,
+            uploadDate: f.uploadedAt
+                ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+            uploadedBy: f.uploaderName || 'admin',
+            program: null
+        }));
+    } catch (err) {
+        console.warn("API failed, returning mock files.");
         return mock.mockFiles;
-    },
+    }
+},
 
-    // TODO: POST /api/Files/upload
-    async uploadFile(name, type, size, dept, uploadedBy) {
+    async uploadFile(formData) {
         await delay();
-        const user = authService.getCurrentUser();
-        const newFile = {
-            id: mock.mockFiles.length + 1,
-            name,
-            type,
-            version: "v1.0",
-            size,
-            dept: dept.toUpperCase() + " DEPT",
-            downloads: 0,
-            uploadDate: new Date().toISOString().split('T')[0],
-            uploadedBy: uploadedBy || (user ? user.username : "system")
-        };
-        mock.mockFiles.unshift(newFile);
-
-        // Add log
-        if (user) {
-            logService.addLog(user.username, user.role, "Add File", name);
+        try {
+            const token = localStorage.getItem('aitu_token');
+            const response = await fetch(
+                `http://localhost:5260/api/Files/upload`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                }
+            );
+            if (!response.ok) throw new Error('Upload failed');
+            return await response.json();
+        } catch (err) {
+            console.warn("Upload API failed.");
+            throw err;
         }
-        return newFile;
     },
 
-    // TODO: DELETE /api/Files/{id}
+    async deleteFile(id) {
+        await delay();
+        try {
+            return await fetchAPI(`/api/Files/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.warn("Delete API failed.");
+            throw err;
+        }
+    },
+
     async deleteFiles(ids) {
         await delay();
-        const user = authService.getCurrentUser();
-        ids.forEach(id => {
-            const index = mock.mockFiles.findIndex(f => f.id == id);
-            if (index !== -1) {
-                const deletedFile = mock.mockFiles[index];
-                mock.mockFiles.splice(index, 1);
-                if (user) {
-                    logService.addLog(user.username, user.role, "Delete File", deletedFile.name);
+        try {
+            const results = await Promise.all(
+                ids.map(id => fetchAPI(`/api/Files/${id}`, {
+                    method: 'DELETE'
+                }))
+            );
+            return { success: true };
+        } catch (err) {
+            console.warn("Delete files API failed.");
+            throw err;
+        }
+    },
+
+    async downloadFile(id, filename) {
+        try {
+            const token = localStorage.getItem('aitu_token');
+            const response = await fetch(
+                `http://localhost:5260/api/Files/download/${id}`,
+                {
+                    headers: token
+                        ? { 'Authorization': `Bearer ${token}` }
+                        : {}
                 }
-            }
-        });
-        return { success: true };
+            );
+            if (!response.ok) throw new Error('Download failed');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+            return { success: true };
+        } catch (err) {
+            console.warn("Download failed.");
+            throw err;
+        }
+    },
+
+    async downloadZip(fileIds) {
+        try {
+            const token = localStorage.getItem('aitu_token');
+            const response = await fetch(
+                `http://localhost:5260/api/Files/download-zip`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify(fileIds)
+                }
+            );
+            if (!response.ok) throw new Error('ZIP download failed');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `files_${Date.now()}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            return { success: true };
+        } catch (err) {
+            console.warn("ZIP download failed.");
+            throw err;
+        }
     }
 };
 
@@ -204,48 +334,51 @@ export const fileService = {
 // 3. Course Management Service
 // ==========================================
 export const courseService = {
-    // TODO: GET /api/Courses
-    async getCourses() {
+    async getCourses(dept = null) {
         await delay();
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Courses');
-            } catch (err) {
-                console.warn("Real API failed, returning mock courses.");
-            }
+        try {
+            let url = '/api/Courses';
+            if (dept) url += `?dept=${dept}`;
+            return await fetchAPI(url);
+        } catch (err) {
+            console.warn("API failed, returning mock courses.");
+            return mock.mockCourses;
         }
-        return mock.mockCourses;
     },
 
-    // TODO: GET /api/Courses/{id}
     async getCourseDetails(id) {
         await delay();
-        const course = mock.mockCourses.find(c => c.id == id);
-        if (!course) {
-            throw new Error("Course not found.");
+        try {
+            return await fetchAPI(`/api/Courses/${id}`);
+        } catch (err) {
+            console.warn("API failed, returning mock course.");
+            return mock.mockCourses.find(c => c.id == id);
         }
-        return course;
     },
 
-    // TODO: POST /api/Courses
     async createCourse(courseData) {
         await delay();
-        const user = authService.getCurrentUser();
-        const newCourse = {
-            id: mock.mockCourses.length + 1,
-            title: courseData.title,
-            dept: courseData.dept,
-            img: courseData.img || "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=500",
-            lessons: courseData.modules.reduce((sum, mod) => sum + mod.lessons.length, 0),
-            size: courseData.size || "150 MB",
-            modules: courseData.modules
-        };
-        mock.mockCourses.push(newCourse);
-        
-        if (user) {
-            logService.addLog(user.username, user.role, "Create Course", courseData.title);
+        try {
+            return await fetchAPI('/api/Courses', {
+                method: 'POST',
+                body: JSON.stringify(courseData)
+            });
+        } catch (err) {
+            console.warn("Create course API failed.");
+            throw err;
         }
-        return newCourse;
+    },
+
+    async deleteCourse(id) {
+        await delay();
+        try {
+            return await fetchAPI(`/api/Courses/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.warn("Delete course API failed.");
+            throw err;
+        }
     }
 };
 
@@ -253,56 +386,46 @@ export const courseService = {
 // 4. User Account Service
 // ==========================================
 export const userService = {
-    // TODO: GET /api/Admin/all
     async getUsers() {
         await delay();
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Admin/all');
-            } catch (err) {
-                console.warn("Real API failed, returning mock users.");
-            }
+        try {
+            return await fetchAPI('/api/Admin/all');
+        } catch (err) {
+            console.warn("API failed, returning mock users.");
+            return mock.mockUsers;
         }
-        return mock.mockUsers;
     },
 
-    // TODO: POST /api/Admin/create
-    async createUser(username, email, phone, role) {
+    async createUser(username, email, phone, role, departmentId = 1) {
         await delay();
-        const user = authService.getCurrentUser();
-        const newUser = {
-            id: mock.mockUsers.length + 1,
-            username,
-            email,
-            phone,
-            role,
-            joined: new Date().toISOString().split('T')[0],
-            isProtected: false
-        };
-        mock.mockUsers.unshift(newUser);
-
-        if (user) {
-            logService.addLog(user.username, user.role, "Add User", username);
+        try {
+            return await fetchAPI('/api/Admin/create', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username,
+                    email,
+                    phone,
+                    role,
+                    password: 'Admin@123',
+                    departmentId
+                })
+            });
+        } catch (err) {
+            console.warn("Create user API failed.");
+            throw err;
         }
-        return newUser;
     },
 
-    // TODO: DELETE /api/Admin/{id}
     async deleteUser(id) {
         await delay();
-        const user = authService.getCurrentUser();
-        const index = mock.mockUsers.findIndex(u => u.id == id);
-        if (index !== -1) {
-            const targetUser = mock.mockUsers[index];
-            if (targetUser.isProtected) {
-                throw new Error("This account is protected and cannot be deleted.");
-            }
-            mock.mockUsers.splice(index, 1);
-            if (user) {
-                logService.addLog(user.username, user.role, "Delete User", targetUser.username);
-            }
+        try {
+            return await fetchAPI(`/api/Admin/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.warn("Delete user API failed.");
+            throw err;
         }
-        return { success: true };
     }
 };
 
@@ -310,17 +433,21 @@ export const userService = {
 // 5. System Logs Service
 // ==========================================
 export const logService = {
-    // TODO: GET /api/Admin/logs
-    async getLogs() {
+    async getLogs(filters = {}) {
         await delay();
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Admin/logs');
-            } catch (err) {
-                console.warn("Real API failed, returning mock logs.");
-            }
+        try {
+            let url = '/api/Admin/logs';
+            const params = [];
+            if (filters.action) params.push(`action=${filters.action}`);
+            if (filters.username) params.push(`username=${filters.username}`);
+            if (filters.from) params.push(`from=${filters.from}`);
+            if (filters.to) params.push(`to=${filters.to}`);
+            if (params.length > 0) url += '?' + params.join('&');
+            return await fetchAPI(url);
+        } catch (err) {
+            console.warn("API failed, returning mock logs.");
+            return mock.mockLogs;
         }
-        return mock.mockLogs;
     },
 
     addLog(admin, role, action, target) {
@@ -330,7 +457,8 @@ export const logService = {
             role,
             action,
             target,
-            datetime: new Date().toISOString().replace('T', ' ').substring(0, 19)
+            datetime: new Date().toISOString()
+                .replace('T', ' ').substring(0, 19)
         };
         mock.mockLogs.unshift(newLog);
     }
@@ -340,38 +468,34 @@ export const logService = {
 // 6. User Profile Settings Service
 // ==========================================
 export const profileService = {
-    // TODO: PUT /api/Admin/profile
-    async updateProfile(email, mobile, name) {
+    async updateProfile(email, mobile) {
         await delay();
-        const user = authService.getCurrentUser();
-        if (!user) throw new Error("Unauthorized.");
-
-        // Find in mock storage
-        const mockUser = mock.mockUsers.find(u => u.username === user.username);
-        if (mockUser) {
-            mockUser.email = email;
-            mockUser.phone = mobile;
-            if (name !== undefined) {
-                mockUser.name = name;
-            }
+        try {
+            return await fetchAPI('/api/Admin/profile', {
+                method: 'PUT',
+                body: JSON.stringify({ email, mobile })
+            });
+        } catch (err) {
+            console.warn("Update profile API failed.");
+            throw err;
         }
-
-        // Re-generate JWT to store updated claims
-        const token = generateMockJWT(mockUser);
-        localStorage.setItem('aitu_token', token);
-        
-        logService.addLog(user.username, user.role, "Update Profile", "Own Account");
-        return { success: true, user: mockUser };
     },
 
-    // TODO: POST /api/Auth/change-password
     async changePassword(oldPassword, newPassword) {
         await delay();
-        const user = authService.getCurrentUser();
-        if (!user) throw new Error("Unauthorized.");
-        
-        logService.addLog(user.username, user.role, "Change Password", "Own Account");
-        return { success: true };
+        try {
+            return await fetchAPI('/api/Auth/change-password', {
+                method: 'POST',
+                body: JSON.stringify({
+                    oldPassword,
+                    newPassword,
+                    repeatPassword: newPassword
+                })
+            });
+        } catch (err) {
+            console.warn("Change password API failed.");
+            throw err;
+        }
     }
 };
 
@@ -379,137 +503,67 @@ export const profileService = {
 // 7. Dashboard Service
 // ==========================================
 export const dashboardService = {
-    // TODO: GET /api/Dashboard/stats?days={days}
     async getStats(days = 30) {
         await delay(300);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Dashboard/stats?days=' + days);
-            } catch (err) {
-                console.warn("Real API failed, returning mock dashboard stats.");
-            }
+        try {
+            return await fetchAPI('/api/Dashboard/metrics');
+        } catch (err) {
+            console.warn("API failed, returning mock stats.");
+            return mock.mockDashboardMetrics;
         }
-        // Mock: dynamically compute from mockFiles
-        const metrics = { ...mock.mockDashboardMetrics };
-        metrics.totalFiles = mock.mockFiles.length + 14000;
-        
-        // Count total programs from departments mock
-        const totalProgs = mock.mockDepartments.reduce((acc, d) => acc + (d.programs ? d.programs.length : 0), 0);
-        metrics.totalPrograms = totalProgs;
-        metrics.totalCourses = 48; // mock 48 courses
-        metrics.trends = {
-            ...metrics.trends,
-            totalCourses: "+ 4 new this semester",
-            totalPrograms: "Active in 3 departments"
-        };
-        return metrics;
     },
 
-    // TODO: GET /api/Dashboard/downloads?year={year}
     async getDownloads(year) {
         await delay(300);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Dashboard/downloads?year=' + year);
-            } catch (err) {
-                console.warn("Real API failed, returning mock download velocity.");
-            }
+        try {
+            const data = await fetchAPI('/api/Dashboard/metrics');
+            return data.downloadVelocity || [];
+        } catch (err) {
+            console.warn("API failed, returning mock downloads.");
+            return mock.mockDashboardMetrics.downloadVelocity;
         }
-        // Mock: return velocity data (simulate different data per year)
-        const currentYear = new Date().getFullYear();
-        const baseData = mock.mockDashboardMetrics.downloadVelocity;
-        if (year === currentYear) {
-            return baseData;
-        }
-        // For other years, vary the data slightly
-        const seed = year - currentYear;
-        return baseData.map(d => ({
-            month: d.month,
-            count: Math.max(3000, d.count + seed * 800 + Math.floor(Math.random() * 2000 - 1000))
-        }));
     },
 
-    // TODO: GET /api/Dashboard/resource-mix
     async getResourceMix() {
         await delay(200);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Dashboard/resource-mix');
-            } catch (err) {
-                console.warn("Real API failed, returning mock resource mix.");
-            }
+        try {
+            const data = await fetchAPI('/api/Dashboard/metrics');
+            return data.resourceMix || { it: 0, el: 0, me: 0 };
+        } catch (err) {
+            console.warn("API failed, returning mock resource mix.");
+            return { it: 12450, el: 8200, me: 9100 };
         }
-        // Mock: return file counts matching mockDepartments
-        return {
-            it: 12450,
-            el: 8200,
-            me: 9100
-        };
     },
 
-    // TODO: GET /api/Dashboard/documents?limit={limit}
     async getDocuments(limit = 5) {
         await delay(200);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Dashboard/documents?limit=' + limit);
-            } catch (err) {
-                console.warn("Real API failed, returning mock documents.");
-            }
+        try {
+            const data = await fetchAPI('/api/Dashboard/metrics');
+            return data.highImpactDocuments?.slice(0, limit) || [];
+        } catch (err) {
+            console.warn("API failed, returning mock documents.");
+            return mock.mockDashboardMetrics.highImpactDocuments.slice(0, limit);
         }
-        return mock.mockDashboardMetrics.highImpactDocuments.slice(0, limit);
     },
 
-    // TODO: GET /api/Dashboard/events?limit={limit}
     async getEvents(limit = 10) {
         await delay(200);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Dashboard/events?limit=' + limit);
-            } catch (err) {
-                console.warn("Real API failed, returning mock events.");
-            }
+        try {
+            const data = await fetchAPI('/api/Dashboard/metrics');
+            return data.recentEvents?.slice(0, limit) || [];
+        } catch (err) {
+            console.warn("API failed, returning mock events.");
+            return mock.mockDashboardMetrics.recentEvents.slice(0, limit);
         }
-        return mock.mockDashboardMetrics.recentEvents.slice(0, limit);
     },
 
-    // TODO: GET /api/Notifications/count
     async getNotificationsCount() {
         await delay(100);
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Notifications/count');
-            } catch (err) {
-                console.warn("Real API failed, returning mock notifications count.");
-            }
-        }
-        return { count: 3 };
+        return { count: 0 };
     },
 
-    // TODO: GET /api/Dashboard/export?format={format}
     async exportReport(format = 'pdf') {
         await delay(500);
-        if (!USE_MOCK) {
-            try {
-                // In real implementation, this would trigger a file download
-                const response = await fetch(BASE_URL + '/api/Dashboard/export?format=' + format, {
-                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('aitu_token') }
-                });
-                if (!response.ok) throw new Error('Export failed');
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'dashboard_report.' + format;
-                a.click();
-                URL.revokeObjectURL(url);
-                return { success: true };
-            } catch (err) {
-                console.warn("Real API failed for export.");
-                throw err;
-            }
-        }
-        // Mock: just resolve
-        return { success: true, message: "Export will be available when backend is connected." };
+        return { success: true };
     }
 };

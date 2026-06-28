@@ -1,7 +1,9 @@
 // js/shared/api.js
 
-// غيّر الرابط ده للرابط الحقيقي الخاص بالـ API لما يكون شغال
-export const BASE_URL = 'https://your-api-domain.com';
+
+
+// لو عايز كل حاجة على السيرفر
+export const BASE_URL = 'https://filesystemapi.runasp.net';
 
 export async function fetchAPI(endpoint, options = {}) {
     // تجهيز الـ Headers
