@@ -15,23 +15,22 @@
     <header class="repo-navbar" id="repoNavbar">
         <div class="repo-navbar-inner">
             <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer;">
-                <img src="logos/aitu_logo.png" alt="AITU Logo" width="32" height="32" onerror="this.src='logos/logo_AITU.jpg'">
-                <div>
-                    <span class="repo-brand-name">AITU</span>
-                    <span class="repo-brand-sub">FILE MANAGEMENT SYSTEM</span>
+                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="48" height="48" onerror="this.src='logos/logo_AITU.jpg'">
+                <div>                                       
+                    <span class="repo-brand-name" style="font-size:1.3rem; font-weight:800; color:var(--primary-dark);">AITU</span>
+                    <span class="repo-brand-sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
                 </div>
             </div>
             <nav class="repo-nav-links" id="repoNavLinks">
                 <a href="index.html">Home</a>
-                <a href="repository.html" class="active">Repository</a>
+                <a href="repository.html" class="active">Programs</a>
                 <a href="courses.html">Courses</a>
             </nav>
             <div class="repo-nav-right">
-                <div class="repo-global-search">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="globalSearchInput" placeholder="Global search...">
-                </div>
+                
                 <button class="repo-login-btn" id="navLoginBtn" onclick="window.location.href='login.html'">Login</button>
+                <button class="repo-login-btn" id="coursesJoinBtn" style="background:var(--primary-blue);"
+                        onclick="window.location.href='login.html'">Join AITU</button>
             </div>
             <button class="repo-mobile-menu-btn" id="repoMobileMenuBtn">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>

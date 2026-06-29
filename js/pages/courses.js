@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let allCourses = [];
     let currentDeptFilter = 'all';
+    let currentProgramFilter = 'all'; // متغير الفلتر الفرعي الجديد
     let searchTerm = '';
     let currentPage = 1;
     const coursesPerPage = 6;
@@ -106,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                     <div class="dept-programs ${isExpanded ? 'open' : ''}" data-dept-programs="${dept.id}">
                         ${dept.programs.map(prog => `
-                            <div class="dept-program-item" data-program="${prog.id}" data-dept="${dept.id}">
+                            <div class="dept-program-item ${currentProgramFilter === prog.id ? 'active' : ''}" data-program="${prog.id}" data-dept="${dept.id}">
                                 ${prog.name}
                             </div>
                         `).join('')}
@@ -117,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         tree.innerHTML = html;
 
-        // Click handlers
+        // 1. Click handlers للأقسام الرئيسية (Departments)
         tree.querySelectorAll('.dept-group-header').forEach(header => {
             header.addEventListener('click', () => {
                 const deptId = header.dataset.dept;
@@ -130,11 +131,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                     header.classList.add('expanded');
                     tree.querySelector(`[data-dept-programs="${deptId}"]`).classList.add('open');
                     currentDeptFilter = deptId;
+                    currentProgramFilter = 'all'; // تصفير الفلتر الفرعي
                 } else {
                     currentDeptFilter = 'all';
+                    currentProgramFilter = 'all'; // تصفير الفلتر الفرعي
                 }
 
+                // إزالة التحديد عن التخصصات الفرعية
+                tree.querySelectorAll('.dept-program-item').forEach(i => i.classList.remove('active'));
+
                 currentPage = 1;
+                renderPublicCourses();
+            });
+        });
+
+        // 2. Click handlers للبرامج الفرعية (Programs)
+        tree.querySelectorAll('.dept-program-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation(); // منع تداخل الحدث مع القسم الرئيسي
+                
+                currentDeptFilter = item.dataset.dept;
+                currentProgramFilter = item.dataset.program;
+                currentPage = 1;
+
+                // تحديث الـ Active State
+                tree.querySelectorAll('.dept-program-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                // الحفاظ على القسم الرئيسي مفتوح
+                const header = tree.querySelector(`.dept-group-header[data-dept="${currentDeptFilter}"]`);
+                const programs = tree.querySelector(`[data-dept-programs="${currentDeptFilter}"]`);
+                
+                tree.querySelectorAll('.dept-group-header').forEach(h => h.classList.remove('expanded'));
+                tree.querySelectorAll('.dept-programs').forEach(p => p.classList.remove('open'));
+                
+                if (header) header.classList.add('expanded');
+                if (programs) programs.classList.add('open');
+
                 renderPublicCourses();
             });
         });
@@ -146,10 +179,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let filtered = [...allCourses];
 
+        // فلترة بالقسم الرئيسي
         if (currentDeptFilter !== 'all') {
             filtered = filtered.filter(c => c.dept === currentDeptFilter);
         }
 
+        // فلترة بالتخصص الفرعي (البرنامج)
+        if (currentProgramFilter !== 'all') {
+            filtered = filtered.filter(c => c.category === currentProgramFilter || c.program === currentProgramFilter);
+        }
+
+        // فلترة بشريط البحث
         if (searchTerm) {
             filtered = filtered.filter(c =>
                 c.title.toLowerCase().includes(searchTerm) ||

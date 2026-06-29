@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginBtn) {
         if (user) {
             // User is already logged in
-            loginBtn.innerHTML = `<a href="repository.html" style="color: white;">Go to Portal</a>`;
+            loginBtn.innerHTML = `<a href="repository.html" style="color: white;">Login</a>`;
             loginBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (user.role === 'Public User') {

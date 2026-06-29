@@ -99,6 +99,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+
+    
     // ========================
     // 1. DEPARTMENT SIDEBAR
     // ========================
@@ -297,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. PAGE TITLE
     // ========================
     function renderTitle() {
-        let title = 'AITU Central Repository';
+        let title = 'AITU Programs';
         let subtitle = 'The official AITU file management system for academic and administrative record keeping.';
 
         if (currentProgram && currentDept) {
