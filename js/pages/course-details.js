@@ -1,31 +1,51 @@
 // js/pages/course-details.js
-import { courseService } from '../shared/services.js';
+import { courseService, logService } from '../shared/services.js';
 import { getCurrentUser } from '../shared/auth.js';
-import { mockCourses } from '../shared/mockData.js';
+import { renderLayout } from '../shared/layout.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
 
-    // If admin, update navbar buttons
+    let body = document.getElementById('courseDetailBody');
+    if (!body) return;
+
+    // If admin, switch to admin layout and sidebar
     if (isAdmin) {
-        const navRight = document.querySelector('.repo-nav-right');
-        if (navRight) {
-            navRight.innerHTML = `
-                <button class="repo-login-btn" onclick="window.location.href='dashboard.html'">Go to Portal</button>
-            `;
-        }
+        const publicShell = document.getElementById('publicShell');
+        const app = document.getElementById('app');
+        if (publicShell) publicShell.style.display = 'none';
+        if (app) app.style.display = 'block';
+        renderLayout('courses');
+        body = document.getElementById('page-content');
+        if (body) body.className = 'course-detail-body';
     }
 
     // Get Course ID
     const urlParams = new URLSearchParams(window.location.search);
     const courseId = urlParams.get('id') || '1';
 
-    const body = document.getElementById('courseDetailBody');
-    if (!body) return;
+    // Show Shimmer Loading Skeleton immediately
+    if (body) {
+        body.innerHTML = `
+            <div style="padding: 20px;">
+                <div class="global-skeleton" style="height: 24px; width: 220px; margin-bottom: 20px; border-radius: 6px;"></div>
+                <div class="global-skeleton" style="height: 40px; width: 55%; margin-bottom: 24px; border-radius: 8px;"></div>
+                <div class="global-skeleton" style="height: 260px; width: 100%; margin-bottom: 30px; border-radius: 16px;"></div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                    <div class="global-skeleton skeleton-card" style="height: 140px;"></div>
+                    <div class="global-skeleton skeleton-card" style="height: 140px;"></div>
+                    <div class="global-skeleton skeleton-card" style="height: 140px;"></div>
+                </div>
+            </div>
+        `;
+    }
 
     try {
-        const course = await courseService.getCourseDetails(courseId);
+        const [course, allCourses] = await Promise.all([
+            courseService.getCourseDetails(courseId),
+            courseService.getCourses()
+        ]);
         if (!course) throw new Error('Course not found.');
 
         const totalLessons = course.modules.reduce((sum, m) => sum + m.lessons.length, 0);
@@ -42,17 +62,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
 
             <!-- Title -->
-            <div class="course-detail-title">
-                <h1>${course.title}</h1>
-                <div class="course-detail-badges">
-                    <span class="cd-badge-certified">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        AITU Certified Materials
-                    </span>
-                    <span class="cd-meta-text">Archived Resource</span>
-                    <span class="cd-meta-dot"></span>
-                    <span class="cd-meta-text">Last updated ${course.lastUpdated || 'N/A'}</span>
+            <div class="course-detail-title" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <h1>${course.title}</h1>
+                    <div class="course-detail-badges">
+                        <span class="cd-badge-certified">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            AITU Certified Materials
+                        </span>
+                        <span class="cd-meta-text">Archived Resource</span>
+                        <span class="cd-meta-dot"></span>
+                        <span class="cd-meta-text">Last updated ${course.lastUpdated || 'N/A'}</span>
+                    </div>
                 </div>
+                ${isAdmin ? `
+                <div class="admin-course-actions" style="display: flex; gap: 10px;">
+                    <button id="btnAdminEditCourse" class="btn-upload" style="background: white; color: var(--primary-dark); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit Course
+                    </button>
+                    <button id="btnAdminDeleteCourse" class="btn-upload" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        Delete
+                    </button>
+                </div>
+                ` : ''}
             </div>
 
             <!-- Hero Banner -->
@@ -124,10 +158,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             Download All Resources
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                         </button>
-                        <button class="db-save-btn" id="saveToLibBtn">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                            Save to My Library
-                        </button>
                     </div>
 
                     <!-- Author Card -->
@@ -151,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="related-bundles-card">
                         <h4>Related Resource Bundles</h4>
                         ${course.relatedCourses.map(relId => {
-                            const rel = mockCourses.find(c => c.id === relId);
+                            const rel = allCourses.find(c => c.id === relId);
                             if (!rel) return '';
                             return `
                                 <div class="related-bundle-item" data-id="${rel.id}">
@@ -196,6 +226,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                             <div class="rl-file-actions">
                                 <span class="rl-file-size">${lesson.size || ''}</span>
+                                ${isAdmin ? `
+                                <button class="rl-file-admin-edit-btn" title="Edit File" style="background:transparent; border:none; cursor:pointer; color: var(--primary-blue);">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </button>
+                                <button class="rl-file-admin-delete-btn" title="Delete File" style="background:transparent; border:none; cursor:pointer; color: #dc2626;">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                </button>
+                                ` : ''}
                                 <button class="rl-file-download-btn" title="Download">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                                 </button>
@@ -223,14 +261,64 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
+        // Admin Edit individual file buttons
+        document.querySelectorAll('.rl-file-admin-edit-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newName = prompt('Enter new filename:');
+                if (newName && newName.trim() !== '') {
+                    // find text node and replace it
+                    const nameContainer = e.target.closest('.rl-file-row').querySelector('.rl-file-name');
+                    nameContainer.innerHTML = nameContainer.innerHTML.replace(/<\/svg>[\s\S]*$/, '</svg> ' + newName.trim());
+                }
+            });
+        });
+
+        // Admin Delete individual file buttons
+        document.querySelectorAll('.rl-file-admin-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm('Are you sure you want to delete this resource?')) {
+                    const row = e.target.closest('.rl-file-row');
+                    row.style.opacity = '0.5';
+                    setTimeout(() => row.remove(), 200);
+                }
+            });
+        });
+
+        // Admin course level actions
+        if (isAdmin) {
+            const editCourseBtn = document.getElementById('btnAdminEditCourse');
+            const deleteCourseBtn = document.getElementById('btnAdminDeleteCourse');
+            
+            if (editCourseBtn) {
+                editCourseBtn.addEventListener('click', () => {
+                    window.location.href = `create-course.html?edit=${course.id}`;
+                });
+            }
+            if (deleteCourseBtn) {
+                deleteCourseBtn.addEventListener('click', async () => {
+                    if (confirm(`Are you sure you want to permanently delete course "${course.title}"?`)) {
+                        deleteCourseBtn.disabled = true;
+                        deleteCourseBtn.innerText = 'Deleting...';
+                        try {
+                            await courseService.deleteCourse(course.id);
+                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', course.title);
+                            alert('Course deleted successfully.');
+                            window.location.href = 'courses.html';
+                        } catch (err) {
+                            alert('Failed to delete course.');
+                            deleteCourseBtn.disabled = false;
+                            deleteCourseBtn.innerText = 'Delete';
+                        }
+                    }
+                });
+            }
+        }
+
         // Download All → Show Modal
         document.getElementById('downloadAllBtn').addEventListener('click', () => {
             showDownloadModal(course);
-        });
-
-        // Save to Library
-        document.getElementById('saveToLibBtn').addEventListener('click', () => {
-            alert('Course saved to your personal library!');
         });
 
         // Related bundles click
@@ -242,6 +330,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (error) {
         body.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text-gray);"><h2 style="color:var(--primary-dark);">Course Not Found</h2><p>${error.message}</p><a href="courses.html" style="color:var(--primary-blue);margin-top:15px;display:inline-block;">Back to Courses</a></div>`;
+    } finally {
+        // Hide Global Loader
+        const loader = document.getElementById('global-page-loader');
+        if (loader) {
+            loader.classList.add('hide-loader');
+            setTimeout(() => loader.remove(), 400);
+        }
     }
 
     // ============================

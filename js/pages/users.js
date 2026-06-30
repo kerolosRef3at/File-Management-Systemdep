@@ -1,6 +1,6 @@
 // js/pages/users.js
-import { protectPage } from '../shared/auth.js';
-import { userService } from '../shared/services.js';
+import { protectPage, getCurrentUser } from '../shared/auth.js';
+import { userService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert } from '../shared/components.js';
 
@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!protectPage(['Supervisor'])) {
         return;
     }
+    const currentUser = getCurrentUser();
 
     // Render shared layouts menu context
     renderLayout('users');
@@ -156,6 +157,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateStats();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch user accounts.', 'error');
+        } finally {
+            // Hide Global Loader
+            const loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(() => loader.remove(), 400);
+            }
         }
     }
 
@@ -237,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (confirm(`Are you sure you want to permanently delete user account "${targetUser.username}"?`)) {
                     try {
                         await userService.deleteUser(id);
+                        logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Delete User', targetUser.username);
                         showAlert(alertsContainer, `User account "${targetUser.username}" successfully deleted.`, 'success');
                         await loadUsers();
                     } catch (err) {
@@ -294,7 +303,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px; align-items:center;">
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Phone Number</label>
-                                    <input type="text" id="addPhone" class="form-control" placeholder="+7 (___) ___-____" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
+                                    <input type="text" id="addPhone" class="form-control" placeholder="+20 (1__) ___-____" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
                                 </div>
                                 
                                 <!-- Profile Picture Upload Area -->
@@ -496,6 +505,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     await userService.createUser(username, email, phone, resolvedRole);
+                    logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Add User', username);
 
                     initUsersList();
                     const listAlert = document.getElementById('usersPageAlerts');

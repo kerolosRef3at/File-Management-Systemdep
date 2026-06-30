@@ -1262,6 +1262,10 @@
 /* =========================================
    Responsive: Repository Public View
    ========================================= */
+.repo-mobile-filter-btn {
+    display: none;
+}
+
 
 @media (max-width: 1024px) {
     .dept-summary-cards {
@@ -1276,7 +1280,11 @@
 @media (max-width: 768px) {
     .repo-navbar-inner {
         padding: 0 16px;
-        gap: 15px;
+        gap: 10px;
+    }
+
+    .repo-brand-sub {
+        display: none;
     }
 
     .repo-nav-links {
@@ -1287,14 +1295,18 @@
         display: none;
     }
 
+    .repo-nav-right {
+        gap: 6px;
+    }
+
     .repo-mobile-menu-btn {
         display: block;
-        margin-left: auto;
+        margin-left: 10px;
     }
 
     .repo-login-btn {
-        padding: 6px 16px;
-        font-size: 0.82rem;
+        padding: 6px 12px;
+        font-size: 0.8rem;
     }
 
     .repo-body {
@@ -1321,13 +1333,30 @@
         left: 0;
     }
 
+    .repo-mobile-filter-btn {
+        display: flex !important;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: var(--bg-light);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        cursor: pointer;
+    }
+
     .repo-title-section h1 {
         font-size: 1.5rem;
     }
 
     .repo-controls {
-        flex-wrap: wrap;
+        flex-direction: column;
+        align-items:stretch;
+        gap: 15px;
     }
+
 
     .repo-pagination {
         flex-direction: column;
@@ -1374,8 +1403,8 @@
 
 .program-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
     margin-bottom: 30px;
     animation: programCardsFadeIn 0.4s ease;
 }
@@ -1389,7 +1418,7 @@
     background: var(--white);
     border: 1px solid var(--border-color);
     border-radius: 14px;
-    padding: 28px 20px 22px;
+    padding: 36px 24px 28px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1397,7 +1426,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
 }
 
 .program-card:hover {
@@ -1407,16 +1436,16 @@
 }
 
 .program-card-icon {
-    width: 60px;
-    height: 60px;
+    width: 72px;
+    height: 72px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .program-card-name {
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: var(--primary-dark);
     line-height: 1.3;
@@ -1430,7 +1459,7 @@
 }
 
 .program-card-count {
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     color: var(--text-gray);
     font-weight: 500;
 }
@@ -1439,12 +1468,47 @@
     display: inline-block;
     background: var(--primary-dark);
     color: var(--white);
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 4px 10px;
     border-radius: 4px;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+    .repo-title-section .repo-title-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 18px;
+        margin-bottom: 25px;
+    }
+    .repo-title-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .repo-title-actions button, 
+    .repo-title-actions a {
+        flex: 1 1 calc(50% - 6px);
+        min-width: 120px;
+        justify-content: center;
+        text-align: center;
+        white-space: normal;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    .repo-title-actions button:only-child {
+        flex: 0 1 auto;
+        min-width: 140px;
+    }
+    .repo-view-toggle {
+        flex: 1 1 100%;
+        justify-content: center;
+        margin-top: 5px;
+    }
 }
 
 @media (max-width: 480px) {

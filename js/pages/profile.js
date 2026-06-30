@@ -1,6 +1,6 @@
 // js/pages/profile.js
 import { protectPage, getCurrentUser } from '../shared/auth.js';
-import { profileService } from '../shared/services.js';
+import { profileService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
 
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         </div>
 
-        <div class="profile-grid" style="display:grid; grid-template-columns: 2fr 1fr; gap:25px; align-items:start;">
+        <div class="profile-grid">
             <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
                 <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
                     Account Information
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
 
                     <form id="profileForm">
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div class="profile-form-row">
                             <div class="form-group" style="margin-bottom:0;">
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Username (Read-only)</label>
                                 <input type="text" class="form-control" value="${user.username}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+                        <div class="profile-form-row">
                             <div class="form-group" style="margin-bottom:0;">
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Role / Designation</label>
                                 <input type="text" class="form-control" value="${getRoleDisplay(user.role)}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Email Address</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                <input type="email" id="email" class="form-control" value="${user.email}" style="padding-left: 40px;" required>
+                                <input type="email" id="email" class="form-control" value="${user.email || (user.username ? user.username + '@aitu.edu.eg' : '')}" style="padding-left: 40px;" required>
                             </div>
                         </div>
 
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Phone Number</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                <input type="text" id="mobile" class="form-control" value="${user.phone || ''}" style="padding-left: 40px;" required>
+                                <input type="text" id="mobile" class="form-control" placeholder="+20 (1__) ___-____" value="${user.phone || ''}" style="padding-left: 40px;" required>
                             </div>
                         </div>
 
@@ -124,35 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         </form>
                     </div>
                 </div>
-
-                <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
-                    <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
-                        Activity Summary
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                    </div>
-                    <div class="profile-card-body" style="padding:25px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.9rem; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid var(--border-color);">
-                            <span style="color:var(--text-gray); display:flex; align-items:center; gap:8px;">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
-                                Last Login
-                            </span>
-                            <span style="color:var(--primary-dark); font-weight:600;">Today, 09:41 AM</span>
-                        </div>
-                        
-                        <div class="activity-summary" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                            <div class="activity-box" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; text-align:center;">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:10px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                                <h4 style="font-size:1.8rem; color:var(--primary-dark); margin:0;">24</h4>
-                                <span style="font-size:0.75rem; color:var(--text-gray); font-weight:600; text-transform:uppercase;">Uploads</span>
-                            </div>
-                            <div class="activity-box" style="background:#f8fafc; border:1px solid var(--border-color); border-radius:8px; padding:15px; text-align:center;">
-                                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="var(--primary-blue)" stroke-width="2" style="margin-bottom:10px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                                <h4 style="font-size:1.8rem; color:var(--primary-dark); margin:0;">185</h4>
-                                <span style="font-size:0.75rem; color:var(--text-gray); font-weight:600; text-transform:uppercase;">Downloads</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     `;
@@ -178,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await profileService.updateProfile(email, mobile, fullName);
                 
                 showAlert(profileAlert, 'Profile information updated successfully.', 'success');
+                logService.addLog(user.username, user.role, 'Update Profile', `Updated contact info`);
                 
                 // Update header displays in-place instead of reloading layout (which clears forms)
                 const freshUser = getCurrentUser();
@@ -239,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // TODO: POST /api/Auth/change-password
                 await profileService.changePassword(oldPassword, newPassword);
                 showAlert(securityAlert, 'Password updated successfully.', 'success');
+                logService.addLog(user.username, user.role, 'Change Password', `Updated account password`);
                 securityForm.reset();
             } catch (err) {
                 showAlert(securityAlert, err.message || 'Failed to update password.', 'error');
@@ -259,4 +232,11 @@ document.addEventListener('DOMContentLoaded', () => {
             preview.src = `https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff`;
         }
     });
+
+    // Hide Global Loader
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
+    }
 });

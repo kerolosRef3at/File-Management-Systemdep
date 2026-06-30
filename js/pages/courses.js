@@ -49,14 +49,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Mobile sidebar toggle
         const mobileBtn = document.getElementById('coursesMobileMenuBtn');
+        const filterBtn = document.getElementById('coursesMobileFilterBtn');
         const leftPanel = document.getElementById('coursesLeftPanel');
         const overlay = document.getElementById('courseSidebarOverlay');
 
-        if (mobileBtn && leftPanel && overlay) {
-            mobileBtn.addEventListener('click', () => {
-                leftPanel.classList.toggle('open');
-                overlay.classList.toggle('active');
-            });
+        const togglePanel = () => {
+            leftPanel.classList.toggle('open');
+            overlay.classList.toggle('active');
+        };
+
+        if (mobileBtn && leftPanel && overlay) mobileBtn.addEventListener('click', togglePanel);
+        if (filterBtn && leftPanel && overlay) filterBtn.addEventListener('click', togglePanel);
+        
+        if (overlay) {
             overlay.addEventListener('click', () => {
                 leftPanel.classList.remove('open');
                 overlay.classList.remove('active');
@@ -81,11 +86,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     async function loadAndRenderPublic() {
+        const grid = document.getElementById('publicCourseGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="skeleton-grid-container">
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                </div>
+            `;
+        }
         try {
             allCourses = await courseService.getCourses();
             renderPublicCourses();
         } catch (e) {
-            document.getElementById('publicCourseGrid').innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">Failed to load courses.</p>';
+            if (grid) grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">Failed to load courses.</p>';
+        } finally {
+            // Hide Global Loader
+            const loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(() => loader.remove(), 400);
+            }
         }
     }
 
@@ -348,12 +373,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         const grid = document.getElementById('adminCourseGrid');
         const alertsContainer = document.getElementById('adminAlerts');
 
+        if (grid) {
+            grid.innerHTML = `
+                <div class="skeleton-grid-container">
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                    <div class="global-skeleton skeleton-card"></div>
+                </div>
+            `;
+        }
+
         try {
             allCourses = await courseService.getCourses();
             renderAdminCourses();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch course repository.', 'error');
             renderEmptyState(grid, 'Unable to load courses.');
+        } finally {
+            // Hide Global Loader
+            const loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(() => loader.remove(), 400);
+            }
         }
     }
 

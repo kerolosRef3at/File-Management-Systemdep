@@ -1,8 +1,9 @@
 // js/pages/create-course.js
-import { protectPage } from '../shared/auth.js';
-import { courseService } from '../shared/services.js';
+import { protectPage, getCurrentUser } from '../shared/auth.js';
+import { courseService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
+import { mockDepartments } from '../shared/mockData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Route guard
@@ -10,10 +11,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
+    const user = getCurrentUser();
     renderLayout('courses');
 
     const contentArea = document.getElementById('page-content');
     if (!contentArea) return;
+
+    // Check if edit mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('edit');
+
+    // Load persisted uploads
+    loadPersistedUploads();
 
     contentArea.innerHTML = `
         <form id="courseBuilderForm">
@@ -58,10 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Category</label>
-                                <select class="form-control" id="courseCat">
-                                    <option value="UNDERGRAD">Undergraduate</option>
-                                    <option value="PROFESSIONAL">Professional</option>
-                                    <option value="RESEARCH">Research</option>
+                                <select class="form-control" id="courseCat" required>
+                                    <option value="">Select Department first...</option>
                                 </select>
                             </div>
                         </div>
@@ -97,14 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             </div>
                             <div class="content-builder-actions-top">
-                                <button type="button" class="cb-btn-bulk-upload" id="bulkUploadBtn">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                                    Bulk Upload
-                                </button>
-                                <button type="button" class="cb-btn-add-lesson" id="addLessonBtn">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                                    Add Lesson
-                                </button>
+                                <!-- Redundant buttons removed for cleaner UI -->
                             </div>
                         </div>
 
@@ -161,8 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 Content & Asset Management
                             </div>
                             <div class="content-tabs">
-                                <button type="button" class="content-tab active" id="tabSingleLesson">Add Single Lesson</button>
-                                <button type="button" class="content-tab" id="tabBulkUpload">Bulk Upload Directory</button>
+                                <!-- Redundant tabs removed for cleaner UI -->
                             </div>
                         </div>
 
@@ -187,59 +186,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="package-status-bar">
                             <span class="package-status-label">Downloadable Package Status</span>
                             <span class="package-status-size">Total: 0 MB</span>
-                        </div>
-                    </div>
-
-                    <!-- Publishing Options -->
-                    <div class="create-course-section">
-                        <div class="create-course-section-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                            Publishing Options
-                        </div>
-
-                        <div class="publishing-layout">
-                            <div>
-                                <label style="display:block; margin-bottom:10px; font-weight:600; font-size:0.88rem; color:var(--text-gray);">Visibility Settings</label>
-                                <label class="visibility-option" id="visPublic">
-                                    <input type="radio" name="visibility" value="public">
-                                    <div class="visibility-option-text">
-                                        <strong>Public Guest</strong>
-                                        <span>Available to anyone with the link</span>
-                                    </div>
-                                </label>
-                                <label class="visibility-option active" id="visStudents">
-                                    <input type="radio" name="visibility" value="students" checked>
-                                    <div class="visibility-option-text">
-                                        <strong>Registered Students</strong>
-                                        <span>Students must login to view</span>
-                                    </div>
-                                </label>
-                                <label class="visibility-option" id="visAdmin">
-                                    <input type="radio" name="visibility" value="admin">
-                                    <div class="visibility-option-text">
-                                        <strong>Admin Only</strong>
-                                        <span>Only faculty and admins can view</span>
-                                    </div>
-                                </label>
-                            </div>
-                            <div>
-                                <label style="display:block; margin-bottom:10px; font-weight:600; font-size:0.88rem; color:var(--text-gray);">Download Restrictions</label>
-                                <div class="toggle-switch-row">
-                                    <div class="toggle-switch-text">
-                                        <strong>Enable Guest Downloads</strong>
-                                        <span>Allow non-registered users to download assets</span>
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="guestDownloadToggle">
-                                        <span class="toggle-slider"></span>
-                                    </label>
-                                </div>
-
-                                <div class="create-warning-notice" style="margin-top:15px;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                    <p>Changes to visibility might affect existing enrollments. Please verify student quotas before publishing.</p>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -267,12 +213,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <div class="preview-card" id="previewCard">
                         <div class="preview-card-thumb">
-                            <img id="previewThumb" src="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=500" alt="Preview">
+                            <img id="previewThumb" src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=500" alt="Preview">
                         </div>
                         <div class="preview-card-body">
                             <div class="preview-mode-label">PREVIEW MODE</div>
-                            <h4 id="previewTitle">Course Title Preview</h4>
-                            <p>This is how your course will appear to students in the Academic Portal.</p>
+                            <h4 id="previewTitle">New Course Package</h4>
+                            <p id="previewDesc">Course description will appear here as you type...</p>
+                        </div>
+                    </div>
+
+                    <!-- Publishing Options (Moved to right column) -->
+                    <div class="create-course-section" style="margin-top: 24px;">
+                        <div class="create-course-section-title">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06-.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                            Publishing Options
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:20px;">
+                            <div>
+                                <label style="display:block; margin-bottom:10px; font-weight:600; font-size:0.88rem; color:var(--text-gray);">Visibility Settings</label>
+                                <label class="visibility-option active" id="visPublic">
+                                    <input type="radio" name="visibility" value="public" checked>
+                                    <div class="visibility-option-text">
+                                        <strong>Public Guest</strong>
+                                        <span>Available to anyone with the link</span>
+                                    </div>
+                                </label>
+                                <label class="visibility-option" id="visAdmin">
+                                    <input type="radio" name="visibility" value="admin">
+                                    <div class="visibility-option-text">
+                                        <strong>Admin Only</strong>
+                                        <span>Only faculty and admins can view</span>
+                                    </div>
+                                </label>
+                            </div>
+                            <div>
+                                <label style="display:block; margin-bottom:10px; font-weight:600; font-size:0.88rem; color:var(--text-gray);">Download Restrictions</label>
+                                <div class="toggle-switch-row">
+                                    <div class="toggle-switch-text">
+                                        <strong>Enable Guest Downloads</strong>
+                                        <span>Allow non-registered users to download assets</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="guestDownloadToggle">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -317,12 +304,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Title → Preview sync
+    // Title & Description Preview sync
     const titleInput = document.getElementById('courseTitle');
     if (titleInput) {
         titleInput.addEventListener('input', () => {
             const previewTitle = document.getElementById('previewTitle');
-            if (previewTitle) previewTitle.textContent = titleInput.value || 'Course Title Preview';
+            if (previewTitle) previewTitle.textContent = titleInput.value || 'New Course Package';
+        });
+    }
+
+    const descInput = document.getElementById('courseDescription');
+    if (descInput) {
+        descInput.addEventListener('input', () => {
+            const previewDesc = document.getElementById('previewDesc');
+            if (previewDesc) previewDesc.textContent = descInput.value || 'Course description will appear here as you type...';
+        });
+    }
+
+    // Dynamic Category population based on Department
+    const courseDept = document.getElementById('courseDept');
+    const courseCat = document.getElementById('courseCat');
+    if (courseDept && courseCat) {
+        courseDept.addEventListener('change', () => {
+            const selectedDeptId = courseDept.value;
+            courseCat.innerHTML = '<option value="">Select Category...</option>'; // reset
+            
+            if (selectedDeptId) {
+                const deptObj = mockDepartments.find(d => d.id === selectedDeptId || d.shortName === selectedDeptId);
+                if (deptObj && deptObj.programs) {
+                    deptObj.programs.forEach(prog => {
+                        const option = document.createElement('option');
+                        option.value = prog.name; // using name as category
+                        option.textContent = prog.name;
+                        courseCat.appendChild(option);
+                    });
+                }
+            } else {
+                courseCat.innerHTML = '<option value="">Select Department first...</option>';
+            }
         });
     }
 
@@ -334,13 +353,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Content tabs toggle
-    document.querySelectorAll('.content-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.content-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-        });
-    });
+    // Populate mockup headers if edit mode
+    if (editId) {
+        const titleEl = document.querySelector('.create-course-title h1');
+        const subEl = document.querySelector('.create-course-subtitle');
+        if (titleEl) titleEl.textContent = 'Edit Course Package';
+        if (subEl) subEl.textContent = 'Update the details and content of this existing curriculum package.';
+    }
 
     // Upload file inputs
     const singleFileInput = document.getElementById('singleFileInput');
@@ -354,33 +373,41 @@ document.addEventListener('DOMContentLoaded', () => {
         multiFileInput.click();
     });
 
-    // Also wire the top-level Bulk Upload button
-    document.getElementById('bulkUploadBtn').addEventListener('click', () => {
-        multiFileInput.click();
-    });
-
-    // Add Lesson button scrolls to the upload area
-    document.getElementById('addLessonBtn').addEventListener('click', () => {
-        const uploadArea = document.getElementById('contentBuilderUploadArea');
-        if (uploadArea) {
-            uploadArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            document.getElementById('lessonTitleInput').focus();
-        }
-    });
-
     singleFileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
-            addFilesToTable([e.target.files[0]]);
+            handleNewFiles([e.target.files[0]]);
             singleFileInput.value = '';
         }
     });
 
     multiFileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
-            addFilesToTable(Array.from(e.target.files));
+            handleNewFiles(Array.from(e.target.files));
             multiFileInput.value = '';
         }
     });
+
+    function handleNewFiles(files) {
+        const lessonTitleInput = document.getElementById('lessonTitleInput');
+        let uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+        
+        files.forEach((file, index) => {
+            const lessonName = lessonTitleInput ? lessonTitleInput.value.trim() || file.name.replace(/\.[^/.]+$/, '') : file.name;
+            const uniqueId = 'upload-' + Date.now() + '-' + index;
+            uploads.push({
+                id: uniqueId,
+                name: lessonName,
+                fileName: file.name,
+                size: file.size,
+                progress: 0,
+                completed: false
+            });
+        });
+        
+        localStorage.setItem('AITU_UPLOADS', JSON.stringify(uploads));
+        if (lessonTitleInput) lessonTitleInput.value = '';
+        renderUploads();
+    }
 
     function getFileTypeInfo(file) {
         const ext = file.name.split('.').pop().toLowerCase();
@@ -408,38 +435,62 @@ document.addEventListener('DOMContentLoaded', () => {
         return bytes + ' B';
     }
 
-    function addFilesToTable(files) {
+    // Called on page load
+    function loadPersistedUploads() {
+        // give the DOM time to render the layout if it's dynamic
+        setTimeout(() => {
+            renderUploads();
+        }, 100);
+    }
+
+    function renderUploads() {
         const tbody = document.getElementById('contentTableBody');
         const emptyMsg = document.getElementById('emptyContentMessage');
         const table = document.getElementById('contentTable');
-        const lessonTitleInput = document.getElementById('lessonTitleInput');
+        
+        if (!tbody) return;
+        
+        const uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+        
+        if (uploads.length === 0) {
+            if (emptyMsg) emptyMsg.style.display = 'flex';
+            if (table) table.style.display = 'none';
+            tbody.innerHTML = '';
+            updatePackageSize();
+            return;
+        }
 
         if (emptyMsg) emptyMsg.style.display = 'none';
         if (table) table.style.display = 'table';
+        tbody.innerHTML = '';
 
-        files.forEach((file, index) => {
-            const fileInfo = getFileTypeInfo(file);
-            const lessonName = lessonTitleInput.value.trim() || file.name.replace(/\.[^/.]+$/, '');
-            const uniqueId = 'upload-' + Date.now() + '-' + index;
-
+        uploads.forEach((upload) => {
+            const fileInfo = getFileTypeInfo({ name: upload.fileName });
+            
             const tr = document.createElement('tr');
             tr.className = 'content-row-animated';
-            tr.dataset.sizeBytes = file.size;
+            tr.dataset.sizeBytes = upload.size;
+            tr.dataset.id = upload.id;
+            
+            const progressStyle = upload.completed ? 'display:none;' : '';
+            const barWidth = upload.progress + '%';
+            const barClass = upload.completed ? 'upload-progress-bar-fill upload-complete' : 'upload-progress-bar-fill';
+
             tr.innerHTML = `
                 <td>
-                    <input type="text" class="form-control" value="${lessonName}" style="border:none;padding:0;font-weight:500;">
-                    <div class="upload-progress-container" id="progress-${uniqueId}">
+                    <input type="text" class="form-control lesson-title-input" value="${upload.name}" style="border:none;padding:0;font-weight:500;background:transparent;outline:none;" readonly>
+                    <div class="upload-progress-container" id="progress-${upload.id}" style="${progressStyle}">
                         <div class="upload-progress-bar-track">
-                            <div class="upload-progress-bar-fill" id="bar-${uniqueId}"></div>
+                            <div class="${barClass}" id="bar-${upload.id}" style="width: ${barWidth}"></div>
                         </div>
-                        <span class="upload-progress-text" id="text-${uniqueId}">0%</span>
+                        <span class="upload-progress-text" id="text-${upload.id}">${upload.progress.toFixed(0)}%</span>
                     </div>
                 </td>
                 <td><div class="file-type-cell">${fileInfo.icon} ${fileInfo.type}</div></td>
-                <td style="color:var(--text-gray);">${formatFileSize(file.size)}</td>
+                <td style="color:var(--text-gray);">${formatFileSize(upload.size)}</td>
                 <td>
                     <div class="action-btns">
-                        <button type="button" class="action-btn" title="Edit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                        <button type="button" class="action-btn edit" title="Rename"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                         <button type="button" class="action-btn delete" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
                     </div>
                 </td>
@@ -447,22 +498,67 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tbody.appendChild(tr);
 
+            // Wire edit button
+            const editBtn = tr.querySelector('.action-btn.edit');
+            const rowTitleInput = tr.querySelector('.lesson-title-input');
+            const editIcon = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+            const saveIcon = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#16a34a" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+
+            const toggleEdit = () => {
+                if (rowTitleInput.hasAttribute('readonly')) {
+                    rowTitleInput.removeAttribute('readonly');
+                    rowTitleInput.style.border = '1px solid var(--border-color)';
+                    rowTitleInput.style.padding = '4px 8px';
+                    rowTitleInput.style.borderRadius = '4px';
+                    rowTitleInput.style.background = '#fff';
+                    rowTitleInput.focus();
+                    editBtn.innerHTML = saveIcon;
+                    editBtn.title = 'Save';
+                } else {
+                    rowTitleInput.setAttribute('readonly', 'readonly');
+                    rowTitleInput.style.border = 'none';
+                    rowTitleInput.style.padding = '0';
+                    rowTitleInput.style.background = 'transparent';
+                    editBtn.innerHTML = editIcon;
+                    editBtn.title = 'Rename';
+                    
+                    // Save to localStorage
+                    let currentUploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+                    const upIndex = currentUploads.findIndex(u => u.id === upload.id);
+                    if (upIndex > -1) {
+                        currentUploads[upIndex].name = rowTitleInput.value;
+                        localStorage.setItem('AITU_UPLOADS', JSON.stringify(currentUploads));
+                    }
+                }
+            };
+
+            editBtn.addEventListener('click', toggleEdit);
+            rowTitleInput.addEventListener('blur', () => {
+                if (!rowTitleInput.hasAttribute('readonly')) toggleEdit();
+            });
+            rowTitleInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    rowTitleInput.blur();
+                }
+            });
+
             // Wire delete button
             tr.querySelector('.action-btn.delete').addEventListener('click', () => {
                 tr.style.animation = 'fadeOutRow 0.3s ease forwards';
                 setTimeout(() => {
-                    tr.remove();
-                    updatePackageSize();
-                    updateEmptyState();
+                    let currentUploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+                    currentUploads = currentUploads.filter(u => u.id !== upload.id);
+                    localStorage.setItem('AITU_UPLOADS', JSON.stringify(currentUploads));
+                    renderUploads();
                 }, 300);
             });
 
-            // Simulate upload progress
-            simulateProgress(uniqueId);
+            // Resume or start simulation if not completed
+            if (!upload.completed) {
+                simulateProgress(upload.id);
+            }
         });
-
-        // Clear lesson title input after adding
-        if (lessonTitleInput) lessonTitleInput.value = '';
 
         updatePackageSize();
     }
@@ -473,15 +569,32 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('progress-' + uniqueId);
         if (!bar || !text || !container) return;
 
-        let progress = 0;
+        let uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+        let upload = uploads.find(u => u.id === uniqueId);
+        if (!upload) return;
+
+        let progress = upload.progress || 0;
+        
         const interval = setInterval(() => {
             progress += Math.random() * 15 + 5;
+            
+            // update localStorage
+            let currentUploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+            let upIndex = currentUploads.findIndex(u => u.id === uniqueId);
+            
             if (progress >= 100) {
                 progress = 100;
                 clearInterval(interval);
                 bar.style.width = '100%';
                 text.textContent = '100%';
                 bar.classList.add('upload-complete');
+                
+                if (upIndex > -1) {
+                    currentUploads[upIndex].progress = 100;
+                    currentUploads[upIndex].completed = true;
+                    localStorage.setItem('AITU_UPLOADS', JSON.stringify(currentUploads));
+                }
+                
                 setTimeout(() => {
                     container.style.animation = 'fadeOutProgress 0.5s ease forwards';
                     setTimeout(() => {
@@ -491,6 +604,11 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 bar.style.width = progress.toFixed(0) + '%';
                 text.textContent = progress.toFixed(0) + '%';
+                
+                if (upIndex > -1) {
+                    currentUploads[upIndex].progress = progress;
+                    localStorage.setItem('AITU_UPLOADS', JSON.stringify(currentUploads));
+                }
             }
         }, 300 + Math.random() * 200);
     }
@@ -560,13 +678,14 @@ document.addEventListener('DOMContentLoaded', () => {
             dept,
             description: desc,
             category,
-            img: thumbnailDataUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=500',
+            img: thumbnailDataUrl || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=500',
             modules: [{ name: 'Module 1', lessons: [] }],
             size: '120 MB'
         };
 
         try {
             await courseService.createCourse(coursePayload);
+            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Course: ${title} (${dept})`);
             showAlert(alertsContainer, 'Course published successfully! Redirecting...', 'success');
             setTimeout(() => { window.location.href = 'courses.html'; }, 1500);
         } catch (error) {

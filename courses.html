@@ -14,6 +14,14 @@
 </head>
 
 <body>
+    <!-- Floating Logo Loader -->
+    <div id="global-page-loader">
+        <div class="loader-logo-container">
+            <img src="logos/logo_AITU.jpg" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
+            <div class="loader-ring"></div>
+        </div>
+        <div class="loader-text">Loading...</div>
+    </div>
     <!-- Public layout shell (hidden when admin) -->
     <div id="publicShell" style="display:none;">
         <!-- Public Navbar -->
@@ -80,6 +88,10 @@
                     <h1>Explore Our Programs</h1>
                     <p>Discover professional and academic courses tailored for the next generation of technological
                         leaders.</p>
+                    <button class="courses-mobile-filter-btn" id="coursesMobileFilterBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        Filters
+                    </button>
                 </div>
 
                 <div class="courses-search-bar">

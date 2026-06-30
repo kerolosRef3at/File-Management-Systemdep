@@ -10,6 +10,14 @@
     <link rel="stylesheet" href="css/repository.css">
 </head>
 <body>
+    <!-- Floating Logo Loader -->
+    <div id="global-page-loader">
+        <div class="loader-logo-container">
+            <img src="logos/logo_AITU.jpg" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
+            <div class="loader-ring"></div>
+        </div>
+        <div class="loader-text">Loading...</div>
+    </div>
 
     <!-- Public Navbar -->
     <header class="repo-navbar" id="repoNavbar">
@@ -86,6 +94,10 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             Download Selected Bundle
         </button>
+        <button id="deleteSelectedBtn" style="background:#dc2626; color:white; border:none; padding:9px 20px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; display:none; align-items:center; gap:7px; transition:all 0.2s;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Delete Selected
+        </button>
     </div>
 
     <!-- Download Confirmation Modal -->
@@ -112,9 +124,6 @@
                     Download Now
                 </button>
             </div>
-        </div>
-    </div>
-
     <!-- Footer -->
     <footer class="repo-footer" id="repoFooter">
         <div class="repo-footer-inner">

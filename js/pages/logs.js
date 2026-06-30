@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         </div>
 
-        <div class="dashboard-panel" style="padding: 0; overflow: hidden; background:white; border: 1px solid var(--border-color); border-radius:10px;">
-            <table class="data-table" style="width: 100%;">
+        <div class="dashboard-panel" style="padding: 0; overflow-x: auto; background:white; border: 1px solid var(--border-color); border-radius:10px;">
+            <table class="data-table" style="width: 100%; min-width: 800px;">
                 <thead style="background: #f8fafc;">
                     <tr>
                         <th style="padding: 15px 20px;">Admin</th>
@@ -87,6 +87,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             applyFilters();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch system logs.', 'error');
+        } finally {
+            // Hide Global Loader
+            const loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(() => loader.remove(), 400);
+            }
         }
     }
 
@@ -97,22 +104,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (r === 'it manager') return 'role-it';
         if (r === 'el manager') return 'role-el';
         return 'role-me';
+
     }
+
 
     // Color code log action category dots
     function getActionDotColor(action) {
-        const actionMap = {
-            'Login': 'dot-blue', 
-            'Update Profile': 'dot-blue',
-            'Add File': 'dot-green', 
-            'Create Folder': 'dot-green',
-            'Delete File': 'dot-red', 
-            'Delete User': 'dot-red',
-            'Change Password': 'dot-orange',
-            'Upload Video': 'dot-purple',
-            'Add User': 'dot-cyan'
-        };
-        return actionMap[action] || 'dot-blue';
+        if (!action) return 'dot-blue';
+        const lowerAction = action.toLowerCase().replace(/\s+/g, '');
+        if (lowerAction.includes('login')) return 'dot-blue';
+        if (lowerAction.includes('updateprofile')) return 'dot-blue';
+        if (lowerAction.includes('addfile') || lowerAction.includes('createcourse') || lowerAction.includes('createfolder')) return 'dot-green';
+        if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'dot-red';
+        if (lowerAction.includes('password')) return 'dot-orange';
+        if (lowerAction.includes('upload')) return 'dot-purple';
+        if (lowerAction.includes('add') || lowerAction.includes('createuser')) return 'dot-cyan';
+        return 'dot-blue'; // Default
     }
 
     // Draw logs table lines
@@ -128,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         logsToRender.forEach(log => {
             const initial = log.admin.charAt(0).toUpperCase();
             const tr = document.createElement('tr');
-            
+
             // Format datetime: split space and add sub label span
             const formattedTime = log.datetime.replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal; font-size:0.8rem;">') + '</span>';
 
@@ -142,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </td>
                 <td><span class="role-badge ${getRoleBadgeClass(log.role)}" style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block;">${log.role === 'Mechanic Manager' ? 'Mechanical Manager' : log.role}</span></td>
-                <td style="font-weight:600; color:var(--primary-dark);">
+                <td style="font-weight:600; color:var(--primary-dark); white-space: nowrap;">
                     <span class="action-dot ${getActionDotColor(log.action)}" style="
                         width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;
                     "></span>${log.action}
@@ -174,8 +181,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (term) {
-            filtered = filtered.filter(log => 
-                log.admin.toLowerCase().includes(term) || 
+            filtered = filtered.filter(log =>
+                log.admin.toLowerCase().includes(term) ||
                 log.target.toLowerCase().includes(term)
             );
         }
@@ -189,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('active'));
             const targetChip = e.currentTarget;
             targetChip.classList.add('active');
-            
+
             currentActionFilter = targetChip.getAttribute('data-action');
             applyFilters();
         });

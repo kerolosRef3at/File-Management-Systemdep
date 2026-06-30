@@ -25,15 +25,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- Load all data ---
     try {
-        const [stats, downloads, resourceMix, documents, events] = await Promise.all([
+        const [stats, downloads, resourceMix, programDownloads, documents, events] = await Promise.all([
             dashboardService.getStats(currentDays),
             dashboardService.getDownloads(currentYear),
             dashboardService.getResourceMix(),
+            dashboardService.getProgramDownloads(),
             dashboardService.getDocuments(5),
             dashboardService.getEvents(10)
         ]);
 
-        renderDashboard(content, { stats, downloads, resourceMix, documents, events });
+        renderDashboard(content, { stats, downloads, resourceMix, programDownloads, documents, events });
 
         // Poll events every 30s
         pollingInterval = setInterval(async () => {
@@ -44,6 +45,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 30000);
     } catch (err) {
         content.innerHTML = '<div style="padding: 40px; color: #E63946; text-align: center;">Failed to load dashboard data. Please try again.</div>';
+    } finally {
+        // Hide Global Loader
+        const loader = document.getElementById('global-page-loader');
+        if (loader) {
+            loader.classList.add('hide-loader');
+            setTimeout(() => loader.remove(), 400);
+        }
     }
 
     // --- Skeleton loader ---
@@ -73,7 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Main render ---
-    function renderDashboard(container, { stats, downloads, resourceMix, documents, events }) {
+    function renderDashboard(container, { stats, downloads, resourceMix, programDownloads, documents, events }) {
         const user = getCurrentUser();
         const userDisplayName = user ? (user.name || user.username) : 'User';
         
@@ -136,14 +144,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                     </div>
                 </div>
 
-                <!-- Files by Department -->
+                <!-- Program Downloads -->
                 <div class="dash-donut-card">
-                    <h3 class="dash-chart-title">Files by Department</h3>
-                    <div class="dash-donut-wrapper" id="donutChartContainer">
+                    <h3 class="dash-chart-title">Program Downloads</h3>
+                    <div class="dash-donut-wrapper" id="donutChartContainer1">
+                        ${renderDonutSVG(programDownloads)}
+                    </div>
+                    <div class="dash-donut-legend" id="donutLegend1">
+                        ${renderDonutLegend(programDownloads, 'DLs')}
+                    </div>
+                </div>
+
+                <!-- Resource Mix -->
+                <div class="dash-donut-card">
+                    <h3 class="dash-chart-title">Resource Mix</h3>
+                    <div class="dash-donut-wrapper" id="donutChartContainer2">
                         ${renderDonutSVG(resourceMix)}
                     </div>
-                    <div class="dash-donut-legend" id="donutLegend">
-                        ${renderDonutLegend(resourceMix)}
+                    <div class="dash-donut-legend" id="donutLegend2">
+                        ${renderDonutLegend(resourceMix, 'Files')}
                     </div>
                 </div>
             </div>
@@ -204,19 +223,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderStorageCard(stats) {
+        const usedPercent = stats.qnapStorage ? stats.qnapStorage.usedPercentage : (stats.storageCapacityUsed || 0);
+        const usedValue = stats.qnapStorage ? stats.qnapStorage.usedValue : (stats.storageCapacityValue || '0 TB');
+        const totalValue = stats.qnapStorage ? stats.qnapStorage.totalValue : 'Total';
+
         return `
             <div class="dash-stat-card">
                 <div class="dash-stat-top">
-                    <span class="dash-stat-label">STORAGE CAPACITY</span>
+                    <span class="dash-stat-label">QNAP STORAGE CAPACITY</span>
                     <div class="dash-stat-icon blue">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </div>
                 </div>
-                <div class="dash-stat-value">
-                    ${stats.storageCapacityValue}<span class="percent">${stats.storageCapacityUsed}%</span>
+                <div class="dash-stat-value" style="font-size: 20px;">
+                    ${usedValue} <span style="font-size:13px; color:#6B7A99; font-weight:500;">/ ${totalValue}</span>
+                    <span class="percent">${usedPercent}%</span>
                 </div>
                 <div class="dash-progress-track">
-                    <div class="dash-progress-fill" style="width:${stats.storageCapacityUsed}%"></div>
+                    <div class="dash-progress-fill" style="width:${usedPercent}%"></div>
                 </div>
             </div>
         `;
@@ -339,17 +363,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         return '<svg viewBox="0 0 170 170">' + paths + '</svg>';
     }
 
-    function renderDonutLegend(mix) {
+    function renderDonutLegend(mix, suffix = '') {
         const colors = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
         const labels = { IT: 'Information Tech', EL: 'Electrical Eng.', ME: 'Mechanical Eng.' };
         const total = (mix.it || 0) + (mix.el || 0) + (mix.me || 0);
 
         return ['IT', 'EL', 'ME'].map(key => {
-            const pct = total > 0 ? Math.round((mix[key.toLowerCase()] / total) * 100) : 0;
+            const val = mix[key.toLowerCase()] || 0;
+            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
             return '<a class="dash-legend-item" href="repository.html?dept=' + key + '">' +
                 '<div class="dash-legend-dot" style="background:' + colors[key] + '"></div>' +
                 '<span class="dash-legend-label">' + labels[key] + '</span>' +
-                '<span class="dash-legend-value">' + pct + '%</span>' +
+                '<span class="dash-legend-value">' + val + (suffix ? ' ' + suffix : '') + ' <span style="font-size:11px;color:#6B7A99;">(' + pct + '%)</span></span>' +
                 '</a>';
         }).join('');
     }

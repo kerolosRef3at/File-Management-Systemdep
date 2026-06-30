@@ -56,3 +56,23 @@ export function logout() {
     authService.logout();
     window.location.href = 'index.html';
 }
+
+// Automatically update public navbars if user is logged in
+document.addEventListener('DOMContentLoaded', () => {
+    const user = getCurrentUser();
+    const repoNavRight = document.querySelector('.repo-nav-right');
+    if (repoNavRight && user) {
+        const portalUrl = user.role === 'Public User' ? 'repository.html' : 'dashboard.html';
+        repoNavRight.innerHTML = `
+            <button class="repo-login-btn" style="background:var(--primary-blue); color:white; font-weight:600;" onclick="window.location.href='${portalUrl}'">Go to Portal</button>
+            <button class="repo-login-btn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:600;" id="publicLogoutBtn">Logout</button>
+        `;
+        const logoutBtn = document.getElementById('publicLogoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                authService.logout();
+                window.location.href = 'login.html';
+            });
+        }
+    }
+});

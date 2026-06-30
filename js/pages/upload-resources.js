@@ -1,7 +1,8 @@
 // js/pages/upload-resources.js
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
-import { fileService } from '../shared/services.js';
+import { fileService, logService } from '../shared/services.js';
+import { mockDepartments } from '../shared/mockData.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
@@ -17,10 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let overallProgress = 0;
     let isUploading = false;
     let nextFileId = 1;
+    let globalDept = '';
+    let globalProg = '';
 
     // Accepted file types
     const ACCEPTED_TYPES = ['.mp4', '.pdf', '.zip', '.docx', '.xlsx', '.dwg', '.pptx', '.doc'];
-    const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
+    const MAX_FILE_SIZE = 2 * 1024 * 1024 * 2048; // 2GB
 
     function getFileIcon(type) {
         const ext = type.toLowerCase();
@@ -94,10 +97,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="upload-header-actions">
                         <button class="upload-btn-outline" id="discardDraftBtn">Discard Draft</button>
-                        <button class="upload-btn-primary" id="saveBtn" ${totalFiles === 0 ? 'disabled' : ''}>
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                            Save
+                        <button class="upload-btn-primary" id="saveBtn" ${totalFiles === 0 || isUploading ? 'disabled' : ''}>
+                            ${isUploading ? `<span class="file-waiting-spinner" style="margin-right:8px; border-color:white; border-bottom-color:transparent;"></span> Uploading...` : `
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                            Start Upload`}
                         </button>
+                    </div>
+                </div>
+
+                <!-- Global Destination Selection -->
+                <div class="upload-global-destination" style="background:white; padding:20px; border-radius:12px; margin-bottom:20px; border:1px solid #e2e8f0; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px; display:block;">Target Department <span style="color:#ef4444">*</span></label>
+                        <select id="globalDeptSelect" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);">
+                            <option value="">Select Department...</option>
+                            ${mockDepartments.map(d => `<option value="${d.id}" ${globalDept === d.id ? 'selected' : ''}>${d.name}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px; display:block;">Target Program <span style="color:#ef4444">*</span></label>
+                        <select id="globalProgSelect" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);" ${!globalDept ? 'disabled' : ''}>
+                            <option value="">Select Program...</option>
+                            ${globalDept ? mockDepartments.find(d => d.id === globalDept)?.programs.map(p => `<option value="${p.id}" ${globalProg === p.id ? 'selected' : ''}>${p.name}</option>`).join('') : ''}
+                        </select>
                     </div>
                 </div>
 
@@ -119,20 +141,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <!-- Main Content: Drop Zone + File Queue -->
                 <div class="upload-content-grid">
-                    <!-- Left: Drag & Drop -->
-                    <div class="upload-dropzone" id="dropZone">
-                        <div class="upload-dropzone-inner">
-                            <div class="upload-dropzone-icon">
-                                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                                    <line x1="12" y1="11" x2="12" y2="17"/>
-                                    <polyline points="9 14 12 11 15 14"/>
+                    <!-- Left: Drag & Drop + Best Practices -->
+                    <div class="upload-left-column" style="display:flex; flex-direction:column; gap:20px;">
+                        <div class="upload-dropzone ${(!globalDept || !globalProg) ? 'disabled-zone' : ''}" id="dropZone" style="${(!globalDept || !globalProg) ? 'border-color: #cbd5e1; background: #f8fafc; opacity: 0.8;' : ''}">
+                            <div class="upload-dropzone-inner">
+                                ${(!globalDept || !globalProg) ? `
+                                    <div class="upload-dropzone-icon" style="color: #94a3b8; margin-bottom:15px;">
+                                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                        </svg>
+                                    </div>
+                                    <h3 style="color:#64748b;">Destination Required</h3>
+                                    <p style="color:#94a3b8; max-width:250px; margin:0 auto 20px;">Please select a Target Department and Program above to unlock uploading.</p>
+                                    <button class="upload-select-btn" id="selectFilesBtn" disabled style="background:#e2e8f0; color:#94a3b8; border-color:#cbd5e1; cursor:not-allowed;">Select Files From System</button>
+                                ` : `
+                                    <div class="upload-dropzone-icon">
+                                        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                            <line x1="12" y1="11" x2="12" y2="17"/>
+                                            <polyline points="9 14 12 11 15 14"/>
+                                        </svg>
+                                    </div>
+                                    <h3>Drag & Drop Files</h3>
+                                    <p>Upload .mp4, .pdf, .zip or .docx. Max file size: 2GB per asset.</p>
+                                    <button class="upload-select-btn" id="selectFilesBtn">Select Files From System</button>
+                                `}
+                                <input type="file" id="fileInput" multiple accept="${ACCEPTED_TYPES.join(',')}" style="display:none;">
+                            </div>
+                        </div>
+
+                        <!-- Best Practices -->
+                        <div class="upload-best-practices">
+                            <div class="upload-bp-icon">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                                 </svg>
                             </div>
-                            <h3>Drag & Drop Files</h3>
-                            <p>Upload .mp4, .pdf, .zip or .docx. Max file size: 2GB per asset.</p>
-                            <button class="upload-select-btn" id="selectFilesBtn">Select Files From System</button>
-                            <input type="file" id="fileInput" multiple accept="${ACCEPTED_TYPES.join(',')}" style="display:none;">
+                            <div>
+                                <strong>AITU Best Practices</strong>
+                                <p>Ensure video files include captions for accessibility compliance. Asset names will be parsed automatically but can be overridden manually.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -155,19 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                 </div>
-
-                <!-- Best Practices -->
-                <div class="upload-best-practices">
-                    <div class="upload-bp-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <strong>AITU Best Practices</strong>
-                        <p>Ensure video files include captions for accessibility compliance. Asset names will be parsed automatically but can be overridden manually.</p>
-                    </div>
-                </div>
             </div>
         `;
 
@@ -183,30 +218,33 @@ document.addEventListener('DOMContentLoaded', () => {
         let progressBarHtml = '';
         let titleFieldHtml = '';
 
-        if (file.status === 'uploading') {
-            statusHtml = `<span class="file-progress-text">${file.progress}%</span>
-                          <button class="file-cancel-btn" data-id="${file.id}">&times;</button>`;
-            progressBarHtml = `<div class="file-progress-bar"><div class="file-progress-fill uploading" style="width:${file.progress}%"></div></div>`;
+        if (file.status === 'draft' || file.status === 'uploading' || file.status === 'complete' || file.status === 'waiting') {
             titleFieldHtml = `
-                <div class="file-title-field">
-                    <label>${isVideo ? 'LESSON TITLE' : 'RESOURCE TITLE'}</label>
-                    <input type="text" class="file-title-input" data-id="${file.id}" placeholder="Enter title..." value="${file.title || ''}">
+                <div class="file-meta-grid" style="display:grid; grid-template-columns: 1fr; gap:15px; margin-top:10px; padding-top:10px; border-top:1px solid #f1f5f9;">
+                    <div class="file-title-field" style="margin-top:0;">
+                        <label>${isVideo ? 'LESSON TITLE' : 'RESOURCE TITLE'}</label>
+                        <input type="text" class="file-title-input" data-id="${file.id}" placeholder="Enter title..." value="${file.title || ''}">
+                    </div>
                 </div>`;
-        } else if (file.status === 'complete') {
-            statusHtml = `<span class="file-progress-text complete">${file.progress}%</span>
-                          <span class="file-check">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#16a34a" stroke-width="2.5">
-                                <circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>
-                            </svg>
-                          </span>`;
-            progressBarHtml = `<div class="file-progress-bar"><div class="file-progress-fill complete" style="width:100%"></div></div>`;
-            titleFieldHtml = `
-                <div class="file-title-field">
-                    <label>${isVideo ? 'LESSON TITLE' : 'RESOURCE TITLE'}</label>
-                    <input type="text" class="file-title-input" data-id="${file.id}" placeholder="Enter title..." value="${file.title || ''}">
-                </div>`;
-        } else if (file.status === 'waiting') {
-            statusHtml = `<span class="file-waiting-spinner"></span>`;
+                
+            if (file.status === 'uploading') {
+                statusHtml = `<span class="file-progress-text">${file.progress}%</span>
+                              <button class="file-cancel-btn" data-id="${file.id}">&times;</button>`;
+                progressBarHtml = `<div class="file-progress-bar"><div class="file-progress-fill uploading" style="width:${file.progress}%"></div></div>`;
+            } else if (file.status === 'complete') {
+                statusHtml = `<span class="file-progress-text complete">${file.progress}%</span>
+                              <span class="file-check">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#16a34a" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>
+                                </svg>
+                              </span>`;
+                progressBarHtml = `<div class="file-progress-bar"><div class="file-progress-fill complete" style="width:100%"></div></div>`;
+            } else if (file.status === 'waiting') {
+                statusHtml = `<span class="file-waiting-spinner"></span>`;
+            } else if (file.status === 'draft') {
+                statusHtml = `<button class="file-cancel-btn" data-id="${file.id}">&times;</button>`;
+            }
+
         } else if (file.status === 'failed') {
             statusHtml = `<button class="file-retry-btn" data-id="${file.id}">RETRY</button>`;
         }
@@ -235,11 +273,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function attachEvents() {
+        const checkDestination = () => {
+            if (!globalDept || !globalProg) {
+                alert('Please select a Target Department and Program before uploading files.');
+                return false;
+            }
+            return true;
+        };
+
+        // Global Selection Events
+        const globalDeptSelect = document.getElementById('globalDeptSelect');
+        const globalProgSelect = document.getElementById('globalProgSelect');
+        if (globalDeptSelect) {
+            globalDeptSelect.addEventListener('change', (e) => {
+                globalDept = e.target.value;
+                globalProg = '';
+                render();
+            });
+        }
+        if (globalProgSelect) {
+            globalProgSelect.addEventListener('change', (e) => {
+                globalProg = e.target.value;
+                render();
+            });
+        }
+
         // Select Files button
         const selectBtn = document.getElementById('selectFilesBtn');
         const fileInput = document.getElementById('fileInput');
         if (selectBtn && fileInput) {
-            selectBtn.addEventListener('click', () => fileInput.click());
+            selectBtn.addEventListener('click', () => {
+                if (checkDestination()) fileInput.click();
+            });
             fileInput.addEventListener('change', (e) => {
                 handleFiles(Array.from(e.target.files));
                 fileInput.value = '';
@@ -259,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dropZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 dropZone.classList.remove('dragover');
-                handleFiles(Array.from(e.dataTransfer.files));
+                if (checkDestination()) handleFiles(Array.from(e.dataTransfer.files));
             });
         }
 
@@ -283,27 +348,32 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Save button - saves all metadata to API
+        // Save button - Validates and starts upload
         const saveBtn = document.getElementById('saveBtn');
         if (saveBtn) {
             saveBtn.addEventListener('click', async () => {
-                const completedFiles = fileQueue.filter(f => f.status === 'complete');
-                if (completedFiles.length === 0) {
-                    alert('No completed uploads to save.');
+                const draftFiles = fileQueue.filter(f => f.status === 'draft' || f.status === 'failed');
+                if (draftFiles.length === 0) {
+                    if (fileQueue.length > 0 && fileQueue.every(f => f.status === 'complete')) {
+                        window.location.href = `repository.html?dept=${globalDept}`;
+                    }
                     return;
                 }
                 
-                saveBtn.disabled = true;
-                saveBtn.innerHTML = `<span class="file-waiting-spinner"></span> Saving...`;
+                if (!globalDept || !globalProg) {
+                    alert('Please ensure a Target Department and Program are selected.');
+                    return;
+                }
                 
-                // In a real scenario, this would send metadata to the API
-                // For now we show success after a short delay
-                setTimeout(() => {
-                    alert(`Successfully saved ${completedFiles.length} file(s) to the repository!`);
-                    // Remove completed files from queue
-                    fileQueue = fileQueue.filter(f => f.status !== 'complete');
-                    render();
-                }, 800);
+                const invalidFiles = draftFiles.filter(f => !f.title);
+                if (invalidFiles.length > 0) {
+                    alert('Please ensure all files have a Title, Department, and Program selected before saving.');
+                    return;
+                }
+                
+                // Set to waiting and start
+                draftFiles.forEach(f => f.status = 'waiting');
+                if (!isUploading) startUpload();
             });
         }
 
@@ -342,6 +412,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (file) file.title = e.target.value;
             });
         });
+
+
     }
 
     function handleFiles(files) {
@@ -355,19 +427,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 name: file.name,
                 size: file.size,
                 file: file,
-                status: 'waiting',
+                status: 'draft',
                 progress: 0,
-                title: '',
+                title: file.name.split('.')[0],
                 abortController: null
             });
         });
 
         render();
-
-        // Auto-start upload immediately
-        if (!isUploading) {
-            startUpload();
-        }
     }
 
     function startUpload() {
@@ -381,6 +448,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!nextFile) {
             isUploading = false;
             render();
+            // All done?
+            if (fileQueue.length > 0 && fileQueue.every(f => f.status === 'complete')) {
+                const completedCount = fileQueue.length;
+                setTimeout(() => {
+                    alert(`Successfully saved ${completedCount} file(s) to the repository!`);
+                    fileQueue.forEach(f => {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Add File', f.name);
+                    });
+                    window.location.href = `repository.html?dept=${globalDept}`;
+                }, 800);
+            }
             return;
         }
 
@@ -392,14 +470,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const formData = new FormData();
             formData.append('file', nextFile.file);
-            if (nextFile.title) {
-                formData.append('title', nextFile.title);
-            }
+            if (nextFile.title) formData.append('title', nextFile.title);
+            if (globalDept) formData.append('department', globalDept);
+            if (globalProg) formData.append('program', globalProg);
 
             // Use XMLHttpRequest for progress tracking
             const xhr = new XMLHttpRequest();
             const abortController = { abort: () => xhr.abort() };
             nextFile.abortController = abortController;
+
+            // Dynamically resolve API URL using BASE_URL
+            const { BASE_URL } = await import('../shared/api.js');
 
             await new Promise((resolve, reject) => {
                 xhr.upload.addEventListener('progress', (e) => {
@@ -426,12 +507,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 xhr.addEventListener('abort', () => reject(new Error('Aborted')));
 
                 const token = localStorage.getItem('aitu_token');
-                xhr.open('POST', 'http://localhost:5260/api/Files/upload');
+                
+                xhr.open('POST', `${BASE_URL}/api/Files/upload`);
                 if (token) {
                     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
                 }
                 xhr.send(formData);
             });
+
+            // Log upload immediately after success
+            const typeName = getFileTypeName(nextFile.name);
+            const isVideo = typeName.includes('Video');
+            const actionType = isVideo ? 'Upload Video' : 'Add File';
+            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', actionType, nextFile.name);
 
             render();
         } catch (err) {
@@ -457,15 +545,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 file.progress += Math.floor(Math.random() * 12) + 5;
                 if (file.progress >= 100) {
                     file.progress = 100;
+                    file.status = 'complete';
                     clearInterval(interval);
-                    
-                    // 10% chance of failure for demo
-                    if (Math.random() < 0.1) {
-                        file.status = 'failed';
-                        file.progress = 0;
-                    } else {
-                        file.status = 'complete';
+
+                    const typeName = getFileTypeName(file.name);
+                    const isVideo = typeName.includes('Video');
+                    const actionType = isVideo ? 'Upload Video' : 'Add File';
+                    logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', actionType, file.name);
+
+                    const formData = new FormData();
+                    formData.append('file', file.fileObj || new Blob([''], { type: 'application/octet-stream' }), file.name);
+                    try {
+                        fileService.uploadFile(formData, 0, file.name.split('.').pop().toUpperCase(), globalDept, file.title || file.name);
+                    } catch (err) {
+                        console.warn('API upload failed:', err);
                     }
+
                     render();
                     resolve();
                 } else {
@@ -477,4 +572,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial render
     render();
+
+    // Hide Global Loader
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
+    }
 });
+

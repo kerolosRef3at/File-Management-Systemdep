@@ -206,7 +206,7 @@
 /* --- Charts Row --- */
 .dash-charts-row {
     display: grid;
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: 2fr 1fr 1fr;
     gap: 16px;
     margin-bottom: 20px;
 }
@@ -648,9 +648,23 @@
     .dash-stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    .dash-charts-row,
+    .dash-charts-row {
+        grid-template-columns: 1fr 1fr;
+    }
+    .dash-chart-card {
+        grid-column: span 2;
+    }
     .dash-bottom-row {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dash-charts-row {
+        grid-template-columns: 1fr;
+    }
+    .dash-chart-card {
+        grid-column: span 1;
     }
 }
 

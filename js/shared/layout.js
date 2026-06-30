@@ -141,24 +141,29 @@ export function renderLayout(activePage = 'repository') {
             #adminSidebar .sidebar-menu a:hover { background-color: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }
             #adminSidebar .sidebar-menu a:hover svg { color: #ffffff !important; }
             #adminSidebar .sidebar-menu a.active { 
-                background-color: #96b6d5 !important; 
-                color: #0b3b70 !important; 
-                border: none !important; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                background-color: rgba(255, 255, 255, 0.12) !important; 
+                color: #ffffff !important; 
+                border-left: 4px solid #60A5FA !important;
+                border-radius: 0 10px 10px 0 !important; 
+                margin-left: 0 !important;
+                padding-left: 23px !important;
+                box-shadow: none;
             }
-            #adminSidebar .sidebar-menu a.active svg { color: #0b3b70 !important; }
-            .sidebar-btn-wrapper { display: none !important; }
+            #adminSidebar .sidebar-menu a.active svg { color: #60A5FA !important; }
+            .sidebar-btn-wrapper { padding: 0 16px; margin-bottom: 20px; }
+            .sidebar-btn-wrapper button { width: 100%; padding: 12px; background: #1A3CAA; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(26,60,170,0.3); }
+            .sidebar-btn-wrapper button:hover { background: #0b3b70; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(26,60,170,0.4); }
         </style>
 
         <div class="admin-layout">
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
             
             <aside class="sidebar" id="adminSidebar">
-               <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:15px; padding: 25px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 95px; box-sizing: border-box;" onclick="window.location.href='index.html'">
-            <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="62" height="62" onerror="this.src='logos/aitu_logo.png'" style="border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+               <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 85px; box-sizing: border-box;" onclick="window.location.href='index.html'">
+            <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/aitu_logo.png'">
                 <div style="display:flex; flex-direction:column; justify-content:center; overflow:hidden; text-align:left;">
-                    <span style="font-size:0.85rem; font-weight:800; color:#ffffff; line-height:1.4; display:block;">Assiut International Technological University - AITU</span>
-                    <span style="font-size:0.75rem; font-weight:600; color:#8B9CC8; margin-top:5px; display:block;">File Management System</span>
+                    <span style="font-size:0.82rem; font-weight:700; color:#ffffff; line-height:1.3; display:block;">Assiut International Technological University</span>
+                    <span style="font-size:0.7rem; font-weight:500; color:#8B9CC8; margin-top:3px; display:block; letter-spacing:0.3px;">File Management System</span>
                 </div>
             </div>
                 
@@ -168,7 +173,16 @@ export function renderLayout(activePage = 'repository') {
                 
                 ${actionBtnHTML}
                 
-                <div class="sidebar-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div class="sidebar-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
+                    <div class="sidebar-user-block mobile-only" style="margin-bottom: 15px;">
+                        <a href="profile.html" style="display:flex; align-items:center; gap:10px; margin-bottom: 12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); text-decoration:none; cursor:pointer; transition:0.2s;">
+                            <div style="width:36px; height:36px; border-radius:50%; background:#1A3CAA; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;">${userInitial}</div>
+                            <div style="display:flex; flex-direction:column; overflow:hidden;">
+                                <span style="font-size:13px; font-weight:700; color:#fff; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${userDisplayName}</span>
+                                <span style="font-size:11px; color:#8B9CC8;">${user ? user.role : 'Guest'}</span>
+                            </div>
+                        </a>
+                    </div>
                     <button id="sidebarLogoutBtn" class="logout-btn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; color:#ef4444; font-weight:600; font-size:0.95rem; border-radius:8px; cursor:pointer; transition:0.2s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                         Logout
@@ -186,7 +200,7 @@ export function renderLayout(activePage = 'repository') {
                             <h2>${displayTitle}</h2>
                             <div class="subtitle-row">
                                 <span>${displaySubtitle}</span>
-                                <span class="dot">•</span>
+                                <span class="dot hide-on-mobile">•</span>
                                 <span class="current-date">${formattedDate}</span>
                             </div>
                         </div>
@@ -208,7 +222,7 @@ export function renderLayout(activePage = 'repository') {
                                     <div class="avatar-lg">${userInitial}</div>
                                     <div class="user-info">
                                         <div class="name">${userDisplayName}</div>
-                                        <div class="email">${userEmail}</div>
+                                        ${userEmail ? `<div class="email">${userEmail}</div>` : ''}
                                     </div>
                                 </div>
                                 <div class="dash-user-dropdown-menu">
@@ -225,26 +239,48 @@ export function renderLayout(activePage = 'repository') {
                         </div>
                     </div>
                 </header>
-                <style>
+                    <style>
+                    @media (max-width: 768px) {
+                        .hide-on-mobile { display: none !important; }
+                        .subtitle-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+                        .current-date { display: none !important; }
+                        .subtitle-row span { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
+                        .top-header { height: auto !important; padding: 15px 20px !important; }
+                        .header-right { display: none !important; }
+                        .mobile-only { display: block !important; }
+                    }
+                    @media (min-width: 769px) {
+                        .mobile-only { display: none !important; }
+                    }
+                    .header-left { display: flex; align-items: center; gap: 15px; min-width: 0; flex: 1; }
+                    .page-title-box { min-width: 0; }
+                    .page-title-box h2 { margin: 0 0 4px 0; font-size: 1.3rem; color: #1A1F36; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                    .subtitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: #6B7A99; line-height: 1.4; }
+                    .subtitle-row span { white-space: normal; word-break: break-word; }
+                    .header-right { flex-shrink: 0; }
                     .dash-user-menu { position: relative; }
-                    .dash-user-avatar-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; }
-                    .dash-user-avatar-btn .avatar-circle { width: 36px; height: 36px; border-radius: 50%; background: #1A3CAA; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
-                    .dash-user-avatar-btn .user-meta { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
-                    .dash-user-avatar-btn .user-name { font-size: 13px; font-weight: 700; color: #1A1F36; }
-                    .dash-user-avatar-btn .user-role { font-size: 11px; color: #6B7A99; }
-                    .dash-user-dropdown { position: absolute; top: calc(100% + 8px); right: 0; background: #ffffff; border: 1px solid #E8ECF4; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.12); z-index: 9999; width: 260px; padding: 0; display: none; overflow: hidden; }
-                    .dash-user-dropdown.open { display: flex; flex-direction: column; }
-                    .dash-user-dropdown-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #E8ECF4; }
-                    .dash-user-dropdown-header .avatar-lg { width: 40px; height: 40px; border-radius: 50%; background: #1A3CAA; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
-                    .dash-user-dropdown-header .user-info { flex: 1; min-width: 0; }
-                    .dash-user-dropdown-header .user-info .name { font-size: 14px; font-weight: 700; color: #1A1F36; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                    .dash-user-dropdown-header .user-info .email { font-size: 12px; color: #1A3CAA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                    .dash-user-dropdown-menu { padding: 8px 0; }
-                    .dash-user-dropdown-menu a, .dash-user-dropdown-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 20px; font-size: 14px; color: #1A1F36; background: none; border: none; text-decoration: none; cursor: pointer; transition: background 0.15s; text-align: left; }
-                    .dash-user-dropdown-menu a:hover, .dash-user-dropdown-menu button:hover { background: #F4F6FB; }
-                    .dash-user-dropdown-menu .logout-item { color: #E63946; border-top: 1px solid #E8ECF4; margin-top: 4px; padding-top: 12px; }
-                    .dash-user-dropdown-menu svg { width: 18px; height: 18px; max-width: 18px; max-height: 18px; min-width: 18px; min-height: 18px; color: #6B7A99; flex-shrink: 0; display: block; }
+                    .dash-user-avatar-btn { background: #ffffff; border: 1px solid #E8ECF4; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 6px 20px 6px 6px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.02); height: 54px; }
+                    .dash-user-avatar-btn:hover { background: #F8FAFC; border-color: #D1D9E6; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
+                    .dash-user-avatar-btn .avatar-circle { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #1A3CAA, #0b3b70); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1); }
+                    .dash-user-avatar-btn .user-meta { display: flex; flex-direction: column; text-align: left; line-height: 1.25; }
+                    .dash-user-avatar-btn .user-name { font-size: 15px; font-weight: 700; color: #0b3b70; letter-spacing: 0.2px; margin-bottom: 2px; }
+                    .dash-user-avatar-btn .user-role { font-size: 11.5px; font-weight: 600; color: #6B7A99; text-transform: uppercase; letter-spacing: 0.5px; }
+                    .dash-user-dropdown { position: absolute; top: calc(100% + 12px); right: 0; background: #ffffff; border: 1px solid #E8ECF4; border-radius: 16px; box-shadow: 0 16px 48px rgba(7, 34, 71, 0.1), 0 4px 16px rgba(7, 34, 71, 0.04); z-index: 9999; width: 280px; padding: 0; display: none; overflow: hidden; transform: translateY(-10px); opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease; }
+                    .dash-user-dropdown.open { display: flex; flex-direction: column; transform: translateY(0); opacity: 1; }
+                    .dash-user-dropdown-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border-bottom: 1px solid #E8ECF4; }
+                    .dash-user-dropdown-header .avatar-lg { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #1A3CAA, #0b3b70); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(11, 59, 112, 0.2); }
+                    .dash-user-dropdown-header .user-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+                    .dash-user-dropdown-header .user-info .name { font-size: 16px; font-weight: 700; color: #0b3b70; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; margin-bottom: 3px; }
+                    .dash-user-dropdown-header .user-info .email { font-size: 13px; color: #6B7A99; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+                    .dash-user-dropdown-menu { padding: 12px; }
+                    .dash-user-dropdown-menu a, .dash-user-dropdown-menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; font-size: 14.5px; font-weight: 500; color: #1A1F36; background: none; border: none; text-decoration: none; cursor: pointer; transition: all 0.2s ease; text-align: left; border-radius: 8px; }
+                    .dash-user-dropdown-menu a:hover, .dash-user-dropdown-menu button:hover { background: #F8FAFC; color: #0b3b70; transform: translateX(4px); }
+                    .dash-user-dropdown-menu .logout-item { color: #E63946; border-top: 1px solid #F0F2F5; margin-top: 6px; padding-top: 14px; border-radius: 0 0 8px 8px; }
+                    .dash-user-dropdown-menu .logout-item:hover { background: #FFF5F5; color: #D62828; }
+                    .dash-user-dropdown-menu svg { width: 18px; height: 18px; max-width: 18px; max-height: 18px; min-width: 18px; min-height: 18px; color: #6B7A99; flex-shrink: 0; display: block; stroke-width: 2.5; transition: color 0.2s ease; }
+                    .dash-user-dropdown-menu a:hover svg, .dash-user-dropdown-menu button:hover svg { color: #0b3b70; }
                     .dash-user-dropdown-menu .logout-item svg { color: #E63946; }
+                    .dash-user-dropdown-menu .logout-item:hover svg { color: #D62828; }
                 </style>
                 <main class="content-area" id="page-content"></main>
             </div>
@@ -394,13 +430,25 @@ export function renderLayout(activePage = 'repository') {
             submitBtn.disabled = true;
             submitBtn.innerText = "Uploading...";
 
-            const name = document.getElementById('uploadFileName').value;
+            const customName = document.getElementById('uploadFileName').value;
             const dept = document.getElementById('uploadFileDept').value;
             const type = document.getElementById('uploadFileType').value;
-            const size = document.getElementById('uploadFileSize').value;
+            const fileInput = document.getElementById('globalFileInput');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file to upload.");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Upload File";
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file);
 
             try {
-                await fileService.uploadFile(name, type, size, dept, user ? user.username : 'system');
+                const folderId = 0; // Default folder ID for global uploads
+                await fileService.uploadFile(formData, folderId, type, dept, customName);
                 hideModal();
                 
                 const fileGrid = document.getElementById('filesGrid');

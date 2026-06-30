@@ -58,7 +58,7 @@ export const mockDepartments = [
     }
 ];
 
-export const mockFiles = [
+const defaultMockFiles = [
     // IT DEPT files
     { id: 1, name: "IT_Syllabus_2024.pdf", type: "PDF", version: "v1.2", size: "2.4 MB", dept: "IT DEPT", deptId: "IT", program: "it-net", course: "", downloads: 142, uploadDate: "2026-06-20", uploadedBy: "j.carter" },
     { id: 2, name: "Network_Infrastructure_2024.pdf", type: "PDF", version: "v2.4.1", size: "14.2 MB", dept: "IT DEPT", deptId: "IT", program: "it-net", course: "CS204", downloads: 1204, uploadDate: "2026-06-18", uploadedBy: "j.carter" },
@@ -344,8 +344,11 @@ export const mockLogs = [
 
 export const mockDashboardMetrics = {
     totalFiles: 14208,
-    storageCapacityUsed: 84, // 84%
-    storageCapacityValue: "8.4 TB",
+    qnapStorage: {
+        usedPercentage: 84,
+        usedValue: "8.4 TB",
+        totalValue: "10 TB"
+    },
     pendingTasks: 42,
     netActivity: "128.5k",
     trends: {
@@ -369,9 +372,14 @@ export const mockDashboardMetrics = {
         { month: "Dec", count: 13800 }
     ],
     resourceMix: {
-        it: 45,
-        me: 30,
-        el: 25
+        it: 12450,
+        me: 9100,
+        el: 8200
+    },
+    programDownloads: {
+        it: 4500,
+        me: 3200,
+        el: 2500
     },
     highImpactDocuments: [
         { name: "2024_Academic_Charter.pdf", source: "Council Office", downloads: 1245, weight: "2.4 MB", type: "PDF" },
@@ -386,3 +394,6 @@ export const mockDashboardMetrics = {
         { user: "Maintenance window", action: "scheduled for Saturday.", target: "", time: "Yesterday, 11:00 PM", type: "neutral" }
     ]
 };
+
+const savedFiles = localStorage.getItem('aitu_mock_files');
+export const mockFiles = savedFiles ? JSON.parse(savedFiles) : defaultMockFiles;
