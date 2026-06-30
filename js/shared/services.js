@@ -6,7 +6,7 @@ import * as mock from './mockData.js';
 const USE_MOCK = false;
 
 // Helper for emulating network latency
-const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper to construct a mock JWT token
 function generateMockJWT(user) {
@@ -43,44 +43,21 @@ export function decodeJWT(token) {
 export const authService = {
     // TODO: POST /api/Auth/login
     async login(username, password) {
-        await delay();
-        if (!USE_MOCK) {
-            try {
-                return await fetchAPI('/api/Auth/login', {
-                    method: 'POST',
-                    body: JSON.stringify({ username, password })
-                });
-            } catch (err) {
-                console.warn("Real API failed, falling back to mock authentication.");
+        try {
+            const res = await fetchAPI('/api/Auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password })
+            });
+            if (res && res.token) {
+                localStorage.setItem('aitu_token', res.token);
+                if (res.refreshToken) localStorage.setItem('aitu_refresh_token', res.refreshToken);
+                if (res.role) localStorage.setItem('aitu_role', res.role);
             }
+            return res;
+        } catch (err) {
+            console.warn("Login API failed:", err);
+            throw err;
         }
-        
-        // Mock authentication check
-        const user = mock.mockUsers.find(u => 
-            (u.username === username || u.email === username)
-        );
-
-        if (!user) {
-            throw new Error("Invalid username or password.");
-        }
-
-        // Mock password check
-        if (user.password && password !== user.password) {
-            throw new Error("Invalid username or password.");
-        } else if (!user.password && password.length < 6) {
-            throw new Error("Password must be at least 6 characters.");
-        }
-
-        const token = generateMockJWT(user);
-        const refreshToken = "mock_refresh_token_" + Date.now();
-        
-        localStorage.setItem('aitu_token', token);
-        localStorage.setItem('aitu_refresh_token', refreshToken);
-        
-        // Log this action
-        logService.addLog(user.username, user.role, "Login", "System");
-
-        return { token, refreshToken, role: user.role };
     },
 
     logout() {
@@ -95,8 +72,17 @@ export const authService = {
     getCurrentUser() {
         const token = localStorage.getItem('aitu_token');
         if (!token) return null;
-        const decoded = decodeJWT(token);
-        if (!decoded) return null;
+        let decoded = decodeJWT(token);
+        if (!decoded) {
+            const fallbackRole = localStorage.getItem('aitu_role') || 'Supervisor';
+            const fallbackUser = localStorage.getItem('aitu_username') || 'admin';
+            decoded = {
+                sub: fallbackUser,
+                role: fallbackRole,
+                email: `${fallbackUser}@aitu.edu.eg`,
+                name: fallbackUser
+            };
+        }
 
         // ✅ جيب الـ role من الـ claim الصح
         const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
@@ -107,6 +93,10 @@ export const authService = {
         const username = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
             decoded.sub ||
             localStorage.getItem('aitu_username') || '';
+            
+        const email = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+            decoded.email ||
+            (username ? `${username}@aitu.edu.eg` : '');
 
         const userId = decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
             decoded.sub || '';
@@ -217,7 +207,6 @@ function detectProgram(name, deptId) {
 // ==========================================
 export const fileService = {
  async getFiles(dept = null, search = null) {
-    await delay();
     try {
         let url = '/api/Files';
         const params = [];
@@ -227,7 +216,6 @@ export const fileService = {
 
         const backendFiles = await fetchAPI(url);
 
-        // ✅ تحويل الداتا للشكل اللي الـ Frontend بيتوقعه
         return backendFiles.map(f => {
             const deptId = getDeptId(f.dept);
             return {
@@ -246,27 +234,22 @@ export const fileService = {
             };
         });
     } catch (err) {
-        console.warn("API failed, returning mock files.");
-        return mock.mockFiles;
+        console.warn("API failed to get files:", err);
+        return [];
     }
 },
 
-    async uploadFile(formData) {
-        await delay();
+    async uploadFile(formData, folderId = 0, type = '', dept = '', customName = '') {
         try {
-            const token = localStorage.getItem('aitu_token');
-            const response = await fetch(
-                `http://localhost:5260/api/Files/upload`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                }
-            );
-            if (!response.ok) throw new Error('Upload failed');
-            return await response.json();
+            let url = `/api/Files/upload?folderId=${folderId}`;
+            if (type) url += `&type=${encodeURIComponent(type)}`;
+            if (dept) url += `&dept=${encodeURIComponent(dept)}`;
+            if (customName) url += `&customName=${encodeURIComponent(customName)}`;
+
+            return await fetchAPI(url, {
+                method: 'POST',
+                body: formData
+            });
         } catch (err) {
             console.warn("Upload API failed.");
             throw err;
@@ -274,28 +257,26 @@ export const fileService = {
     },
 
     async deleteFile(id) {
-        await delay();
         try {
             return await fetchAPI(`/api/Files/${id}`, {
                 method: 'DELETE'
             });
         } catch (err) {
-            console.warn("Delete API failed.");
+            console.warn("Delete file API failed:", err);
             throw err;
         }
     },
 
     async deleteFiles(ids) {
-        await delay();
         try {
-            const results = await Promise.all(
+            await Promise.all(
                 ids.map(id => fetchAPI(`/api/Files/${id}`, {
                     method: 'DELETE'
                 }))
             );
             return { success: true };
         } catch (err) {
-            console.warn("Delete files API failed.");
+            console.warn("Delete files API failed:", err);
             throw err;
         }
     },
@@ -304,7 +285,7 @@ export const fileService = {
         try {
             const token = localStorage.getItem('aitu_token');
             const response = await fetch(
-                `http://localhost:5260/api/Files/download/${id}`,
+                `${BASE_URL}/api/Files/download/${id}`,
                 {
                     headers: token
                         ? { 'Authorization': `Bearer ${token}` }
@@ -330,7 +311,7 @@ export const fileService = {
         try {
             const token = localStorage.getItem('aitu_token');
             const response = await fetch(
-                `http://localhost:5260/api/Files/download-zip`,
+                `${BASE_URL}/api/Files/download-zip`,
                 {
                     method: 'POST',
                     headers: {
@@ -357,52 +338,109 @@ export const fileService = {
 };
 
 // ==========================================
+// 3. Folder Management Service
+// ==========================================
+export const folderService = {
+    async getFolders() {
+        try {
+            return await fetchAPI('/api/Folders');
+        } catch (err) {
+            console.warn("API failed to get folders:", err);
+            return [];
+        }
+    },
+
+    async createFolder(name, parentFolderId = 0) {
+        await delay();
+        try {
+            return await fetchAPI('/api/Folders', {
+                method: 'POST',
+                body: JSON.stringify({ name, parentFolderId })
+            });
+        } catch (err) {
+            console.warn("API failed to create folder.");
+            throw err;
+        }
+    },
+
+    async getFolderDetails(id) {
+        await delay();
+        try {
+            return await fetchAPI(`/api/Folders/${id}`);
+        } catch (err) {
+            console.warn("API failed to get folder details.");
+            throw err;
+        }
+    },
+
+    async updateFolder(id, name, parentFolderId = 0) {
+        await delay();
+        try {
+            return await fetchAPI(`/api/Folders/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name, parentFolderId })
+            });
+        } catch (err) {
+            console.warn("API failed to update folder.");
+            throw err;
+        }
+    },
+
+    async deleteFolder(id) {
+        try {
+            return await fetchAPI(`/api/Folders/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.warn("Delete folder API failed:", err);
+            throw err;
+        }
+    }
+};
+
+// ==========================================
 // 3. Course Management Service
 // ==========================================
 export const courseService = {
     async getCourses(dept = null) {
-        await delay();
         try {
             let url = '/api/Courses';
             if (dept) url += `?dept=${dept}`;
             return await fetchAPI(url);
         } catch (err) {
-            console.warn("API failed, returning mock courses.");
-            return mock.mockCourses;
+            console.warn("API failed to get courses:", err);
+            return [];
         }
     },
 
     async getCourseDetails(id) {
-        await delay();
         try {
             return await fetchAPI(`/api/Courses/${id}`);
         } catch (err) {
-            console.warn("API failed, returning mock course.");
-            return mock.mockCourses.find(c => c.id == id);
+            console.warn("API failed to get course details:", err);
+            throw err;
         }
     },
 
     async createCourse(courseData) {
-        await delay();
         try {
             return await fetchAPI('/api/Courses', {
                 method: 'POST',
                 body: JSON.stringify(courseData)
             });
         } catch (err) {
-            console.warn("Create course API failed.");
+            console.warn("Create course API failed:", err);
             throw err;
         }
     },
 
     async deleteCourse(id) {
-        await delay();
         try {
             return await fetchAPI(`/api/Courses/${id}`, {
                 method: 'DELETE'
             });
         } catch (err) {
-            console.warn("Delete course API failed.");
+            console.warn("Delete course API failed:", err);
             throw err;
         }
     }
@@ -413,17 +451,15 @@ export const courseService = {
 // ==========================================
 export const userService = {
     async getUsers() {
-        await delay();
         try {
             return await fetchAPI('/api/Admin/all');
         } catch (err) {
-            console.warn("API failed, returning mock users.");
-            return mock.mockUsers;
+            console.warn("API failed to get users:", err);
+            return [];
         }
     },
 
     async createUser(username, email, phone, role, departmentId = 1) {
-        await delay();
         try {
             return await fetchAPI('/api/Admin/create', {
                 method: 'POST',
@@ -437,19 +473,18 @@ export const userService = {
                 })
             });
         } catch (err) {
-            console.warn("Create user API failed.");
+            console.warn("Create user API failed:", err);
             throw err;
         }
     },
 
     async deleteUser(id) {
-        await delay();
         try {
             return await fetchAPI(`/api/Admin/${id}`, {
                 method: 'DELETE'
             });
         } catch (err) {
-            console.warn("Delete user API failed.");
+            console.warn("Delete user API failed:", err);
             throw err;
         }
     }
@@ -460,7 +495,6 @@ export const userService = {
 // ==========================================
 export const logService = {
     async getLogs(filters = {}) {
-        await delay();
         try {
             let url = '/api/Admin/logs';
             const params = [];
@@ -471,22 +505,27 @@ export const logService = {
             if (params.length > 0) url += '?' + params.join('&');
             return await fetchAPI(url);
         } catch (err) {
-            console.warn("API failed, returning mock logs.");
-            return mock.mockLogs;
+            console.warn("API failed to get logs:", err);
+            return [];
         }
     },
 
-    addLog(admin, role, action, target) {
-        const newLog = {
-            id: mock.mockLogs.length + 1,
-            admin,
-            role,
-            action,
-            target,
-            datetime: new Date().toISOString()
-                .replace('T', ' ').substring(0, 19)
-        };
-        mock.mockLogs.unshift(newLog);
+    async addLog(admin, role, action, target) {
+        const datetimeStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        try {
+            await fetchAPI('/api/Admin/logs', {
+                method: 'POST',
+                body: JSON.stringify({
+                    admin: admin || 'admin',
+                    role: role || 'Supervisor',
+                    action: action,
+                    target: target || '',
+                    datetime: datetimeStr
+                })
+            });
+        } catch (err) {
+            console.warn("Log creation API failed:", err);
+        }
     }
 };
 
@@ -530,56 +569,70 @@ export const profileService = {
 // ==========================================
 export const dashboardService = {
     async getStats(days = 30) {
-        await delay(300);
         try {
             return await fetchAPI('/api/Dashboard/metrics');
         } catch (err) {
-            console.warn("API failed, returning mock stats.");
-            return mock.mockDashboardMetrics;
+            console.warn("API failed to get stats:", err);
+            return {
+                totalFiles: 0,
+                qnapStorage: { usedPercentage: 0, usedValue: "0 GB", totalValue: "0 GB" },
+                pendingTasks: 0,
+                netActivity: "0",
+                trends: { totalFiles: "0", storageCapacity: "0%", pendingTasks: "0", netActivity: "0" }
+            };
         }
     },
 
     async getDownloads(year) {
-        await delay(300);
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
             return data.downloadVelocity || [];
         } catch (err) {
-            console.warn("API failed, returning mock downloads.");
-            return mock.mockDashboardMetrics.downloadVelocity;
+            console.warn("API failed to get downloads:", err);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const isCurrentYear = year === new Date().getFullYear();
+            const monthLimit = isCurrentYear ? (new Date().getMonth() + 1) : 12;
+            return months.slice(0, monthLimit).map(m => ({ month: m, count: 0 }));
         }
     },
 
     async getResourceMix() {
-        await delay(200);
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
             return data.resourceMix || { it: 0, el: 0, me: 0 };
         } catch (err) {
-            console.warn("API failed, returning mock resource mix.");
-            return { it: 12450, el: 8200, me: 9100 };
+            console.warn("API failed to get resource mix:", err);
+            return { it: 0, el: 0, me: 0 };
+        }
+    },
+
+    async getProgramDownloads() {
+        try {
+            const data = await fetchAPI('/api/Dashboard/metrics');
+            return data.programDownloads || { it: 0, el: 0, me: 0 };
+        } catch (err) {
+            console.warn("API failed to get program downloads:", err);
+            return { it: 0, el: 0, me: 0 };
         }
     },
 
     async getDocuments(limit = 5) {
-        await delay(200);
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
             return data.highImpactDocuments?.slice(0, limit) || [];
         } catch (err) {
-            console.warn("API failed, returning mock documents.");
-            return mock.mockDashboardMetrics.highImpactDocuments.slice(0, limit);
+            console.warn("API failed to get documents:", err);
+            return [];
         }
     },
 
     async getEvents(limit = 10) {
-        await delay(200);
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
             return data.recentEvents?.slice(0, limit) || [];
         } catch (err) {
-            console.warn("API failed, returning mock events.");
-            return mock.mockDashboardMetrics.recentEvents.slice(0, limit);
+            console.warn("API failed to get events:", err);
+            return [];
         }
     },
 

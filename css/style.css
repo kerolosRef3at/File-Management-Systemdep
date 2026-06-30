@@ -166,13 +166,13 @@ a {
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden; /* 👈 هذا السطر يمنع الصورة من الخروج برا الشيب */
+    overflow: hidden; /* ðŸ‘ˆ Ù‡Ø°Ø§ Ø§Ù„Ø³Ø·Ø± ÙŠÙ…Ù†Ø¹ Ø§Ù„ØµÙˆØ±Ø© Ù…Ù† Ø§Ù„Ø®Ø±ÙˆØ¬ Ø¨Ø±Ø§ Ø§Ù„Ø´ÙŠØ¨ */
     position: relative;
 }
 .hero-image img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* 👈 يخلي الصورة تغطي المساحة بالكامل بدون تشوه */
+    object-fit: cover; /* ðŸ‘ˆ ÙŠØ®Ù„ÙŠ Ø§Ù„ØµÙˆØ±Ø© ØªØºØ·ÙŠ Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¨Ø¯ÙˆÙ† ØªØ´ÙˆÙ‡ */
     display: block;
 }
 
@@ -281,7 +281,7 @@ a {
     text-align: right;
 }
 
-/* تنسيق أيقونات الأقسام (SVG) */
+/* ØªÙ†Ø³ÙŠÙ‚ Ø£ÙŠÙ‚ÙˆÙ†Ø§Øª Ø§Ù„Ø£Ù‚Ø³Ø§Ù… (SVG) */
 .dept-icon svg {
     width: 22px;
     height: 22px;
@@ -337,9 +337,9 @@ a {
 .auth-brand-content {
     display: flex;
     flex-direction: column;
-    justify-content: center; /* التوسيط الرأسي */
+    justify-content: center; /* Ø§Ù„ØªÙˆØ³ÙŠØ· Ø§Ù„Ø±Ø£Ø³ÙŠ */
     align-items: flex-start;
-    flex-grow: 1; /* يجعله يأخذ المساحة بين الهيدر والفوتر */
+    flex-grow: 1; /* ÙŠØ¬Ø¹Ù„Ù‡ ÙŠØ£Ø®Ø° Ø§Ù„Ù…Ø³Ø§Ø­Ø© Ø¨ÙŠÙ† Ø§Ù„Ù‡ÙŠØ¯Ø± ÙˆØ§Ù„ÙÙˆØªØ± */
 }
 
 .auth-logo {
@@ -418,11 +418,11 @@ a {
 
 .form-control {
     width: 100%;
-    padding: 14px 16px; /* تم التكبير هنا */
+    padding: 14px 16px; /* ØªÙ… Ø§Ù„ØªÙƒØ¨ÙŠØ± Ù‡Ù†Ø§ */
     background-color: var(--white);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    font-size: 1.05rem; /* تكبير خط الكتابة */
+    font-size: 1.05rem; /* ØªÙƒØ¨ÙŠØ± Ø®Ø· Ø§Ù„ÙƒØªØ§Ø¨Ø© */
     color: var(--text-dark);
     transition: all 0.3s ease;
 }
@@ -439,9 +439,9 @@ a {
 .toggle-password {
     position: absolute;
     right: 15px;
-    bottom: 14px; /* ربطناها من تحت عشان نتجاهل مساحة الـ Label */
+    bottom: 14px; /* Ø±Ø¨Ø·Ù†Ø§Ù‡Ø§ Ù…Ù† ØªØ­Øª Ø¹Ø´Ø§Ù† Ù†ØªØ¬Ø§Ù‡Ù„ Ù…Ø³Ø§Ø­Ø© Ø§Ù„Ù€ Label */
     cursor: pointer;
-    z-index: 10; /* ده بيخلي الأيقونة فوق الحقل مباشرة */
+    z-index: 10; /* Ø¯Ù‡ Ø¨ÙŠØ®Ù„ÙŠ Ø§Ù„Ø£ÙŠÙ‚ÙˆÙ†Ø© ÙÙˆÙ‚ Ø§Ù„Ø­Ù‚Ù„ Ù…Ø¨Ø§Ø´Ø±Ø© */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -454,7 +454,7 @@ a {
 }
 
 .toggle-password svg {
-    pointer-events: none; /* عشان الضغطة تروح للـ span مش للرسمة */
+    pointer-events: none; /* Ø¹Ø´Ø§Ù† Ø§Ù„Ø¶ØºØ·Ø© ØªØ±ÙˆØ­ Ù„Ù„Ù€ span Ù…Ø´ Ù„Ù„Ø±Ø³Ù…Ø© */
 }
 
 .forgot-link {
@@ -470,7 +470,7 @@ a {
 .btn-block {
     width: 100%;
     justify-content: center;
-    padding: 14px; /* تم التكبير هنا */
+    padding: 14px; /* ØªÙ… Ø§Ù„ØªÙƒØ¨ÙŠØ± Ù‡Ù†Ø§ */
     font-size: 1.1rem;
     border-radius: 8px;
     margin-top: 10px;
@@ -680,14 +680,14 @@ a {
    Login Page Floating Card & Background
 ========================================= */
 body.login-page-bg {
-   /* 1. التثبيت من اليسار: (left center) بتجبر المتصفح يبدأ رسم الصورة من الشمال دايماً */
+   /* 1. Ø§Ù„ØªØ«Ø¨ÙŠØª Ù…Ù† Ø§Ù„ÙŠØ³Ø§Ø±: (left center) Ø¨ØªØ¬Ø¨Ø± Ø§Ù„Ù…ØªØµÙØ­ ÙŠØ¨Ø¯Ø£ Ø±Ø³Ù… Ø§Ù„ØµÙˆØ±Ø© Ù…Ù† Ø§Ù„Ø´Ù…Ø§Ù„ Ø¯Ø§ÙŠÙ…Ø§Ù‹ */
     background: url('../images/University_Background.png') no-repeat left center fixed;
     
-    /* 2. التحكم في الحجم: */
-    /* الخيار الأفضل (cover): بيكبر ويصغر الصورة عشان تملى الشاشة مع الحفاظ على جودتها (بدون ما تتمط بشكل وحش)، وبما إننا مثبتين الشمال، أي قص هيحصل من اليمين فقط */
+    /* 2. Ø§Ù„ØªØ­ÙƒÙ… ÙÙŠ Ø§Ù„Ø­Ø¬Ù…: */
+    /* Ø§Ù„Ø®ÙŠØ§Ø± Ø§Ù„Ø£ÙØ¶Ù„ (cover): Ø¨ÙŠÙƒØ¨Ø± ÙˆÙŠØµØºØ± Ø§Ù„ØµÙˆØ±Ø© Ø¹Ø´Ø§Ù† ØªÙ…Ù„Ù‰ Ø§Ù„Ø´Ø§Ø´Ø© Ù…Ø¹ Ø§Ù„Ø­ÙØ§Ø¸ Ø¹Ù„Ù‰ Ø¬ÙˆØ¯ØªÙ‡Ø§ (Ø¨Ø¯ÙˆÙ† Ù…Ø§ ØªØªÙ…Ø· Ø¨Ø´ÙƒÙ„ ÙˆØ­Ø´)ØŒ ÙˆØ¨Ù…Ø§ Ø¥Ù†Ù†Ø§ Ù…Ø«Ø¨ØªÙŠÙ† Ø§Ù„Ø´Ù…Ø§Ù„ØŒ Ø£ÙŠ Ù‚Øµ Ù‡ÙŠØ­ØµÙ„ Ù…Ù† Ø§Ù„ÙŠÙ…ÙŠÙ† ÙÙ‚Ø· */
     background-size: cover; 
     
-    /* ملاحظة: لو عايز الصورة تتمط حرفياً وتتفرد على الشاشة كلها (ممكن شكلها يطول أو يعرض)، الغي السطر اللي فوق واستخدم ده:
+    /* Ù…Ù„Ø§Ø­Ø¸Ø©: Ù„Ùˆ Ø¹Ø§ÙŠØ² Ø§Ù„ØµÙˆØ±Ø© ØªØªÙ…Ø· Ø­Ø±ÙÙŠØ§Ù‹ ÙˆØªØªÙØ±Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø´Ø§Ø´Ø© ÙƒÙ„Ù‡Ø§ (Ù…Ù…ÙƒÙ† Ø´ÙƒÙ„Ù‡Ø§ ÙŠØ·ÙˆÙ„ Ø£Ùˆ ÙŠØ¹Ø±Ø¶)ØŒ Ø§Ù„ØºÙŠ Ø§Ù„Ø³Ø·Ø± Ø§Ù„Ù„ÙŠ ÙÙˆÙ‚ ÙˆØ§Ø³ØªØ®Ø¯Ù… Ø¯Ù‡:
     background-size: 100% 100%; 
     */
     
@@ -701,11 +701,11 @@ body.login-page-bg {
 }
 
 .login-centered-wrapper {
- /* تطبيق الأبعاد والمسافات الجديدة بدقة */
-    width: 48vw;         /* عرض الكارت */
-    margin-left: 38vw;   /* يسيب 38% من الشمال */
-    margin-right: 14vw;  /* يسيب 14% من اليمين */
-    height: 80vh;        /* يسيب 10% فوق و 10% تحت */
+ /* ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„Ø£Ø¨Ø¹Ø§Ø¯ ÙˆØ§Ù„Ù…Ø³Ø§ÙØ§Øª Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ø¨Ø¯Ù‚Ø© */
+    width: 48vw;         /* Ø¹Ø±Ø¶ Ø§Ù„ÙƒØ§Ø±Øª */
+    margin-left: 38vw;   /* ÙŠØ³ÙŠØ¨ 38% Ù…Ù† Ø§Ù„Ø´Ù…Ø§Ù„ */
+    margin-right: 14vw;  /* ÙŠØ³ÙŠØ¨ 14% Ù…Ù† Ø§Ù„ÙŠÙ…ÙŠÙ† */
+    height: 80vh;        /* ÙŠØ³ÙŠØ¨ 10% ÙÙˆÙ‚ Ùˆ 10% ØªØ­Øª */
     
     background: var(--white);
     border-radius: 20px;
@@ -714,7 +714,7 @@ body.login-page-bg {
     display: flex;
 }
 
-/* تعديل الـ auth-layout ليتناسب مع الحاوية الجديدة */
+/* ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù€ auth-layout Ù„ÙŠØªÙ†Ø§Ø³Ø¨ Ù…Ø¹ Ø§Ù„Ø­Ø§ÙˆÙŠØ© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© */
 .login-centered-wrapper .auth-layout {
     display: flex;
     width: 100%;
@@ -730,11 +730,11 @@ body.login-page-bg {
 }
 
 .auth-brand-header .auth-brand-logo {
-    width: 80px; /* كان 60px تقريباً */
+    width: 80px; /* ÙƒØ§Ù† 60px ØªÙ‚Ø±ÙŠØ¨Ø§Ù‹ */
     height: 80px;
 }
 
-/* تكبير أسماء الجامعة والنظام */
+/* ØªÙƒØ¨ÙŠØ± Ø£Ø³Ù…Ø§Ø¡ Ø§Ù„Ø¬Ø§Ù…Ø¹Ø© ÙˆØ§Ù„Ù†Ø¸Ø§Ù… */
 .auth-brand-header .auth-brand-uni-name {
     font-size: 1.1rem;
     font-weight: 700;
@@ -748,3 +748,167 @@ body.login-page-bg {
     border-bottom-right-radius: 24px;
 }
 
+/* =========================================
+   Responsive Design - Global & Auth
+========================================= */
+@media (max-width: 1024px) {
+    .login-centered-wrapper {
+        width: 80vw;
+        margin: 0 auto;
+        height: 90vh;
+    }
+}
+
+@media (max-width: 768px) {
+    .login-centered-wrapper {
+        width: 95vw;
+        height: 95vh;
+        flex-direction: column;
+    }
+    
+    .login-centered-wrapper .auth-layout {
+        flex-direction: column;
+    }
+    
+    .login-centered-wrapper .auth-brand {
+        border-radius: 20px 20px 0 0;
+        padding: 30px 20px;
+        flex: none;
+        height: auto;
+        min-height: 25%;
+    }
+    
+    .login-centered-wrapper .auth-form-container {
+        border-radius: 0 0 20px 20px;
+        padding: 20px;
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    .auth-brand-content h1 { font-size: 2rem; }
+    .auth-main-title { font-size: 1.8rem !important; }
+    .auth-main-desc { font-size: 0.9rem !important; margin-bottom: 20px !important; }
+    .auth-stats-row { display: none; } /* Hide stats on mobile auth */
+    
+    .cards-grid { grid-template-columns: 1fr; }
+    
+    .hero .container { flex-direction: column; text-align: center; }
+    .hero-content p { margin: 0 auto 30px auto; }
+    .hero-buttons { justify-content: center; }
+}
+
+/* =========================================
+   Floating Logo Loader
+   ========================================= */
+#global-page-loader {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    top: auto;
+    right: auto;
+    width: auto;
+    height: auto;
+    background: var(--white);
+    z-index: 99999;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px 10px 12px;
+    border-radius: 50px;
+    box-shadow: 0 8px 24px rgba(7, 34, 71, 0.12);
+    border: 1px solid rgba(11, 59, 112, 0.05);
+    transition: opacity 0.4s ease, visibility 0.4s ease, transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(0) scale(1);
+}
+
+#global-page-loader.hide-loader {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(20px) scale(0.9);
+}
+
+.loader-logo-container {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0;
+    margin-right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loader-logo-container img {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    z-index: 2;
+    animation: loader-pulse 2s ease-in-out infinite;
+    object-fit: contain;
+    background: white;
+}
+
+.loader-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(11, 59, 112, 0.08);
+    border-radius: 50%;
+    border-top-color: var(--primary-dark);
+    border-right-color: rgba(11, 59, 112, 0.4);
+    animation: loader-spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    z-index: 1;
+}
+
+.loader-text {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    letter-spacing: 0;
+    margin-bottom: 0;
+}
+
+@keyframes loader-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes loader-pulse {
+    0%, 100% { transform: scale(0.95); opacity: 0.9; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+/* =========================================
+   Global Skeleton Loaders
+   ========================================= */
+.global-skeleton {
+    background: linear-gradient(90deg, #F0F2F5 25%, #E8ECF4 50%, #F0F2F5 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+    height: 220px;
+    border-radius: 14px;
+}
+
+.skeleton-list-item {
+    height: 60px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.skeleton-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 24px;
+}

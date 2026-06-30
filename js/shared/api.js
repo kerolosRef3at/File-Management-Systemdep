@@ -12,6 +12,11 @@ export async function fetchAPI(endpoint, options = {}) {
         ...options.headers
     };
 
+    // Remove Content-Type if sending FormData (browser sets boundary automatically)
+    if (options.body instanceof FormData) {
+        delete headers['Content-Type'];
+    }
+
     // إرفاق الـ Bearer Token لو المستخدم مسجل دخول
     const token = localStorage.getItem('aitu_token');
     if (token) {

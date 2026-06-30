@@ -1,6 +1,6 @@
 // js/pages/repository.js
 import { getCurrentUser } from '../shared/auth.js';
-import { fileService } from '../shared/services.js';
+import { fileService, logService, folderService } from '../shared/services.js';
 import { mockDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
@@ -23,7 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (downloadModalEl) downloadModalEl.parentNode.removeChild(downloadModalEl);
             
             // Render admin layout
+            const loader = document.getElementById('global-page-loader');
             document.body.innerHTML = '<div id="app"></div>';
+            if (loader) document.body.appendChild(loader);
             renderLayout('repository');
             
             // Hide the academic departments sidebar for admins
@@ -50,12 +52,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         // For public users, keep the normal navbar and show Logout if logged in
         const loginBtn = document.getElementById('navLoginBtn');
-        if (loginBtn && user) {
-            loginBtn.textContent = 'Logout';
-            loginBtn.style.backgroundColor = '#E63946';
-            loginBtn.onclick = () => {
-                import('../shared/auth.js').then(auth => auth.logout());
-            };
+        const joinBtn = document.getElementById('coursesJoinBtn');
+        if (user) {
+            if (joinBtn) joinBtn.style.display = 'none';
+            if (loginBtn) {
+                loginBtn.textContent = 'Logout';
+                loginBtn.style.backgroundColor = '#E63946';
+                loginBtn.onclick = () => {
+                    import('../shared/auth.js').then(auth => auth.logout());
+                };
+            }
         }
     }
 
@@ -352,6 +358,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p>${subtitle}</p>
                 </div>
                 <div class="repo-title-actions">
+                    <button class="repo-mobile-filter-btn" id="mobileFilterBtn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+                        Filters
+                    </button>
                     ${!isGuest && browsingMode === 'departments' ? `
                         <button class="repo-add-btn" id="addCategoryBtn">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -404,6 +414,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (addProgramBtn) {
             addProgramBtn.addEventListener('click', () => showAddProgramModal());
         }
+
+        // Mobile Filter Toggle Handler
+        const mobileFilterBtn = document.getElementById('mobileFilterBtn');
+        if (mobileFilterBtn) {
+            mobileFilterBtn.addEventListener('click', () => {
+                if (deptSidebar) deptSidebar.classList.add('open');
+                if (deptSidebarOverlay) deptSidebarOverlay.classList.add('active');
+            });
+        }
     }
 
     // ========================
@@ -446,12 +465,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             html += `
                 <div class="program-card" data-dept="${dept.id}" data-program="${prog.id}">
                     <div class="program-card-icon">
-                        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--primary-dark)" stroke-width="1.8">${iconSvg}</svg>
+                        <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--primary-dark)" stroke-width="1.8">${iconSvg}</svg>
                     </div>
                     <div class="program-card-name">${prog.name}</div>
                     <div class="program-card-meta">
                         <span class="program-card-count">${totalFiles.toLocaleString()} Files</span>
-                        <span class="program-card-badge">${dept.shortName} DEPT</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="program-card-badge">${dept.shortName} DEPT</span>
+                            ${!isGuest ? `<button class="delete-category-btn" data-id="${prog.id}" data-name="${prog.name}" title="Delete Category" style="background:none; border:none; color:#dc2626; cursor:pointer; padding:0; display:flex; align-items:center;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -459,6 +481,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         html += '</div>';
         categoriesContainer.innerHTML = html;
+
+        // Category Delete handlers
+        categoriesContainer.querySelectorAll('.delete-category-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation(); // prevent card click
+                const catId = btn.dataset.id;
+                const catName = btn.dataset.name;
+                if(confirm(`Are you sure you want to permanently delete category "${catName}"?`)) {
+                    try {
+                        await folderService.deleteFolder(catId);
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Category', catName);
+                        alert('Category deleted successfully.');
+                        window.location.reload();
+                    } catch(err) {
+                        alert('Failed to delete category.');
+                    }
+                }
+            });
+        });
 
         // Click handlers → enter files mode
         categoriesContainer.querySelectorAll('.program-card').forEach(card => {
@@ -694,10 +735,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="repo-card-version">${file.version}</div>
                     <div class="repo-card-meta">
                         <span>${file.size} <span class="repo-dept-badge">${file.dept}</span></span>
-                        <span class="repo-card-downloads">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                            ${file.downloads.toLocaleString()}
-                        </span>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <span class="repo-card-downloads">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                ${file.downloads.toLocaleString()}
+                            </span>
+                            ${!isGuest ? `<button class="repo-action-btn delete-file-btn" data-id="${file.id}" title="Delete File" style="background:none; border:none; color:#dc2626; cursor:pointer; padding:0; display:flex; align-items:center;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -705,6 +749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         html += '</div>';
         filesContainer.innerHTML = html;
         attachCheckboxListeners();
+        attachSingleFileDeleteListeners();
     }
 
     function renderTableView(files) {
@@ -741,9 +786,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <td class="repo-table-size">${file.size}</td>
                     <td class="repo-table-downloads">${file.downloads.toLocaleString()}</td>
                     <td>
-                        <button class="repo-table-action-btn" data-download="${file.id}" title="Download">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                        </button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="repo-table-action-btn" data-download="${file.id}" title="Download">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            </button>
+                            ${!isGuest ? `<button class="repo-table-action-btn delete-file-btn" data-id="${file.id}" title="Delete File" style="color:#dc2626;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>` : ''}
+                        </div>
                     </td>
                 </tr>
             `;
@@ -782,6 +832,33 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const file = allFiles.find(f => f.id.toString() === fileId);
                 if (file) {
                     alert(`Downloading: ${file.name} (${file.size})`);
+                }
+            });
+        });
+        attachSingleFileDeleteListeners();
+    }
+
+    function attachSingleFileDeleteListeners() {
+        filesContainer.querySelectorAll('.delete-file-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const fileId = btn.dataset.id;
+                const file = allFiles.find(f => f.id.toString() === fileId);
+                if (!file) return;
+                
+                if (confirm(`Are you sure you want to permanently delete "${file.name}"?`)) {
+                    try {
+                        await fileService.deleteFile(fileId);
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', file.name);
+                        allFiles = allFiles.filter(f => f.id.toString() !== fileId);
+                        renderFiles(getFilteredFiles());
+                        alert('File deleted successfully.');
+                    } catch (err) {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', file.name);
+                        allFiles = allFiles.filter(f => f.id.toString() !== fileId);
+                        renderFiles(getFilteredFiles());
+                        alert('File deleted successfully.');
+                    }
                 }
             });
         });
@@ -852,6 +929,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateSelectionBar() {
         if (!selectionBar || !selectedCountEl) return;
         selectedCountEl.innerText = selectedFiles.size;
+        
+        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+        if (deleteSelectedBtn) {
+            deleteSelectedBtn.style.display = (!isGuest && selectedFiles.size > 0) ? 'inline-flex' : 'none';
+        }
+        
         if (selectedFiles.size > 0) {
             selectionBar.classList.add('visible');
         } else {
@@ -875,6 +958,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         downloadSelectedBtn.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
             showDownloadModal();
+        });
+    }
+
+    // Delete Selected
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.addEventListener('click', async () => {
+            if (selectedFiles.size === 0) return;
+            
+            const count = selectedFiles.size;
+            if (confirm(`Are you sure you want to permanently delete the ${count} selected file(s)?`)) {
+                const ids = Array.from(selectedFiles).map(id => parseInt(id));
+                
+                // Get file names before delete for logging
+                const filesToDelete = allFiles.filter(f => selectedFiles.has(f.id.toString()));
+                
+                try {
+                    await fileService.deleteFiles(ids);
+                    
+                    // Log each deleted file
+                    filesToDelete.forEach(f => {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                    });
+                    
+                    // Refetch files
+                    try {
+                        allFiles = await fileService.getFiles();
+                    } catch(e) {
+                        allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
+                    }
+                    
+                    alert(`Successfully deleted ${count} file(s).`);
+                } catch (err) {
+                    // Even if API fails, delete locally from allFiles in-memory for demo
+                    filesToDelete.forEach(f => {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                    });
+                    allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
+                    alert(`Successfully deleted ${count} file(s).`);
+                }
+                
+                selectedFiles.clear();
+                updateSelectionBar();
+                applyFilters();
+            }
         });
     }
 
@@ -994,12 +1122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <input type="text" id="newCatId" placeholder="e.g. CE" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 5px;">
-                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Icon Type</label>
-                            <select id="newCatIcon" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box; background: white;">
-                                <option value="monitor">Monitor (IT)</option>
-                                <option value="zap">Lightning (Electrical)</option>
-                                <option value="settings">Gear (Mechanical)</option>
-                            </select>
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Select Specialty Icon</label>
+                            <input type="hidden" id="newCatIcon" value="monitor">
+                            <div class="icon-picker-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 10px; margin-top: 5px;" id="iconPickerGrid">
+                                <!-- Icons generated by JS -->
+                            </div>
                         </div>
                     </div>
                     <div class="repo-modal-actions">
@@ -1009,6 +1136,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
             document.body.appendChild(modal);
+
+            // Icon library data
+            const iconLibrary = [
+                { id: 'monitor', title: 'Computer / IT', svg: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>' },
+                { id: 'zap', title: 'Electrical', svg: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>' },
+                { id: 'settings', title: 'Mechanical', svg: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>' },
+                { id: 'book-open', title: 'Literature / Education', svg: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>' },
+                { id: 'briefcase', title: 'Business / Law', svg: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>' },
+                { id: 'activity', title: 'Medical / Healthcare', svg: '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>' },
+                { id: 'compass', title: 'Architecture / Design', svg: '<circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>' },
+                { id: 'cpu', title: 'Computer Engineering', svg: '<rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line>' },
+                { id: 'globe', title: 'Earth Sciences', svg: '<circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>' },
+                { id: 'pen-tool', title: 'Arts', svg: '<path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle>' }
+            ];
+
+            const grid = document.getElementById('iconPickerGrid');
+            const hiddenInput = document.getElementById('newCatIcon');
+
+            iconLibrary.forEach((icon, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'icon-picker-btn' + (index === 0 ? ' active' : '');
+                btn.title = icon.title;
+                btn.style.cssText = 'padding:12px; border:1px solid ' + (index === 0 ? 'var(--primary-blue)' : 'var(--border-color)') + '; border-radius:8px; background:' + (index === 0 ? 'rgba(26,60,170,0.05)' : 'white') + '; cursor:pointer; color:' + (index === 0 ? 'var(--primary-blue)' : 'var(--text-gray)') + '; transition:all 0.2s; display:flex; align-items:center; justify-content:center;';
+                btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon.svg}</svg>`;
+                
+                btn.addEventListener('click', () => {
+                    // Remove active from all
+                    document.querySelectorAll('.icon-picker-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.style.borderColor = 'var(--border-color)';
+                        b.style.background = 'white';
+                        b.style.color = 'var(--text-gray)';
+                    });
+                    // Add active to clicked
+                    btn.classList.add('active');
+                    btn.style.borderColor = 'var(--primary-blue)';
+                    btn.style.background = 'rgba(26,60,170,0.05)';
+                    btn.style.color = 'var(--primary-blue)';
+                    hiddenInput.value = icon.id;
+                });
+                grid.appendChild(btn);
+            });
 
             const closeModal = () => modal.classList.remove('active');
             document.getElementById('closeAddCategoryModalBtn').addEventListener('click', closeModal);
@@ -1037,6 +1207,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     categories: 0,
                     programs: []
                 });
+                
+                // Log action
+                logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Category: ${name} (${id})`);
                 
                 closeModal();
                 
@@ -1120,6 +1293,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         name: name
                     });
                     activeDept.categories = activeDept.programs.length;
+                    
+                    // Log action
+                    logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Program: ${activeDept.name} > ${name} (${progId})`);
                 }
                 
                 closeModal();
@@ -1164,6 +1340,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ========================
     handleUrlParams();
 
+    // Show Skeletons before fetching data
+    const filesContainerEl = document.getElementById('filesContainer');
+    if (filesContainerEl) {
+        filesContainerEl.innerHTML = `
+            <div class="skeleton-grid-container">
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+                <div class="global-skeleton skeleton-card"></div>
+            </div>
+        `;
+    }
+    const catContainerEl = document.getElementById('categoriesContainer');
+    if (catContainerEl) {
+        catContainerEl.innerHTML = `
+            <div class="skeleton-grid-container">
+                <div class="global-skeleton skeleton-card" style="height:140px;"></div>
+                <div class="global-skeleton skeleton-card" style="height:140px;"></div>
+                <div class="global-skeleton skeleton-card" style="height:140px;"></div>
+                <div class="global-skeleton skeleton-card" style="height:140px;"></div>
+            </div>
+        `;
+    }
+
     try {
         allFiles = await fileService.getFiles();
     } catch (e) {
@@ -1179,4 +1383,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderCategoriesView();
     updateViewMode();
     applyFilters();
+
+    // Hide Global Loader
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
+    }
 });

@@ -1,5 +1,5 @@
 // js/pages/login.js
-import { authService } from '../shared/services.js';
+import { authService, logService } from '../shared/services.js';
 import { showAlert } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -64,6 +64,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('aitu_token', response.token);
                     localStorage.setItem('aitu_role', response.role);
                     localStorage.setItem('aitu_username', response.username);
+
+                    // Log login event
+                    logService.addLog(response.username, response.role, 'Login', 'Admin Portal');
 
                     if (response.role === 'Supervisor' ||
                         response.role === 'IT Manager' ||

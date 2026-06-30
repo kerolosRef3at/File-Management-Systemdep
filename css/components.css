@@ -705,6 +705,13 @@
     align-items: start;
 }
 
+.profile-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
 .profile-card {
     background: var(--white);
     border: 1px solid var(--border-color);
@@ -1516,7 +1523,8 @@
     .dashboard-row, 
     .profile-grid, 
     .builder-grid, 
-    .viewer-layout {
+    .viewer-layout,
+    .profile-form-row {
         grid-template-columns: 1fr; /* كل الأعمدة تصبح عمود واحد */
     }
     .stats-grid {
@@ -1634,7 +1642,8 @@
     .dashboard-row, 
     .profile-grid, 
     .builder-grid, 
-    .viewer-layout {
+    .viewer-layout,
+    .profile-form-row {
         grid-template-columns: 1fr; /* كل الأعمدة تصبح عمود واحد */
     }
     .stats-grid {
@@ -1707,6 +1716,7 @@
 
 .onboarding-overlay.active .onboarding-modal {
     transform: translateY(0) scale(1);
+    opacity: 1;
 }
 
 .onboarding-slides {
@@ -1962,4 +1972,43 @@
 /* إخفاء زرار الإضافة من القائمة الجانبية لتنظيفها */
 .sidebar-btn-wrapper {
     display: none !important;
+}
+
+/* =========================================
+   Additional Responsive Adjustments
+========================================= */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+    /* Make modals fit mobile screens */
+    .modal-content, .upload-modal, .repo-modal, .onboarding-modal, .repo-download-modal, .course-download-modal, .video-modal {
+        width: 95% !important;
+        max-width: 100% !important;
+        margin: 10px auto;
+        padding: 20px;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .modal-actions button {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-bottom: 10px;
+    }
+    
+    /* Global Data Tables */
+    table {
+        min-width: 600px; /* Forces scroll instead of squishing */
+    }
 }
