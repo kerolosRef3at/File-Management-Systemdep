@@ -62,13 +62,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // State
     let allFiles = [];
     let selectedFiles = new Set();
-    let currentView = 'grid'; // 'grid' or 'list'
+    let currentView = 'list'; // 'grid' or 'list'
     let currentFilterType = 'all';
     let currentDept = null; // null = all departments
     let currentProgram = null; // null = all programs
     let currentPage = 1;
     const filesPerPage = 8;
     let searchTerm = '';
+    let browsingMode = 'departments'; // 'departments' or 'categories' or 'files'
 
     // DOM References
     const deptTree = document.getElementById('deptTree');
@@ -82,6 +83,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const selectionBar = document.getElementById('selectionBar');
     const selectedCountEl = document.getElementById('selectedCount');
     const downloadModal = document.getElementById('downloadModal');
+
+    // Create categories container dynamically
+    const categoriesContainer = document.createElement('div');
+    categoriesContainer.id = 'categoriesContainer';
+    if (deptSummaryCards && deptSummaryCards.parentNode) {
+        deptSummaryCards.parentNode.insertBefore(categoriesContainer, deptSummaryCards.nextSibling);
+    }
 
     // Mobile sidebar toggle
     const mobileMenuBtn = document.getElementById('repoMobileMenuBtn');
@@ -144,12 +152,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     programs.classList.add('open');
                     currentDept = deptId;
                     currentProgram = null;
+                    browsingMode = 'categories';
                 } else {
                     currentDept = null;
                     currentProgram = null;
+                    browsingMode = 'departments';
                 }
 
                 currentPage = 1;
+                updateViewMode();
+                renderCategoriesView();
                 applyFilters();
                 renderBreadcrumb();
                 renderTitle();
@@ -162,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 currentDept = item.dataset.dept;
                 currentProgram = item.dataset.program;
                 currentPage = 1;
+                browsingMode = 'files';
 
                 // Update active styling
                 deptTree.querySelectorAll('.dept-program-item').forEach(i => i.classList.remove('active'));
@@ -175,6 +188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 header.classList.add('expanded');
                 programs.classList.add('open');
 
+                updateViewMode();
                 applyFilters();
                 renderBreadcrumb();
                 renderTitle();
@@ -230,15 +244,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const deptId = card.dataset.dept;
 
                 if (currentDept === deptId) {
-                    // Deselect
+                    // Deselect → go back to departments
                     currentDept = null;
                     currentProgram = null;
+                    browsingMode = 'departments';
                 } else {
                     currentDept = deptId;
                     currentProgram = null;
+                    browsingMode = 'categories';
                 }
 
                 currentPage = 1;
+                updateViewMode();
+                renderCategoriesView();
                 applyFilters();
                 renderBreadcrumb();
                 renderTitle();
@@ -279,9 +297,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (nav === 'home') {
                     currentDept = null;
                     currentProgram = null;
+                    browsingMode = 'departments';
+                    updateViewMode();
+                    renderCategoriesView();
                 } else if (nav === 'dept') {
                     currentDept = link.dataset.dept;
                     currentProgram = null;
+                    browsingMode = 'categories';
+                    updateViewMode();
+                    renderCategoriesView();
                 }
                 currentPage = 1;
                 applyFilters();
@@ -297,21 +321,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 4. PAGE TITLE
     // ========================
     function renderTitle() {
-        let title = 'AITU Central Repository';
+        let title = 'Central Repository';
         let subtitle = 'The official AITU file management system for academic and administrative record keeping.';
+        let showToggle = false;
 
-        if (currentProgram && currentDept) {
+        if (browsingMode === 'departments') {
+            title = 'Central Repository';
+            subtitle = 'The official AITU file management system for academic and administrative record keeping.';
+        } else if (browsingMode === 'categories' && currentDept) {
+            const dept = mockDepartments.find(d => d.id === currentDept);
+            title = `${dept.name}`;
+            subtitle = `Browse categories and programs in the ${dept.name} department.`;
+        } else if (browsingMode === 'files' && currentProgram && currentDept) {
             const dept = mockDepartments.find(d => d.id === currentDept);
             const prog = dept.programs.find(p => p.id === currentProgram);
-            title = `${dept.shortName} Department Files`;
-            subtitle = 'Public research documents, technical specifications, and laboratory datasets.';
-        } else if (currentDept) {
+            title = `${prog.name} Resources`;
+            subtitle = 'Official course materials, peer-reviewed manuals, and architecture blueprints.';
+            showToggle = true;
+        } else if (browsingMode === 'files' && currentDept) {
             const dept = mockDepartments.find(d => d.id === currentDept);
             title = `${dept.name} Files`;
             subtitle = `Browse all files in the ${dept.name} department.`;
+            showToggle = true;
         }
-
-        const showToggle = currentDept || currentProgram;
 
         repoTitleSection.innerHTML = `
             <div class="repo-title-row">
@@ -319,16 +351,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <h1>${title}</h1>
                     <p>${subtitle}</p>
                 </div>
-                ${showToggle ? `
-                    <div class="repo-view-toggle">
-                        <button class="repo-view-btn ${currentView === 'list' ? 'active' : ''}" data-view="list" title="List view">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <div class="repo-title-actions">
+                    ${!isGuest && browsingMode === 'departments' ? `
+                        <button class="repo-add-btn" id="addCategoryBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Category
                         </button>
-                        <button class="repo-view-btn ${currentView === 'grid' ? 'active' : ''}" data-view="grid" title="Grid view">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    ` : ''}
+                    ${!isGuest && browsingMode === 'categories' ? `
+                        <button class="repo-add-btn" id="addProgramBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Program
                         </button>
-                    </div>
-                ` : ''}
+                    ` : ''}
+                    ${!isGuest ? `
+                        <a href="upload-resources.html" class="repo-upload-btn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                            Upload Resources
+                        </a>
+                    ` : ''}
+                    ${showToggle ? `
+                        <div class="repo-view-toggle">
+                            <button class="repo-view-btn ${currentView === 'list' ? 'active' : ''}" data-view="list" title="List view">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            </button>
+                            <button class="repo-view-btn ${currentView === 'grid' ? 'active' : ''}" data-view="grid" title="Grid view">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `;
 
@@ -340,6 +392,120 @@ document.addEventListener('DOMContentLoaded', async () => {
                 renderFiles(getFilteredFiles());
             });
         });
+
+        // Add Category button handler
+        const addCategoryBtn = document.getElementById('addCategoryBtn');
+        if (addCategoryBtn) {
+            addCategoryBtn.addEventListener('click', () => showAddCategoryModal());
+        }
+
+        // Add Program button handler
+        const addProgramBtn = document.getElementById('addProgramBtn');
+        if (addProgramBtn) {
+            addProgramBtn.addEventListener('click', () => showAddProgramModal());
+        }
+    }
+
+    // ========================
+    // CATEGORIES VIEW (program cards for a selected department)
+    // ========================
+    function getProgramIconSvg(progId) {
+        const icons = {
+            'it-net': '<rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/>',
+            'it-db': '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+            'it-prog': '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+            'it-cyber': '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+            'el-power': '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+            'el-embed': '<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
+            'el-digital': '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>',
+            'me-thermo': '<path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>',
+            'me-fluid': '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>',
+            'me-cad': '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+            'me-materials': '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>',
+            'me-manufacturing': '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+        };
+        return icons[progId] || '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>';
+    }
+
+    function renderCategoriesView() {
+        if (browsingMode !== 'categories' || !currentDept) {
+            categoriesContainer.innerHTML = '';
+            return;
+        }
+
+        const dept = mockDepartments.find(d => d.id === currentDept);
+        if (!dept) return;
+
+        let html = '<div class="program-cards-grid">';
+
+        dept.programs.forEach(prog => {
+            const fileCount = allFiles.filter(f => f.program === prog.id).length;
+            const totalFiles = fileCount > 0 ? fileCount : dept.totalFiles;
+            const iconSvg = getProgramIconSvg(prog.id);
+
+            html += `
+                <div class="program-card" data-dept="${dept.id}" data-program="${prog.id}">
+                    <div class="program-card-icon">
+                        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="var(--primary-dark)" stroke-width="1.8">${iconSvg}</svg>
+                    </div>
+                    <div class="program-card-name">${prog.name}</div>
+                    <div class="program-card-meta">
+                        <span class="program-card-count">${totalFiles.toLocaleString()} Files</span>
+                        <span class="program-card-badge">${dept.shortName} DEPT</span>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        categoriesContainer.innerHTML = html;
+
+        // Click handlers → enter files mode
+        categoriesContainer.querySelectorAll('.program-card').forEach(card => {
+            card.addEventListener('click', () => {
+                currentDept = card.dataset.dept;
+                currentProgram = card.dataset.program;
+                currentPage = 1;
+                browsingMode = 'files';
+                updateViewMode();
+                renderDeptSidebar();
+                renderDeptSummaryCards();
+                renderBreadcrumb();
+                renderTitle();
+                applyFilters();
+            });
+        });
+    }
+
+    // ========================
+    // VIEW MODE TOGGLE (3 levels)
+    // ========================
+    function updateViewMode() {
+        if (browsingMode === 'departments') {
+            // Show only dept summary cards
+            if (deptSummaryCards) deptSummaryCards.style.display = '';
+            categoriesContainer.style.display = 'none';
+            if (repoControls) repoControls.style.display = 'none';
+            if (repoFilterChips) repoFilterChips.style.display = 'none';
+            if (filesContainer) filesContainer.style.display = 'none';
+            if (repoPagination) repoPagination.style.display = 'none';
+        } else if (browsingMode === 'categories') {
+            // Show dept cards + program category cards
+            if (deptSummaryCards) deptSummaryCards.style.display = '';
+            categoriesContainer.style.display = '';
+            if (repoControls) repoControls.style.display = 'none';
+            if (repoFilterChips) repoFilterChips.style.display = 'none';
+            if (filesContainer) filesContainer.style.display = 'none';
+            if (repoPagination) repoPagination.style.display = 'none';
+        } else {
+            // Show dept cards + files UI
+            if (deptSummaryCards) deptSummaryCards.style.display = '';
+            categoriesContainer.style.display = 'none';
+            if (repoControls) repoControls.style.display = '';
+            if (repoFilterChips) repoFilterChips.style.display = '';
+            if (filesContainer) filesContainer.style.display = '';
+            if (repoPagination) repoPagination.style.display = '';
+        }
     }
 
     // ========================
@@ -802,6 +968,177 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ========================
+    // CATEGORY & PROGRAM ADD CREATION MODALS
+    // ========================
+    function showAddCategoryModal() {
+        let modal = document.getElementById('addCategoryModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'addCategoryModal';
+            modal.className = 'repo-modal-overlay';
+            modal.innerHTML = `
+                <div class="repo-download-modal" style="max-width: 450px;">
+                    <div class="repo-modal-header">
+                        <div class="repo-modal-title-group">
+                            <h3>Add New Category (Dept)</h3>
+                        </div>
+                        <button class="repo-modal-close" id="closeAddCategoryModalBtn">&times;</button>
+                    </div>
+                    <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Category Name</label>
+                            <input type="text" id="newCatName" placeholder="e.g. Civil Engineering" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Abbreviation / Code</label>
+                            <input type="text" id="newCatId" placeholder="e.g. CE" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Icon Type</label>
+                            <select id="newCatIcon" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box; background: white;">
+                                <option value="monitor">Monitor (IT)</option>
+                                <option value="zap">Lightning (Electrical)</option>
+                                <option value="settings">Gear (Mechanical)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="repo-modal-actions">
+                        <button class="repo-modal-cancel" id="cancelAddCategoryBtn">Cancel</button>
+                        <button class="repo-modal-confirm" id="confirmAddCategory">Add Category</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const closeModal = () => modal.classList.remove('active');
+            document.getElementById('closeAddCategoryModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelAddCategoryBtn').addEventListener('click', closeModal);
+            
+            document.getElementById('confirmAddCategory').addEventListener('click', () => {
+                const name = document.getElementById('newCatName').value.trim();
+                const id = document.getElementById('newCatId').value.trim().toUpperCase();
+                const icon = document.getElementById('newCatIcon').value;
+                if (!name || !id) {
+                    alert('Please fill out all fields.');
+                    return;
+                }
+                if (mockDepartments.some(d => d.id === id)) {
+                    alert('A category with this Abbreviation already exists.');
+                    return;
+                }
+                
+                mockDepartments.push({
+                    id: id,
+                    name: name,
+                    shortName: id,
+                    label: name.toUpperCase(),
+                    icon: icon,
+                    totalFiles: 0,
+                    categories: 0,
+                    programs: []
+                });
+                
+                closeModal();
+                
+                renderDeptSidebar();
+                renderDeptSummaryCards();
+                renderCategoriesView();
+                renderTitle();
+            });
+        }
+        
+        document.getElementById('newCatName').value = '';
+        document.getElementById('newCatId').value = '';
+        document.getElementById('newCatIcon').selectedIndex = 0;
+        
+        modal.classList.add('active');
+    }
+
+    function showAddProgramModal() {
+        if (!currentDept) {
+            alert('Please select a Category first.');
+            return;
+        }
+        const dept = mockDepartments.find(d => d.id === currentDept);
+        if (!dept) return;
+
+        let modal = document.getElementById('addProgramModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'addProgramModal';
+            modal.className = 'repo-modal-overlay';
+            modal.innerHTML = `
+                <div class="repo-download-modal" style="max-width: 450px;">
+                    <div class="repo-modal-header">
+                        <div class="repo-modal-title-group">
+                            <h3>Add New Program</h3>
+                        </div>
+                        <button class="repo-modal-close" id="closeAddProgramModalBtn">&times;</button>
+                    </div>
+                    <div style="padding: 20px; display: flex; flex-direction: column; gap: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Parent Category</label>
+                            <input type="text" id="parentDeptName" readonly style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box; background: #f1f5f9;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Program Name</label>
+                            <input type="text" id="newProgName" placeholder="e.g. Structural Engineering" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Program Code / ID</label>
+                            <input type="text" id="newProgId" placeholder="e.g. ce-struct" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    <div class="repo-modal-actions">
+                        <button class="repo-modal-cancel" id="cancelAddProgramBtn">Cancel</button>
+                        <button class="repo-modal-confirm" id="confirmAddProgram">Add Program</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            const closeModal = () => modal.classList.remove('active');
+            document.getElementById('closeAddProgramModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelAddProgramBtn').addEventListener('click', closeModal);
+            
+            document.getElementById('confirmAddProgram').addEventListener('click', () => {
+                const name = document.getElementById('newProgName').value.trim();
+                const progId = document.getElementById('newProgId').value.trim().toLowerCase();
+                if (!name || !progId) {
+                    alert('Please fill out all fields.');
+                    return;
+                }
+                
+                const activeDept = mockDepartments.find(d => d.id === currentDept);
+                if (activeDept) {
+                    if (activeDept.programs.some(p => p.id === progId)) {
+                        alert('A program with this ID already exists in this department.');
+                        return;
+                    }
+                    activeDept.programs.push({
+                        id: progId,
+                        name: name
+                    });
+                    activeDept.categories = activeDept.programs.length;
+                }
+                
+                closeModal();
+                
+                renderDeptSidebar();
+                renderDeptSummaryCards();
+                renderCategoriesView();
+                renderTitle();
+            });
+        }
+        
+        document.getElementById('parentDeptName').value = dept.name;
+        document.getElementById('newProgName').value = '';
+        document.getElementById('newProgId').value = '';
+        
+        modal.classList.add('active');
+    }
+
+    // ========================
     // 14. URL PARAMETER HANDLING
     // ========================
     function handleUrlParams() {
@@ -811,6 +1148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const dept = mockDepartments.find(d => d.id.toUpperCase() === deptParam.toUpperCase());
             if (dept) {
                 currentDept = dept.id;
+                browsingMode = 'categories';
             }
         }
         const searchParam = urlParams.get('search');
@@ -838,5 +1176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTitle();
     renderControls();
     renderFilterChips();
+    renderCategoriesView();
+    updateViewMode();
     applyFilters();
 });

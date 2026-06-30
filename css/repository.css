@@ -368,6 +368,60 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+.repo-title-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.repo-upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 20px;
+    background: var(--primary-dark);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.repo-upload-btn:hover {
+    background: #0a3260;
+    box-shadow: 0 4px 12px rgba(11, 59, 112, 0.3);
+    transform: translateY(-1px);
+}
+
+.repo-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 20px;
+    background: transparent;
+    color: var(--primary-dark);
+    border: 2px solid var(--primary-dark);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.repo-add-btn:hover {
+    background: var(--primary-dark);
+    color: white;
+    box-shadow: 0 4px 12px rgba(11, 59, 112, 0.15);
+    transform: translateY(-1px);
+}
+
+
 /* --- Department Summary Cards --- */
 .dept-summary-cards {
     display: grid;
@@ -1308,6 +1362,89 @@
     .repo-file-table {
         min-width: 650px;
     }
+
+    .program-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* =========================================
+   Program Category Cards
+   ========================================= */
+
+.program-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+    animation: programCardsFadeIn 0.4s ease;
+}
+
+@keyframes programCardsFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.program-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 28px 20px 22px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.program-card:hover {
+    box-shadow: 0 8px 28px rgba(7, 34, 71, 0.12);
+    transform: translateY(-4px);
+    border-color: rgba(11, 59, 112, 0.2);
+}
+
+.program-card-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.program-card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.3;
+}
+
+.program-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.program-card-count {
+    font-size: 0.82rem;
+    color: var(--text-gray);
+    font-weight: 500;
+}
+
+.program-card-badge {
+    display: inline-block;
+    background: var(--primary-dark);
+    color: var(--white);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
 @media (max-width: 480px) {
@@ -1328,4 +1465,8 @@
     .repo-card-name {
         font-size: 0.8rem;
     }
-}
+
+    .program-cards-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}

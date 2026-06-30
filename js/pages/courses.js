@@ -270,8 +270,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
             <div id="adminAlerts"></div>
             <div class="admin-course-grid" id="adminCourseGrid"></div>
-            <div class="admin-course-footer">
-                <p>Showing <span id="adminVisibleCount">0</span> of <span id="adminTotalCount">124</span> Courses</p>
+            <div class="admin-course-footer" id="adminCourseFooter" style="display:none;">
+                <p>Showing <span id="adminVisibleCount">0</span> of <span id="adminTotalCount">0</span> Courses</p>
                 <button class="btn-outline" id="adminLoadMoreBtn">Load More Resources</button>
             </div>
         `;
@@ -383,9 +383,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
-        // Update counts
+        // Update counts & footer visibility
         const visible = document.getElementById('adminVisibleCount');
+        const total = document.getElementById('adminTotalCount');
+        const footer = document.getElementById('adminCourseFooter');
         if (visible) visible.innerText = filtered.length;
+        if (total) total.innerText = allCourses.length;
+        // Only show footer when there are more than 6 courses (enough to paginate)
+        if (footer) {
+            footer.style.display = allCourses.length > 6 ? '' : 'none';
+        }
     }
 
     // ============================

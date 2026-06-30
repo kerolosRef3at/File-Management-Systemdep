@@ -189,6 +189,29 @@ function getDeptId(deptStr) {
     if (d.includes('me') || d.includes('mech')) return 'ME';
     return 'IT';
 }
+
+function detectProgram(name, deptId) {
+    const lower = (name || '').toLowerCase();
+    if (deptId === 'IT') {
+        if (lower.includes('net') || lower.includes('infra') || lower.includes('cs204') || lower.includes('ip') || lower.includes('route') || lower.includes('switch')) return 'it-net';
+        if (lower.includes('security') || lower.includes('cyber') || lower.includes('firewall') || lower.includes('pene') || lower.includes('cs410')) return 'it-cyber';
+        if (lower.includes('db') || lower.includes('sql') || lower.includes('data') || lower.includes('query') || lower.includes('cs301') || lower.includes('migration')) return 'it-db';
+        return 'it-prog'; // default program for IT
+    }
+    if (deptId === 'EL') {
+        if (lower.includes('power') || lower.includes('grid') || lower.includes('transformer') || lower.includes('ee305')) return 'el-power';
+        if (lower.includes('embed') || lower.includes('micro') || lower.includes('arduino') || lower.includes('ee201')) return 'el-embed';
+        return 'el-digital'; // default program for EL
+    }
+    if (deptId === 'ME') {
+        if (lower.includes('thermo') || lower.includes('heat') || lower.includes('turbine') || lower.includes('me201')) return 'me-thermo';
+        if (lower.includes('fluid') || lower.includes('pump') || lower.includes('flow') || lower.includes('me301')) return 'me-fluid';
+        if (lower.includes('cad') || lower.includes('3d') || lower.includes('design') || lower.includes('catalog') || lower.includes('blueprint')) return 'me-cad';
+        if (lower.includes('steel') || lower.includes('compos') || lower.includes('material') || lower.includes('me350')) return 'me-materials';
+        return 'me-manufacturing'; // default program for ME
+    }
+    return null;
+}
 // ==========================================
 // 2. File Repository Service
 // ==========================================
@@ -205,20 +228,23 @@ export const fileService = {
         const backendFiles = await fetchAPI(url);
 
         // ✅ تحويل الداتا للشكل اللي الـ Frontend بيتوقعه
-        return backendFiles.map(f => ({
-            id: f.id,
-            name: f.name,
-            type: getFileTypeLabel(f.type),
-            version: f.version || 'v1.0',
-            size: formatFileSize(f.size),
-            dept: f.dept || 'IT DEPT',
-            deptId: getDeptId(f.dept),
-            downloads: f.downloadCount || 0,
-            uploadDate: f.uploadedAt
-                ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
-            uploadedBy: f.uploaderName || 'admin',
-            program: null
-        }));
+        return backendFiles.map(f => {
+            const deptId = getDeptId(f.dept);
+            return {
+                id: f.id,
+                name: f.name,
+                type: getFileTypeLabel(f.type),
+                version: f.version || 'v1.0',
+                size: formatFileSize(f.size),
+                dept: f.dept || 'IT DEPT',
+                deptId: deptId,
+                downloads: f.downloadCount || 0,
+                uploadDate: f.uploadedAt
+                    ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
+                uploadedBy: f.uploaderName || 'admin',
+                program: detectProgram(f.name, deptId)
+            };
+        });
     } catch (err) {
         console.warn("API failed, returning mock files.");
         return mock.mockFiles;
