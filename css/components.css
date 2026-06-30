@@ -1495,9 +1495,7 @@
         transition: transform 0.3s ease;
         z-index: 1000;
     }
-    .sidebar.open {
-        transform: translateX(0); /* إظهار القائمة */
-    }
+
     .main-wrapper {
         margin-left: 0; /* إلغاء المساحة الفارغة على اليسار */
         width: 100%;
@@ -1920,4 +1918,48 @@
 
 .dash-user-dropdown-menu .logout-item svg {
     color: #E63946;
+}
+
+/* --- Light Sidebar Styles --- */
+.sidebar.light-sidebar {
+    background-color: #ffffff !important;
+    border-right: 1px solid #e2e8f0;
+}
+
+/* تنسيق روابط القائمة الجانبية */
+.sidebar.light-sidebar .sidebar-menu a {
+    color: #475569 !important;
+    font-weight: 600;
+}
+.sidebar.light-sidebar .sidebar-menu a svg {
+    color: #64748b !important;
+}
+
+/* تنسيق الروابط عند الوقوف عليها (Hover) */
+.sidebar.light-sidebar .sidebar-menu a:hover {
+    background-color: #f8fafc !important;
+    color: #0b3b70 !important;
+}
+.sidebar.light-sidebar .sidebar-menu a:hover svg {
+    color: #0b3b70 !important;
+}
+
+/* تنسيق الرابط النشط (Active) */
+.sidebar.light-sidebar .sidebar-menu a.active {
+    background-color: #eff6ff !important;
+    color: #0b3b70 !important;
+    border-right: 3px solid #0b3b70;
+}
+.sidebar.light-sidebar .sidebar-menu a.active svg {
+    color: #0b3b70 !important;
+}
+
+/* تنسيق زر تسجيل الخروج */
+.logout-btn-light:hover {
+    background-color: #fef2f2 !important;
+}
+
+/* إخفاء زرار الإضافة من القائمة الجانبية لتنظيفها */
+.sidebar-btn-wrapper {
+    display: none !important;
 }
