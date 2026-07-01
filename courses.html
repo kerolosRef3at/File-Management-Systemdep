@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/repository.css">
     <link rel="stylesheet" href="css/courses.css">
+    <script>(function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();</script>
 </head>
 
 <body>
@@ -20,7 +21,7 @@
             <img src="logos/logo_AITU.jpg" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
             <div class="loader-ring"></div>
         </div>
-        <div class="loader-text">Loading...</div>
+        <div class="loader-text" data-i18n="loader_text">Loading...</div>
     </div>
     <!-- Public layout shell (hidden when admin) -->
     <div id="publicShell" style="display:none;">
@@ -32,18 +33,21 @@
                         onerror="this.src='logos/logo_AITU.jpg'">
                     <div>
                             <span class="repo-brand-name" style="font-size:1.3rem; font-weight:800; color:var(--primary-dark);">AITU</span>
-                            <span class="repo-brand-sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
+                            <span class="repo-brand-sub" data-i18n="nav_brand_sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
                     </div>
                 </div>
                 <nav class="repo-nav-links">
-                    <a href="index.html">Home</a>
-                    <a href="repository.html">Programs</a>
-                    <a href="courses.html" class="active">Courses</a>
+                    <a href="index.html" data-i18n="nav_home">Home</a>
+                    <a href="repository.html" data-i18n="nav_programs">Programs</a>
+                    <a href="courses.html" class="active" data-i18n="nav_courses">Courses</a>
                 </nav>
                 <div class="repo-nav-right">
-                    <button class="repo-login-btn" id="coursesLoginBtn" onclick="window.location.href='login.html'">Login</button>
-                    <button class="repo-login-btn" id="coursesJoinBtn" style="background:var(--primary-blue);"
-                        onclick="window.location.href='login.html'">Join AITU</button>
+                    <button class="lang-toggle-btn" id="langToggleBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <span class="lang-btn-text" data-i18n="lang_btn">عربي</span>
+                    </button>
+                    <button class="repo-login-btn" id="coursesLoginBtn" data-i18n="nav_login" onclick="window.location.href='login.html'">Login</button>
+                    <button class="repo-login-btn" id="coursesJoinBtn" data-i18n="nav_join" style="background:var(--primary-blue);" onclick="window.location.href='login.html'">Join AITU</button>
                 </div>
                 <button class="repo-mobile-menu-btn" id="coursesMobileMenuBtn">
                     <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
@@ -59,17 +63,38 @@
         <div class="courses-public-body">
             <!-- Left panel: sidebar + filters + CTA -->
             <div class="courses-left-panel" id="coursesLeftPanel">
-                <div>
-                    <div class="dept-sidebar-title">ACADEMIC<br>DEPARTMENTS</div>
-                    <div id="coursesDeptTree"></div>
+                <div class="mobile-main-nav" style="display: none;">
+                    <a href="index.html" class="mobile-nav-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <span>Home</span>
+                    </a>
+                    <a href="repository.html" class="mobile-nav-item">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <span>Programs</span>
+                    </a>
+                    <a href="courses.html" class="mobile-nav-item active">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <span>Courses</span>
+                    </a>
                 </div>
+                <div class="sidebar-top-heading">
+                    <div class="sidebar-heading-icon">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                    </div>
+                    <div class="sidebar-heading-text">
+                        <h4>Academic Departments</h4>
+                        <span>Browse courses by category</span>
+                    </div>
+                </div>
+                <div class="sidebar-divider"></div>
+                <div id="coursesDeptTree" style="padding: 0 16px;"></div>
 
-               
-
-                <div class="bulk-download-cta">
+                <div class="bulk-download-cta" style="margin: 20px 16px 16px 16px;">
                     <div class="bulk-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                            stroke-width="2">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
                     </div>
@@ -115,11 +140,11 @@
                     <img src="logos/aitu_logo.png" alt="AITU" width="28" height="28"
                         onerror="this.src='logos/logo_AITU.jpg'">
                     <div>
-                        <strong>AITU File Sharing System</strong>
-                        <span>Centralizing academic intelligence with precision.</span>
+                        <strong data-i18n="footer_brand">AITU File Sharing System</strong>
+                        <span data-i18n="footer_desc">Centralizing academic intelligence with precision.</span>
                     </div>
                 </div>
-                <div class="repo-footer-copy">&copy; 2026 Assiut International Technological University. All rights
+                <div class="repo-footer-copy" data-i18n="footer_copy">&copy; 2026 Assiut International Technological University. All rights
                     reserved.</div>
             </div>
         </footer>
@@ -129,6 +154,10 @@
     <div id="app" style="display:none;"></div>
 
     <script type="module" src="js/pages/courses.js"></script>
+    <script type="module">
+        import { initLanguage } from './js/shared/jssharedi18n.js';
+        document.addEventListener('DOMContentLoaded', initLanguage);
+    </script>
 </body>
 
 </html>

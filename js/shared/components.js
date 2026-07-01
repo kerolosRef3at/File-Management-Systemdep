@@ -97,15 +97,19 @@ export function showAlert(container, message, type = 'success') {
     const el = typeof container === 'string' ? document.getElementById(container) : container;
     if (!el) return;
 
+    const isArabic = /[\u0600-\u06FF]/.test(message);
+
     el.className = `form-alert ${type}`;
     el.style.display = 'flex';
-    el.style.alignItems = 'center';
+    el.style.alignItems = 'flex-start';
     el.style.justifyContent = 'space-between';
-    el.style.padding = '12px 16px';
-    el.style.borderRadius = '8px';
+    el.style.padding = '14px 16px';
+    el.style.borderRadius = '10px';
     el.style.marginBottom = '20px';
     el.style.fontSize = '0.95rem';
     el.style.fontWeight = '500';
+    el.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.05)';
+    el.style.direction = isArabic ? 'rtl' : 'ltr';
 
     // Set colors according to alert type
     let bg = '#eff6ff', color = '#1e3a8a', border = '1px solid #bfdbfe';
@@ -118,15 +122,15 @@ export function showAlert(container, message, type = 'success') {
     el.style.border = border;
 
     el.innerHTML = `
-        <div style="display:flex; align-items:center; gap:10px;">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+        <div style="display:flex; align-items:flex-start; gap:12px; flex:1; text-align: ${isArabic ? 'right' : 'left'};">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <span>${message}</span>
+            <div style="flex:1; line-height: 1.6;">${message}</div>
         </div>
-        <button type="button" class="alert-close-btn" style="background:none; border:none; color:inherit; font-size:1.2rem; cursor:pointer; font-weight:bold; line-height:1;">&times;</button>
+        <button type="button" class="alert-close-btn" style="background:none; border:none; color:inherit; font-size:1.4rem; cursor:pointer; font-weight:bold; line-height:1; padding: 0 6px; flex-shrink:0; margin-${isArabic ? 'right' : 'left'}: 8px;">&times;</button>
     `;
 
     el.querySelector('.alert-close-btn').addEventListener('click', () => {

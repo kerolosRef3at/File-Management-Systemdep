@@ -1,11 +1,28 @@
 // js/pages/upload-resources.js
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
-import { fileService, logService } from '../shared/services.js';
+import { fileService, logService, folderService } from '../shared/services.js';
 import { mockDepartments } from '../shared/mockData.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
+
+    try {
+        const apiFolders = await folderService.getFolders();
+        if (Array.isArray(apiFolders)) {
+            apiFolders.forEach(f => {
+                const deptId = f.deptId || f.department || f.dept || f.parentFolderId || 'IT';
+                const targetDept = mockDepartments.find(d => d.id === deptId || d.shortName === deptId);
+                if (targetDept) {
+                    const progId = String(f.id || f.folderId || f.code || f.name);
+                    const progName = f.name || f.folderName || f.title || progId;
+                    if (!targetDept.programs.some(p => p.id === progId)) {
+                        targetDept.programs.push({ id: progId, name: progName });
+                    }
+                }
+            });
+        }
+    } catch (e) {}
 
     // Render admin layout
     renderLayout('repository');

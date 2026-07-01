@@ -1,6 +1,7 @@
 // js/shared/layout.js
 import { getCurrentUser, logout } from './auth.js';
 import { fileService, dashboardService } from './services.js';
+import { getCurrentLang, toggleLanguage } from './jssharedi18n.js';
 
 export function renderLayout(activePage = 'repository') {
     const appContainer = document.getElementById('app');
@@ -183,6 +184,10 @@ export function renderLayout(activePage = 'repository') {
                             </div>
                         </a>
                     </div>
+                    <button id="sidebarLangBtn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:rgba(255,255,255,0.06); color:#8B9CC8; font-weight:600; font-size:0.9rem; border-radius:8px; cursor:pointer; transition:0.2s; margin-bottom:8px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        ${lang === 'ar' ? 'English' : 'عربي'}
+                    </button>
                     <button id="sidebarLogoutBtn" class="logout-btn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; color:#ef4444; font-weight:600; font-size:0.95rem; border-radius:8px; cursor:pointer; transition:0.2s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                         Logout
@@ -207,6 +212,10 @@ export function renderLayout(activePage = 'repository') {
                     </div>
 
                     <div class="header-right">
+                        <button class="lang-toggle-topbar" id="langToggleBtn" title="${lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <span class="lang-btn-text">${lang === 'ar' ? 'English' : 'عربي'}</span>
+                        </button>
                         <div class="dash-user-menu">
                             <button class="dash-user-avatar-btn" id="userAvatarBtn">
                                 <span class="avatar-circle">${userInitial}</span>
@@ -257,7 +266,10 @@ export function renderLayout(activePage = 'repository') {
                     .page-title-box h2 { margin: 0 0 4px 0; font-size: 1.3rem; color: #1A1F36; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                     .subtitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: #6B7A99; line-height: 1.4; }
                     .subtitle-row span { white-space: normal; word-break: break-word; }
-                    .header-right { flex-shrink: 0; }
+                    .header-right { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
+                    .lang-toggle-topbar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #F0F4FF; border: 1px solid #D1D9E6; border-radius: 50px; cursor: pointer; font-size: 13.5px; font-weight: 600; color: #1A3CAA; transition: all 0.25s ease; white-space: nowrap; }
+                    .lang-toggle-topbar:hover { background: #E0E8FF; border-color: #1A3CAA; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,60,170,0.12); }
+                    .lang-toggle-topbar svg { color: #1A3CAA; flex-shrink: 0; }
                     .dash-user-menu { position: relative; }
                     .dash-user-avatar-btn { background: #ffffff; border: 1px solid #E8ECF4; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 6px 20px 6px 6px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.02); height: 54px; }
                     .dash-user-avatar-btn:hover { background: #F8FAFC; border-color: #D1D9E6; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
@@ -388,6 +400,25 @@ export function renderLayout(activePage = 'repository') {
     if (mobileBtn && sidebar && overlay) {
         mobileBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
         overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
+    }
+
+    // Language toggle button
+    const langToggleBtn = document.getElementById('langToggleBtn');
+    if (langToggleBtn) {
+        langToggleBtn.addEventListener('click', () => {
+            toggleLanguage();
+            // Reload page to re-render layout with correct language
+            setTimeout(() => window.location.reload(), 100);
+        });
+    }
+
+    // Sidebar language toggle (mobile)
+    const sidebarLangBtn = document.getElementById('sidebarLangBtn');
+    if (sidebarLangBtn) {
+        sidebarLangBtn.addEventListener('click', () => {
+            toggleLanguage();
+            setTimeout(() => window.location.reload(), 100);
+        });
     }
 
     const uploadBtn = document.getElementById('globalUploadBtn');

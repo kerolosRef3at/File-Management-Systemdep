@@ -123,22 +123,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadUsers();
     }
 
+    function normalizeUsers(list) {
+        if (!Array.isArray(list)) return [];
+        return list.map((u, index) => {
+            const username = String(u.username || u.name || u.user || (u.email ? u.email.split('@')[0] : `user_${index + 1}`));
+            const email = String(u.email || u.mail || `${username}@aitu.edu`);
+            const role = String(u.role || u.userRole || 'Public User');
+            const phone = String(u.phone || u.mobile || 'N/A');
+            const joined = String(u.joined || u.created_at || u.date || new Date().toISOString().slice(0, 10));
+            return {
+                ...u,
+                id: u.id || u.userId || index + 1,
+                username,
+                email,
+                role,
+                phone,
+                joined,
+                isProtected: Boolean(u.isProtected || username.toLowerCase() === 'admin')
+            };
+        });
+    }
+
     function applyFilters() {
         const searchInput = document.getElementById('userSearch');
         const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-        let filtered = allUsers;
+        let filtered = [...allUsers];
 
         if (currentRoleFilter === 'Field') {
-            filtered = filtered.filter(u => u.role === 'EL Manager' || u.role === 'Mechanical Manager' || u.role === 'Mechanic Manager');
+            filtered = filtered.filter(u => {
+                const r = String(u.role || '').toLowerCase();
+                return r.includes('el') || r.includes('mechanical') || r.includes('mechanic');
+            });
         } else if (currentRoleFilter !== 'all') {
-            filtered = filtered.filter(u => u.role === currentRoleFilter);
+            filtered = filtered.filter(u => String(u.role || '').toLowerCase().includes(currentRoleFilter.toLowerCase()));
         }
 
         if (term) {
             filtered = filtered.filter(u => 
-                u.username.toLowerCase().includes(term) || 
-                u.email.toLowerCase().includes(term)
+                String(u.username || '').toLowerCase().includes(term) || 
+                String(u.email || '').toLowerCase().includes(term) ||
+                String(u.phone || '').toLowerCase().includes(term)
             );
         }
 
@@ -152,11 +177,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         renderSkeleton(usersTableBody, 'table', 4);
         try {
-            allUsers = await userService.getUsers();
+            const rawUsers = await userService.getUsers();
+            allUsers = normalizeUsers(rawUsers);
             applyFilters();
             updateStats();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch user accounts.', 'error');
+            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load users from server.</td></tr>';
         } finally {
             // Hide Global Loader
             const loader = document.getElementById('global-page-loader');
@@ -174,16 +201,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const statField = document.getElementById('statField');
 
         if (statTotal) statTotal.innerText = allUsers.length;
-        if (statSup) statSup.innerText = allUsers.filter(u => u.role === 'Supervisor').length;
-        if (statIT) statIT.innerText = allUsers.filter(u => u.role === 'IT Manager').length;
-        if (statField) statField.innerText = allUsers.filter(u => u.role === 'EL Manager' || u.role === 'Mechanical Manager' || u.role === 'Mechanic Manager').length;
+        if (statSup) statSup.innerText = allUsers.filter(u => String(u.role || '').toLowerCase().includes('supervisor')).length;
+        if (statIT) statIT.innerText = allUsers.filter(u => String(u.role || '').toLowerCase().includes('it')).length;
+        if (statField) statField.innerText = allUsers.filter(u => {
+            const r = String(u.role || '').toLowerCase();
+            return r.includes('el') || r.includes('mechanical') || r.includes('mechanic');
+        }).length;
     }
 
     function getRoleBadgeClass(role) {
-        const r = role.toLowerCase();
-        if (r === 'supervisor') return 'role-supervisor';
-        if (r === 'it manager') return 'role-it';
-        if (r === 'el manager') return 'role-el';
+        const r = String(role || '').toLowerCase();
+        if (r.includes('supervisor')) return 'role-supervisor';
+        if (r.includes('it')) return 'role-it';
+        if (r.includes('el')) return 'role-el';
         return 'role-me';
     }
 
@@ -194,18 +224,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function renderUsers(usersToRender) {
         const usersTableBody = document.getElementById('usersTableBody');
-        const alertsContainer = document.getElementById('usersPageAlerts');
         if (!usersTableBody) return;
 
         usersTableBody.innerHTML = '';
 
-        if (usersToRender.length === 0) {
-            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">No users found.</td></tr>';
+        if (!Array.isArray(usersToRender) || usersToRender.length === 0) {
+            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">No user accounts match your search or filter.</td></tr>';
             return;
         }
 
         usersToRender.forEach(user => {
-            const initial = user.username.charAt(0).toUpperCase();
+            const initial = (user.username || 'U').charAt(0).toUpperCase();
             const protectedBadge = user.isProtected ? '<span class="badge-protected">Protected</span>' : '';
             const deleteDisabled = user.isProtected ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : '';
 
@@ -504,7 +533,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         else resolvedRole = 'Mechanical Manager';
                     }
 
-                    await userService.createUser(username, email, phone, resolvedRole);
+                    let deptId = 1;
+                    if (department === 'Information Tech') deptId = 1;
+                    else if (department === 'Electrical Eng') deptId = 2;
+                    else if (department === 'Mechanical Eng') deptId = 3;
+
+                    await userService.createUser(username, email, phone, resolvedRole, deptId);
                     logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Add User', username);
 
                     initUsersList();

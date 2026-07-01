@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/repository.css">
+    <script>
+        // Instant language direction apply (prevent flash)
+        (function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();
+    </script>
 </head>
 <body>
 
@@ -17,16 +21,20 @@
                 <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="48" height="48" onerror="this.src='logos/aitu_logo.png'" style="border-radius:50%; border:1px solid #e2e8f0;">
                 <div style="display:flex; flex-direction:column; line-height:1.2;">
                     <span class="repo-brand-name" style="font-size:1.3rem; font-weight:800; color:var(--primary-dark);">AITU</span>
-                    <span class="repo-brand-sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
+                    <span class="repo-brand-sub" data-i18n="nav_brand_sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
                 </div>
             </div>
             <nav class="repo-nav-links" id="repoNavLinks">
-                <a href="index.html" class="active">Home</a>
-                <a href="repository.html">Programs</a>
-                <a href="courses.html">Courses</a>
+                <a href="index.html" class="active" data-i18n="nav_home">Home</a>
+                <a href="repository.html" data-i18n="nav_programs">Programs</a>
+                <a href="courses.html" data-i18n="nav_courses">Courses</a>
             </nav>
             <div class="repo-nav-right">
-                <button class="repo-login-btn" id="loginBtn" onclick="window.location.href='login.html'">Login</button>
+                <button class="lang-toggle-btn" id="langToggleBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-btn-text" data-i18n="lang_btn">عربي</span>
+                </button>
+                <button class="repo-login-btn" id="loginBtn" data-i18n="nav_login" onclick="window.location.href='login.html'">Login</button>
             </div>
         </div>
     </header>
@@ -35,11 +43,11 @@
         <section class="hero">
             <div class="container">
                 <div class="hero-content">
-                    <h1>Academic Infrastructure Repository</h1>
-                    <p>The institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.</p>
+                    <h1 data-i18n="hero_title">Academic Infrastructure Repository</h1>
+                    <p data-i18n="hero_desc">The institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.</p>
                     <div class="hero-buttons">
-                        <button class="btn-primary" id="browseRepoBtn" onclick="window.location.href='repository.html'">Browse programgs</button>
-                        <button class="btn-outline" onclick="window.location.href='https://academy.aitu.edu.eg/'">Join AITU Academy</button>
+                        <button class="btn-primary" id="browseRepoBtn" data-i18n="hero_btn_browse" onclick="window.location.href='repository.html'">Browse Programs</button>
+                        <button class="btn-outline" data-i18n="hero_btn_academy" onclick="window.location.href='https://academy.aitu.edu.eg/'">Join AITU Academy</button>
                     </div>
                 </div>
                 <section class="hero">
@@ -54,7 +62,7 @@
 
       <section class="departments-section">
             <div class="container">
-                <h2>Supported Departments</h2>
+                <h2 data-i18n="dept_section_title">Supported Departments</h2>
                 <div class="cards-grid">
                     
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=IT'" style="cursor: pointer;">
@@ -67,9 +75,9 @@
                                 <polyline points="14 10 16 12 14 14"></polyline>
                             </svg>
                         </div>
-                        <h3>Information Tech (IT)</h3>
-                        <p>Code repositories, system documentation, and software/network development resources.</p>
-                        <a href="repository.html?dept=IT" class="view-files-link">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_it_title">Information Tech (IT)</h3>
+                        <p data-i18n="dept_it_desc">Code repositories, system documentation, and software/network development resources.</p>
+                        <a href="repository.html?dept=IT" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
                     </div>
 
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=EL'" style="cursor: pointer;">
@@ -78,9 +86,9 @@
                                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                             </svg>
                         </div>
-                        <h3>Electrical Eng (EL)</h3>
-                        <p>Circuit diagrams, lab reports, and research on embedded systems and power.</p>
-                        <a href="repository.html?dept=EL" class="view-files-link">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_el_title">Electrical Eng (EL)</h3>
+                        <p data-i18n="dept_el_desc">Circuit diagrams, lab reports, and research on embedded systems and power.</p>
+                        <a href="repository.html?dept=EL" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
                     </div>
 
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=ME'" style="cursor: pointer;">
@@ -90,9 +98,9 @@
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                             </svg>
                         </div>
-                        <h3>Mechanical Eng (ME)</h3>
-                        <p>3D CAD models, dynamic analysis, and materials and manufacturing specs.</p>
-                        <a href="repository.html?dept=ME" class="view-files-link">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_me_title">Mechanical Eng (ME)</h3>
+                        <p data-i18n="dept_me_desc">3D CAD models, dynamic analysis, and materials and manufacturing specs.</p>
+                        <a href="repository.html?dept=ME" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
                     </div>
 
                 </div>
@@ -102,17 +110,21 @@
         <section class="trust-banner">
             <div class="container">
                 <div class="trust-content">
-                    <h2>Trusted Platform for Academic<br>Research</h2>
-                    <p>AITU Drive ensures fast and secure access to thousands of academic documents, fostering collaboration across all technological departments.</p>
+                    <h2 data-i18n="trust_title">Trusted Platform for Academic<br>Research</h2>
+                    <p data-i18n="trust_desc">AITU Drive ensures fast and secure access to thousands of academic documents, fostering collaboration across all technological departments.</p>
                 </div>
                 <div class="trust-stats">
-                    <h3>100%</h3>
-                    <p>Secure Encryption</p>
+                    <h3 data-i18n="trust_stat">100%</h3>
+                    <p data-i18n="trust_stat_label">Secure Encryption</p>
                 </div>
             </div>
         </section>
     </main>
 
     <script type="module" src="js/pages/main.js"></script>
+    <script type="module">
+        import { initLanguage } from './js/shared/jssharedi18n.js';
+        document.addEventListener('DOMContentLoaded', initLanguage);
+    </script>
 </body>
 </html>

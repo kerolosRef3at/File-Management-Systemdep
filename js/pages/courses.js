@@ -1,11 +1,52 @@
 // js/pages/courses.js
 import { renderLayout } from '../shared/layout.js';
-import { courseService } from '../shared/services.js';
+import { courseService, folderService } from '../shared/services.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
 import { mockDepartments } from '../shared/mockData.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const apiFolders = await folderService.getFolders();
+        if (Array.isArray(apiFolders)) {
+            // Pass 1: top-level departments/categories
+            apiFolders.forEach(f => {
+                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || !f.parentFolderId || f.isDepartment || f.isCategory;
+                if (isTopLevel && (f.code || f.shortName || f.id)) {
+                    const code = String(f.code || f.shortName || f.id || f.name).toUpperCase();
+                    if (!mockDepartments.some(d => d.id === code)) {
+                        mockDepartments.push({
+                            id: code,
+                            name: f.name || code,
+                            shortName: code,
+                            label: (f.name || code).toUpperCase(),
+                            icon: f.icon || 'folder',
+                            totalFiles: 0,
+                            categories: 0,
+                            programs: []
+                        });
+                    }
+                }
+            });
+
+            // Pass 2: programs / subfolders
+            apiFolders.forEach(f => {
+                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || (!f.parentFolderId && !f.deptId);
+                if (!isTopLevel) {
+                    const parentId = String(f.deptId || f.department || f.dept || f.parentFolderId || 'IT').toUpperCase();
+                    const targetDept = mockDepartments.find(d => d.id === parentId || d.shortName === parentId) || mockDepartments[0];
+                    if (targetDept) {
+                        const progId = String(f.code || f.id || f.folderId || f.name);
+                        const progName = f.name || f.folderName || f.title || progId;
+                        if (!targetDept.programs.some(p => String(p.id).toLowerCase() === progId.toLowerCase())) {
+                            targetDept.programs.push({ id: progId, name: progName });
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {}
+
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
     const canManageCourses = user && ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'].includes(user.role);
@@ -100,7 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
         try {
-            allCourses = await courseService.getCourses();
+            const rawCourses = await courseService.getCourses();
+            allCourses = normalizeCourses(rawCourses);
             renderPublicCourses();
         } catch (e) {
             if (grid) grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">Failed to load courses.</p>';
@@ -387,7 +429,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         try {
-            allCourses = await courseService.getCourses();
+            const rawCourses = await courseService.getCourses();
+            allCourses = normalizeCourses(rawCourses);
             renderAdminCourses();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch course repository.', 'error');
@@ -494,5 +537,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             default:
                 return '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>';
         }
+    }
+
+    function normalizeCourses(list) {
+        if (!Array.isArray(list)) return [];
+        return list.map(c => ({
+            ...c,
+            id: c.id || c.courseId || Math.random().toString(36).substr(2, 9),
+            title: c.title || c.name || c.courseName || 'Untitled Course',
+            description: c.description || c.desc || '',
+            dept: String(c.dept || c.deptId || c.department || 'IT').toUpperCase(),
+            category: c.category || c.program || c.subCategory || '',
+            lessons: Number(c.lessons || c.lessonCount || c.totalLessons || 0),
+            size: c.size || c.fileSize || '100 MB',
+            img: c.img || c.image || c.thumbnail || 'assets/images/default-course.png'
+        }));
     }
 });

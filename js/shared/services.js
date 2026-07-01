@@ -229,8 +229,7 @@ export const fileService = {
                 downloads: f.downloadCount || 0,
                 uploadDate: f.uploadedAt
                     ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
-                uploadedBy: f.uploaderName || 'admin',
-                program: detectProgram(f.name, deptId)
+                program: f.program || f.category || f.folderName || (f.folderId ? String(f.folderId) : null) || f.programId || null
             };
         });
     } catch (err) {
@@ -350,12 +349,12 @@ export const folderService = {
         }
     },
 
-    async createFolder(name, parentFolderId = 0) {
+    async createFolder(name, parentFolderId = 0, extra = {}) {
         await delay();
         try {
             return await fetchAPI('/api/Folders', {
                 method: 'POST',
-                body: JSON.stringify({ name, parentFolderId })
+                body: JSON.stringify({ name, parentFolderId, ...extra })
             });
         } catch (err) {
             console.warn("API failed to create folder.");
@@ -452,7 +451,11 @@ export const courseService = {
 export const userService = {
     async getUsers() {
         try {
-            return await fetchAPI('/api/Admin/all');
+            const res = await fetchAPI('/api/Admin/all');
+            if (Array.isArray(res)) return res;
+            if (res && Array.isArray(res.users)) return res.users;
+            if (res && Array.isArray(res.data)) return res.data;
+            return [];
         } catch (err) {
             console.warn("API failed to get users:", err);
             return [];
@@ -503,7 +506,11 @@ export const logService = {
             if (filters.from) params.push(`from=${filters.from}`);
             if (filters.to) params.push(`to=${filters.to}`);
             if (params.length > 0) url += '?' + params.join('&');
-            return await fetchAPI(url);
+            const res = await fetchAPI(url);
+            if (Array.isArray(res)) return res;
+            if (res && Array.isArray(res.logs)) return res.logs;
+            if (res && Array.isArray(res.data)) return res.data;
+            return [];
         } catch (err) {
             console.warn("API failed to get logs:", err);
             return [];
@@ -564,76 +571,161 @@ export const profileService = {
     }
 };
 
+async function getLiveAggregates() {
+    let files = [];
+    let courses = [];
+    let folders = [];
+    let logs = [];
+    try { files = await fileService.getFiles(); } catch(e) {}
+    try { courses = await courseService.getCourses(); } catch(e) {}
+    try { folders = await folderService.getFolders(); } catch(e) {}
+    try { logs = await logService.getLogs(); } catch(e) {}
+
+    if (!Array.isArray(files)) files = [];
+    if (!Array.isArray(courses)) courses = [];
+    if (!Array.isArray(folders)) folders = [];
+    if (!Array.isArray(logs)) logs = [];
+
+    const resourceMix = { it: 0, el: 0, me: 0 };
+    const programDownloads = { it: 0, el: 0, me: 0 };
+    let totalMB = 0;
+
+    files.forEach(f => {
+        const dept = String(f.deptId || f.department || f.dept || 'it').toLowerCase();
+        const dl = Number(f.downloads) || 0;
+        if (dept.includes('el')) { resourceMix.el++; programDownloads.el += dl; }
+        else if (dept.includes('me')) { resourceMix.me++; programDownloads.me += dl; }
+        else { resourceMix.it++; programDownloads.it += dl; }
+
+        if (f.size) {
+            const str = String(f.size).trim().toLowerCase();
+            const val = parseFloat(str) || 0;
+            if (str.includes('gb')) totalMB += val * 1024;
+            else if (str.includes('mb')) totalMB += val;
+            else if (str.includes('kb')) totalMB += val / 1024;
+        }
+    });
+
+    const usedGB = (totalMB / 1024).toFixed(2);
+    const usedPercentage = Math.min(100, Math.round((usedGB / 500) * 100));
+
+    const sortedFiles = [...files].sort((a, b) => (Number(b.downloads) || 0) - (Number(a.downloads) || 0));
+    const highImpactDocuments = sortedFiles.slice(0, 5).map(f => ({
+        name: f.name || f.fileName || 'Untitled File',
+        source: String(f.deptId || 'General').toUpperCase(),
+        downloads: Number(f.downloads) || 0,
+        weight: f.size || '1.0 MB',
+        type: String(f.type || f.fileType || 'PDF').toUpperCase()
+    }));
+
+    const recentEvents = logs.slice(0, 10).map(l => ({
+        user: l.admin || l.user || l.username || 'Admin',
+        action: l.action || 'performed action',
+        target: l.target || l.details || '',
+        time: l.datetime || l.timestamp || 'Recently',
+        type: String(l.action || '').toLowerCase().includes('delete') ? 'critical' : 'info'
+    }));
+
+    return {
+        totalFiles: files.length,
+        totalCourses: courses.length,
+        totalPrograms: folders.length,
+        qnapStorage: {
+            usedPercentage: usedPercentage || 0,
+            usedValue: `${usedGB || 0} GB`,
+            totalValue: "500 GB"
+        },
+        resourceMix,
+        programDownloads,
+        highImpactDocuments,
+        recentEvents
+    };
+}
+
 // ==========================================
 // 7. Dashboard Service
 // ==========================================
 export const dashboardService = {
     async getStats(days = 30) {
+        let apiData = null;
         try {
-            return await fetchAPI('/api/Dashboard/metrics');
-        } catch (err) {
-            console.warn("API failed to get stats:", err);
-            return {
-                totalFiles: 0,
-                qnapStorage: { usedPercentage: 0, usedValue: "0 GB", totalValue: "0 GB" },
-                pendingTasks: 0,
-                netActivity: "0",
-                trends: { totalFiles: "0", storageCapacity: "0%", pendingTasks: "0", netActivity: "0" }
-            };
-        }
+            apiData = await fetchAPI('/api/Dashboard/metrics');
+        } catch (err) {}
+
+        const live = await getLiveAggregates();
+        return {
+            totalFiles: (apiData && typeof apiData.totalFiles === 'number') ? apiData.totalFiles : live.totalFiles,
+            totalCourses: (apiData && typeof apiData.totalCourses === 'number') ? apiData.totalCourses : live.totalCourses,
+            totalPrograms: (apiData && typeof apiData.totalPrograms === 'number') ? apiData.totalPrograms : live.totalPrograms,
+            qnapStorage: apiData?.qnapStorage || live.qnapStorage,
+            pendingTasks: apiData?.pendingTasks || 0,
+            netActivity: apiData?.netActivity || "0",
+            trends: apiData?.trends || {
+                totalFiles: "Live files count",
+                totalCourses: "Live courses count",
+                totalPrograms: "Live programs count",
+                storageCapacity: `${live.qnapStorage.usedPercentage}% used`,
+                pendingTasks: "No pending tasks",
+                netActivity: "Active"
+            }
+        };
     },
 
     async getDownloads(year) {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            return data.downloadVelocity || [];
-        } catch (err) {
-            console.warn("API failed to get downloads:", err);
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const isCurrentYear = year === new Date().getFullYear();
-            const monthLimit = isCurrentYear ? (new Date().getMonth() + 1) : 12;
-            return months.slice(0, monthLimit).map(m => ({ month: m, count: 0 }));
-        }
+            if (Array.isArray(data.downloadVelocity) && data.downloadVelocity.length > 0) {
+                return data.downloadVelocity;
+            }
+        } catch (err) {}
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const isCurrentYear = year === new Date().getFullYear();
+        const monthLimit = isCurrentYear ? (new Date().getMonth() + 1) : 12;
+        return months.slice(0, monthLimit).map(m => ({ month: m, count: 0 }));
     },
 
     async getResourceMix() {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            return data.resourceMix || { it: 0, el: 0, me: 0 };
-        } catch (err) {
-            console.warn("API failed to get resource mix:", err);
-            return { it: 0, el: 0, me: 0 };
-        }
+            if (data && data.resourceMix && (data.resourceMix.it > 0 || data.resourceMix.el > 0 || data.resourceMix.me > 0)) {
+                return data.resourceMix;
+            }
+        } catch (err) {}
+        const live = await getLiveAggregates();
+        return live.resourceMix;
     },
 
     async getProgramDownloads() {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            return data.programDownloads || { it: 0, el: 0, me: 0 };
-        } catch (err) {
-            console.warn("API failed to get program downloads:", err);
-            return { it: 0, el: 0, me: 0 };
-        }
+            if (data && data.programDownloads && (data.programDownloads.it > 0 || data.programDownloads.el > 0 || data.programDownloads.me > 0)) {
+                return data.programDownloads;
+            }
+        } catch (err) {}
+        const live = await getLiveAggregates();
+        return live.programDownloads;
     },
 
     async getDocuments(limit = 5) {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            return data.highImpactDocuments?.slice(0, limit) || [];
-        } catch (err) {
-            console.warn("API failed to get documents:", err);
-            return [];
-        }
+            if (Array.isArray(data.highImpactDocuments) && data.highImpactDocuments.length > 0) {
+                return data.highImpactDocuments.slice(0, limit);
+            }
+        } catch (err) {}
+        const live = await getLiveAggregates();
+        return live.highImpactDocuments.slice(0, limit);
     },
 
     async getEvents(limit = 10) {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            return data.recentEvents?.slice(0, limit) || [];
-        } catch (err) {
-            console.warn("API failed to get events:", err);
-            return [];
-        }
+            if (Array.isArray(data.recentEvents) && data.recentEvents.length > 0) {
+                return data.recentEvents.slice(0, limit);
+            }
+        } catch (err) {}
+        const live = await getLiveAggregates();
+        return live.recentEvents.slice(0, limit);
     },
 
     async getNotificationsCount() {

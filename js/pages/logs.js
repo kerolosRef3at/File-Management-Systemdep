@@ -78,15 +78,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     const alertsContainer = document.getElementById('logsPageAlerts');
     const logCountEl = document.getElementById('logCount');
 
+    function normalizeLogs(list) {
+        if (!Array.isArray(list)) return [];
+        return list.map((log, index) => {
+            const admin = String(log.admin || log.username || log.user || 'System Admin');
+            const role = String(log.role || log.userRole || 'Supervisor');
+            const action = String(log.action || log.actionType || log.event || 'System Action');
+            const target = String(log.target || log.details || log.description || '-');
+            const datetime = String(log.datetime || log.timestamp || log.created_at || log.date || new Date().toISOString().replace('T', ' ').substring(0, 19));
+            return {
+                id: log.id || index + 1,
+                admin,
+                role,
+                action,
+                target,
+                datetime
+            };
+        });
+    }
+
     // Load logs from logService
     async function loadLogs() {
         renderSkeleton(logsTableBody, 'table', 5);
         try {
-            // TODO: GET /api/Admin/logs
-            allLogs = await logService.getLogs();
+            const rawLogs = await logService.getLogs();
+            allLogs = normalizeLogs(rawLogs);
             applyFilters();
         } catch (error) {
             showAlert(alertsContainer, error.message || 'Failed to fetch system logs.', 'error');
+            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load logs from server.</td></tr>';
         } finally {
             // Hide Global Loader
             const loader = document.getElementById('global-page-loader');
@@ -99,21 +119,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Role styling utility
     function getRoleBadgeClass(role) {
-        const r = role.toLowerCase();
-        if (r === 'supervisor') return 'role-supervisor';
-        if (r === 'it manager') return 'role-it';
-        if (r === 'el manager') return 'role-el';
+        const r = String(role || '').toLowerCase();
+        if (r.includes('supervisor')) return 'role-supervisor';
+        if (r.includes('it')) return 'role-it';
+        if (r.includes('el')) return 'role-el';
         return 'role-me';
-
     }
-
 
     // Color code log action category dots
     function getActionDotColor(action) {
         if (!action) return 'dot-blue';
-        const lowerAction = action.toLowerCase().replace(/\s+/g, '');
-        if (lowerAction.includes('login')) return 'dot-blue';
-        if (lowerAction.includes('updateprofile')) return 'dot-blue';
+        const lowerAction = String(action).toLowerCase().replace(/\s+/g, '');
+        if (lowerAction.includes('login') || lowerAction.includes('logout') || lowerAction.includes('updateprofile')) return 'dot-blue';
         if (lowerAction.includes('addfile') || lowerAction.includes('createcourse') || lowerAction.includes('createfolder')) return 'dot-green';
         if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'dot-red';
         if (lowerAction.includes('password')) return 'dot-orange';
@@ -125,19 +142,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Draw logs table lines
     function renderLogs(logsToRender) {
         logsTableBody.innerHTML = '';
-        logCountEl.innerText = logsToRender.length;
+        if (logCountEl) logCountEl.innerText = logsToRender.length;
 
-        if (logsToRender.length === 0) {
-            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">No logs match filter guidelines.</td></tr>';
+        if (!Array.isArray(logsToRender) || logsToRender.length === 0) {
+            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color:var(--text-gray);">No system logs match your criteria.</td></tr>';
             return;
         }
 
         logsToRender.forEach(log => {
-            const initial = log.admin.charAt(0).toUpperCase();
+            const initial = (log.admin || 'A').charAt(0).toUpperCase();
             const tr = document.createElement('tr');
 
             // Format datetime: split space and add sub label span
-            const formattedTime = log.datetime.replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal; font-size:0.8rem;">') + '</span>';
+            const formattedTime = String(log.datetime || '').replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal; font-size:0.8rem;">') + '</span>';
 
             tr.innerHTML = `
                 <td style="padding: 15px 20px;">
@@ -170,20 +187,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         const term = searchInput ? searchInput.value.toLowerCase().trim() : '';
         const selectedDate = dateFilter ? dateFilter.value : ''; // format: YYYY-MM-DD
 
-        let filtered = allLogs;
+        let filtered = [...allLogs];
 
         if (currentActionFilter !== 'all') {
-            filtered = filtered.filter(log => log.action === currentActionFilter);
+            const filterClean = currentActionFilter.toLowerCase().replace(/[^a-z0-9]/g, '');
+            filtered = filtered.filter(log => {
+                const actionClean = String(log.action || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                return actionClean === filterClean || actionClean.includes(filterClean) || filterClean.includes(actionClean);
+            });
         }
 
         if (selectedDate) {
-            filtered = filtered.filter(log => log.datetime.startsWith(selectedDate));
+            filtered = filtered.filter(log => String(log.datetime || '').startsWith(selectedDate));
         }
 
         if (term) {
             filtered = filtered.filter(log =>
-                log.admin.toLowerCase().includes(term) ||
-                log.target.toLowerCase().includes(term)
+                String(log.admin || '').toLowerCase().includes(term) ||
+                String(log.target || '').toLowerCase().includes(term) ||
+                String(log.action || '').toLowerCase().includes(term) ||
+                String(log.role || '').toLowerCase().includes(term)
             );
         }
 
@@ -209,7 +232,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const csvBtn = document.getElementById('exportCSVBtn');
     if (csvBtn) {
         csvBtn.addEventListener('click', () => {
-            alert('Exporting system log trails spreadsheet registry...');
+            if (!allLogs || allLogs.length === 0) {
+                showAlert(alertsContainer, 'No log records available to export.', 'warning');
+                return;
+            }
+            const headers = ['Admin', 'Role', 'Action', 'Target', 'Date Time'];
+            const rows = allLogs.map(l => [
+                `"${String(l.admin || '').replace(/"/g, '""')}"`,
+                `"${String(l.role || '').replace(/"/g, '""')}"`,
+                `"${String(l.action || '').replace(/"/g, '""')}"`,
+                `"${String(l.target || '').replace(/"/g, '""')}"`,
+                `"${String(l.datetime || '').replace(/"/g, '""')}"`
+            ]);
+            const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', `system_logs_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showAlert(alertsContainer, 'System logs exported to CSV successfully.', 'success');
         });
     }
 

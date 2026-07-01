@@ -112,10 +112,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Stat Cards -->
             <div class="dash-stats-grid">
-                ${renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles), stats.trends.totalFiles, 'files', 'blue')}
+                ${renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles || 0), stats.trends?.totalFiles, 'files', 'blue')}
                 ${renderStorageCard(stats)}
-                ${renderStatCard('TOTAL COURSES', stats.totalCourses, stats.trends.totalCourses, 'courses', 'red')}
-                ${renderStatCard('TOTAL PROGRAMS', stats.totalPrograms, stats.trends.totalPrograms, 'programs', 'green')}
+                ${renderStatCard('TOTAL COURSES', stats.totalCourses || 0, stats.trends?.totalCourses, 'courses', 'red')}
+                ${renderStatCard('TOTAL PROGRAMS', stats.totalPrograms || 0, stats.trends?.totalPrograms, 'programs', 'green')}
             </div>
 
             <!-- Charts Row -->
@@ -436,10 +436,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const grid = document.querySelector('.dash-stats-grid');
                     if (grid) {
                         grid.innerHTML =
-                            renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles), stats.trends.totalFiles, 'files', 'blue') +
+                            renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles || 0), stats.trends?.totalFiles, 'files', 'blue') +
                             renderStorageCard(stats) +
-                            renderStatCard('TOTAL COURSES', stats.totalCourses, stats.trends.totalCourses, 'courses', 'red') +
-                            renderStatCard('TOTAL PROGRAMS', stats.totalPrograms, stats.trends.totalPrograms, 'programs', 'green');
+                            renderStatCard('TOTAL COURSES', stats.totalCourses || 0, stats.trends?.totalCourses, 'courses', 'red') +
+                            renderStatCard('TOTAL PROGRAMS', stats.totalPrograms || 0, stats.trends?.totalPrograms, 'programs', 'green');
                     }
                 } catch (err) {
                     console.error('Failed to refresh stats:', err);

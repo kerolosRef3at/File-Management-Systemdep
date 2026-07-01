@@ -1315,22 +1315,25 @@
     }
 
     .dept-sidebar {
-        position: fixed;
-        top: 64px;
-        left: -260px;
-        width: 240px;
-        height: calc(100vh - 64px);
+        position: fixed !important;
+        top: 0 !important;
+        left: -310px;
+        width: 290px !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
         background: var(--white);
-        z-index: 90;
-        padding: 20px;
-        transition: left 0.3s ease;
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
-        border-right: 1px solid var(--border-color);
-        overflow-y: auto;
+        z-index: 1000 !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 10px 0 35px rgba(0, 0, 0, 0.25);
+        border-right: none;
+        overflow: hidden !important;
     }
 
     .dept-sidebar.open {
-        left: 0;
+        left: 0 !important;
     }
 
     .repo-mobile-filter-btn {
@@ -1532,5 +1535,103 @@
 
     .program-cards-grid {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* =========================================
+   RTL Support for Repository
+========================================= */
+html[dir="rtl"] .repo-navbar-inner {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .repo-nav-links {
+    direction: rtl;
+}
+
+html[dir="rtl"] .repo-nav-right {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .repo-body {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .dept-sidebar {
+    border-right: none;
+    border-left: 1px solid var(--border-color);
+}
+
+html[dir="rtl"] .dept-group-header {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+html[dir="rtl"] .dept-group-header .dept-chevron {
+    transform: rotate(180deg);
+}
+
+html[dir="rtl"] .dept-group-header.expanded .dept-chevron {
+    transform: rotate(90deg);
+}
+
+html[dir="rtl"] .dept-programs {
+    padding-left: 0;
+    padding-right: 20px;
+}
+
+html[dir="rtl"] .dept-program-item {
+    text-align: right;
+}
+
+html[dir="rtl"] .repo-main-content {
+    text-align: right;
+}
+
+html[dir="rtl"] .repo-title-section {
+    text-align: right;
+}
+
+html[dir="rtl"] .repo-controls-bar {
+    flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .repo-breadcrumb {
+    direction: rtl;
+}
+
+html[dir="rtl"] .dept-summary-card {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+html[dir="rtl"] .sidebar-top-heading {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+html[dir="rtl"] .sidebar-heading-text {
+    text-align: right;
+}
+
+html[dir="rtl"] .repo-footer-inner {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+html[dir="rtl"] .repo-footer-brand {
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+@media (max-width: 768px) {
+    html[dir="rtl"] .dept-sidebar {
+        left: auto !important;
+        right: -310px;
+        transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    html[dir="rtl"] .dept-sidebar.open {
+        right: 0 !important;
+        left: auto !important;
     }
 }

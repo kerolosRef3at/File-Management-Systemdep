@@ -1,15 +1,56 @@
 // js/pages/create-course.js
 import { protectPage, getCurrentUser } from '../shared/auth.js';
-import { courseService, logService } from '../shared/services.js';
+import { courseService, logService, folderService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
 import { mockDepartments } from '../shared/mockData.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Route guard
     if (!protectPage(['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'])) {
         return;
     }
+
+    try {
+        const apiFolders = await folderService.getFolders();
+        if (Array.isArray(apiFolders)) {
+            // Pass 1: top-level departments/categories
+            apiFolders.forEach(f => {
+                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || !f.parentFolderId || f.isDepartment || f.isCategory;
+                if (isTopLevel && (f.code || f.shortName || f.id)) {
+                    const code = String(f.code || f.shortName || f.id || f.name).toUpperCase();
+                    if (!mockDepartments.some(d => d.id === code)) {
+                        mockDepartments.push({
+                            id: code,
+                            name: f.name || code,
+                            shortName: code,
+                            label: (f.name || code).toUpperCase(),
+                            icon: f.icon || 'folder',
+                            totalFiles: 0,
+                            categories: 0,
+                            programs: []
+                        });
+                    }
+                }
+            });
+
+            // Pass 2: programs / subfolders
+            apiFolders.forEach(f => {
+                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || (!f.parentFolderId && !f.deptId);
+                if (!isTopLevel) {
+                    const parentId = String(f.deptId || f.department || f.dept || f.parentFolderId || 'IT').toUpperCase();
+                    const targetDept = mockDepartments.find(d => d.id === parentId || d.shortName === parentId) || mockDepartments[0];
+                    if (targetDept) {
+                        const progId = String(f.code || f.id || f.folderId || f.name);
+                        const progName = f.name || f.folderName || f.title || progId;
+                        if (!targetDept.programs.some(p => String(p.id).toLowerCase() === progId.toLowerCase())) {
+                            targetDept.programs.push({ id: progId, name: progName });
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {}
 
     const user = getCurrentUser();
     renderLayout('courses');

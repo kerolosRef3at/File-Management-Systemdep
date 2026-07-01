@@ -215,8 +215,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>';
             case 'settings':
                 return '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>';
+            case 'book-open':
+                return '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>';
+            case 'briefcase':
+                return '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>';
+            case 'activity':
+                return '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>';
+            case 'compass':
+                return '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>';
+            case 'cpu':
+                return '<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>';
+            case 'globe':
+                return '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>';
+            case 'pen-tool':
+                return '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>';
             default:
-                return '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>';
+                return '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>';
         }
     }
 
@@ -228,12 +242,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         mockDepartments.forEach(dept => {
             const isActive = currentDept === dept.id;
             const deptIconSvg = getDeptIconSvg(dept.icon);
+            const deptFilesCount = allFiles.filter(f => {
+                const fDeptId = String(f.deptId || f.department || '').toUpperCase();
+                const fDeptStr = String(f.dept || '').toUpperCase();
+                return fDeptId === dept.id.toUpperCase() || fDeptStr.startsWith(dept.shortName.toUpperCase());
+            }).length;
             html += `
                 <div class="dept-summary-card ${isActive ? 'active' : ''}" data-dept="${dept.id}">
                     <div>
                         <div class="dept-card-label">${dept.label}</div>
                         <div class="dept-card-short">${dept.shortName}</div>
-                        <div class="dept-card-stats">${dept.totalFiles.toLocaleString()} Files &bull; ${dept.categories} Categories</div>
+                        <div class="dept-card-stats">${deptFilesCount.toLocaleString()} Files &bull; ${dept.programs ? dept.programs.length : dept.categories} Categories</div>
                     </div>
                     <div class="dept-card-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${deptIconSvg}</svg>
@@ -459,7 +478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         dept.programs.forEach(prog => {
             const fileCount = allFiles.filter(f => f.program === prog.id).length;
-            const totalFiles = fileCount > 0 ? fileCount : dept.totalFiles;
+            const totalFiles = fileCount;
             const iconSvg = getProgramIconSvg(prog.id);
 
             html += `
@@ -659,32 +678,36 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Department filter
         if (currentDept) {
-            filtered = filtered.filter(f => f.deptId === currentDept);
+            filtered = filtered.filter(f => {
+                const fDeptId = String(f.deptId || f.department || '').toUpperCase();
+                const fDeptStr = String(f.dept || '').toUpperCase();
+                return fDeptId === currentDept.toUpperCase() || fDeptStr.startsWith(currentDept.toUpperCase());
+            });
         }
 
         // Program filter
         if (currentProgram) {
-            filtered = filtered.filter(f => f.program === currentProgram);
+            filtered = filtered.filter(f => String(f.program || f.folderId || f.category || '').toLowerCase() === String(currentProgram).toLowerCase());
         }
 
         // Type filter
         if (currentFilterType !== 'all' && currentFilterType !== 'date') {
-            filtered = filtered.filter(f => f.type === currentFilterType);
+            filtered = filtered.filter(f => String(f.type || '').toUpperCase() === currentFilterType.toUpperCase());
         }
 
         // Search
         if (searchTerm) {
             filtered = filtered.filter(f =>
-                f.name.toLowerCase().includes(searchTerm) ||
-                f.type.toLowerCase().includes(searchTerm) ||
-                f.version.toLowerCase().includes(searchTerm) ||
-                f.dept.toLowerCase().includes(searchTerm)
+                String(f.name || f.fileName || '').toLowerCase().includes(searchTerm) ||
+                String(f.type || f.fileType || '').toLowerCase().includes(searchTerm) ||
+                String(f.version || '').toLowerCase().includes(searchTerm) ||
+                String(f.dept || f.deptId || '').toLowerCase().includes(searchTerm)
             );
         }
 
         // Date sort
         if (currentFilterType === 'date') {
-            filtered.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
+            filtered.sort((a, b) => new Date(b.uploadDate || 0) - new Date(a.uploadDate || 0));
         }
 
         return filtered;
@@ -1184,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('closeAddCategoryModalBtn').addEventListener('click', closeModal);
             document.getElementById('cancelAddCategoryBtn').addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddCategory').addEventListener('click', () => {
+            document.getElementById('confirmAddCategory').addEventListener('click', async () => {
                 const name = document.getElementById('newCatName').value.trim();
                 const id = document.getElementById('newCatId').value.trim().toUpperCase();
                 const icon = document.getElementById('newCatIcon').value;
@@ -1197,6 +1220,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 
+                try {
+                    await folderService.createFolder(name, 0, { code: id, shortName: id, icon: icon, isDepartment: true });
+                } catch(e) {}
                 mockDepartments.push({
                     id: id,
                     name: name,
@@ -1222,7 +1248,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         document.getElementById('newCatName').value = '';
         document.getElementById('newCatId').value = '';
-        document.getElementById('newCatIcon').selectedIndex = 0;
+        document.getElementById('newCatIcon').value = 'monitor';
+        document.querySelectorAll('.icon-picker-btn').forEach((b, idx) => {
+            if (idx === 0) {
+                b.classList.add('active');
+                b.style.borderColor = 'var(--primary-blue)';
+                b.style.background = 'rgba(26,60,170,0.05)';
+                b.style.color = 'var(--primary-blue)';
+            } else {
+                b.classList.remove('active');
+                b.style.borderColor = 'var(--border-color)';
+                b.style.background = 'white';
+                b.style.color = 'var(--text-gray)';
+            }
+        });
         
         modal.classList.add('active');
     }
@@ -1257,10 +1296,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Program Name</label>
                             <input type="text" id="newProgName" placeholder="e.g. Structural Engineering" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
-                            <label style="font-weight: 700; font-size: 0.85rem; color: var(--primary-dark);">Program Code / ID</label>
-                            <input type="text" id="newProgId" placeholder="e.g. ce-struct" style="padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; width: 100%; box-sizing: border-box;">
-                        </div>
                     </div>
                     <div class="repo-modal-actions">
                         <button class="repo-modal-cancel" id="cancelAddProgramBtn">Cancel</button>
@@ -1274,13 +1309,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('closeAddProgramModalBtn').addEventListener('click', closeModal);
             document.getElementById('cancelAddProgramBtn').addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddProgram').addEventListener('click', () => {
+            document.getElementById('confirmAddProgram').addEventListener('click', async () => {
                 const name = document.getElementById('newProgName').value.trim();
-                const progId = document.getElementById('newProgId').value.trim().toLowerCase();
-                if (!name || !progId) {
-                    alert('Please fill out all fields.');
+                if (!name) {
+                    alert('Please enter a program name.');
                     return;
                 }
+                const progId = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
                 
                 const activeDept = mockDepartments.find(d => d.id === currentDept);
                 if (activeDept) {
@@ -1288,6 +1323,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         alert('A program with this ID already exists in this department.');
                         return;
                     }
+                    try {
+                        await folderService.createFolder(name, activeDept.id, { code: progId, deptId: activeDept.id });
+                    } catch(e) {}
                     activeDept.programs.push({
                         id: progId,
                         name: name
@@ -1309,7 +1347,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         document.getElementById('parentDeptName').value = dept.name;
         document.getElementById('newProgName').value = '';
-        document.getElementById('newProgId').value = '';
         
         modal.classList.add('active');
     }
@@ -1373,6 +1410,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
         allFiles = [];
     }
+
+    try {
+        const savedCats = JSON.parse(localStorage.getItem('AITU_CUSTOM_CATEGORIES') || '[]');
+        if (Array.isArray(savedCats)) {
+            savedCats.forEach(cat => {
+                if (!mockDepartments.some(d => d.id === cat.id)) {
+                    mockDepartments.push(cat);
+                }
+            });
+        }
+    } catch (e) {}
+
+    try {
+        const apiFolders = await folderService.getFolders();
+        if (Array.isArray(apiFolders)) {
+            // Pass 1: top-level departments/categories
+            apiFolders.forEach(f => {
+                const parentId = f.parentFolderId !== undefined ? f.parentFolderId : (f.ParentFolderId !== undefined ? f.ParentFolderId : f.parentId);
+                const isTopLevel = parentId === 0 || parentId === '0' || parentId === null || parentId === undefined || f.isDepartment || f.isCategory;
+                if (isTopLevel) {
+                    const folderName = f.name || f.Name || f.folderName || f.FolderName || 'Unnamed Category';
+                    const code = String(f.code || f.Code || f.shortName || f.ShortName || f.id || f.Id || f.folderId || f.FolderId || folderName).toUpperCase();
+                    if (code && !mockDepartments.some(d => d.id === code || d.name.toLowerCase() === folderName.toLowerCase())) {
+                        mockDepartments.push({
+                            id: code,
+                            name: folderName,
+                            shortName: code,
+                            label: folderName.toUpperCase(),
+                            icon: f.icon || f.Icon || 'monitor',
+                            totalFiles: 0,
+                            categories: 0,
+                            programs: []
+                        });
+                    }
+                }
+            });
+
+            // Pass 2: programs / subfolders
+            apiFolders.forEach(f => {
+                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || (!f.parentFolderId && !f.deptId);
+                if (!isTopLevel) {
+                    const parentId = String(f.deptId || f.department || f.dept || f.parentFolderId || 'IT').toUpperCase();
+                    const targetDept = mockDepartments.find(d => d.id === parentId || d.shortName === parentId) || mockDepartments[0];
+                    if (targetDept) {
+                        const progId = String(f.code || f.id || f.folderId || f.name);
+                        const progName = f.name || f.folderName || f.title || progId;
+                        if (!targetDept.programs.some(p => String(p.id).toLowerCase() === progId.toLowerCase())) {
+                            targetDept.programs.push({ id: progId, name: progName });
+                        }
+                    }
+                }
+            });
+        }
+    } catch (e) {}
+
+    try {
+        const savedProgs = JSON.parse(localStorage.getItem('AITU_CUSTOM_PROGRAMS') || '[]');
+        if (Array.isArray(savedProgs)) {
+            savedProgs.forEach(prog => {
+                const targetDept = mockDepartments.find(d => d.id === prog.deptId);
+                if (targetDept && !targetDept.programs.some(p => p.id === prog.id)) {
+                    targetDept.programs.push({ id: prog.id, name: prog.name });
+                }
+            });
+        }
+    } catch (e) {}
+
+    if (Array.isArray(allFiles)) {
+        allFiles.forEach(f => {
+            if (f.program && f.deptId) {
+                const targetDept = mockDepartments.find(d => d.id === String(f.deptId).toUpperCase() || d.shortName === String(f.deptId).toUpperCase());
+                if (targetDept && !targetDept.programs.some(p => String(p.id).toLowerCase() === String(f.program).toLowerCase())) {
+                    targetDept.programs.push({ id: f.program, name: f.programName || f.category || f.folderName || f.program });
+                }
+            }
+        });
+    }
+    mockDepartments.forEach(d => { d.categories = d.programs.length; });
 
     renderDeptSidebar();
     renderDeptSummaryCards();
