@@ -2009,6 +2009,11 @@
     
     /* Global Data Tables */
     table {
-        min-width: 600px; /* Forces scroll instead of squishing */
+        min-width: 580px; /* Forces scroll instead of squishing */
+    }
+
+    .dashboard-panel {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
     }
 }

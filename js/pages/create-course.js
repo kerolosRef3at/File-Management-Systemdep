@@ -165,18 +165,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>
 
-                        <table class="content-table" id="contentTable">
-                            <thead>
-                                <tr>
-                                    <th>Lesson Title</th>
-                                    <th>File Type</th>
-                                    <th>Size</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="contentTableBody">
-                            </tbody>
-                        </table>
+                        <div class="content-table-wrapper" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                            <table class="content-table" id="contentTable">
+                                <thead>
+                                    <tr>
+                                        <th>Lesson Title</th>
+                                        <th>File Type</th>
+                                        <th>Size</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="contentTableBody">
+                                </tbody>
+                            </table>
+                        </div>
 
                         <div id="emptyContentMessage" class="cb-empty-state">
                             <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>

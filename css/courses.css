@@ -1360,6 +1360,12 @@
     color: white;
 }
 
+.content-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .content-table {
     width: 100%;
     border-collapse: collapse;
@@ -2094,4 +2100,5 @@
     .cb-btn-bulk-upload, .cb-btn-add-lesson { flex: 1; justify-content: center; }
     .cb-file-type-tags { gap: 6px; }
     .cb-file-tag { font-size: 0.76rem; padding: 6px 10px; }
+    .content-table { min-width: 560px; }
 }

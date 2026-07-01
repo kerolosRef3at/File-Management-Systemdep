@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             </div>
 
-            <div class="dashboard-panel" style="padding: 0; overflow: hidden; background:white; border: 1px solid var(--border-color); border-radius:10px;">
+            <div class="dashboard-panel" style="padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; background:white; border: 1px solid var(--border-color); border-radius:10px;">
                 <table class="data-table" style="width: 100%;">
                     <thead style="background: #f8fafc;">
                         <tr>

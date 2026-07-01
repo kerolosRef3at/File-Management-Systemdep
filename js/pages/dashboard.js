@@ -175,19 +175,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <h3>High-Impact Documents</h3>
                         <a class="dash-docs-viewall" href="repository.html">View All</a>
                     </div>
-                    <table class="dash-docs-table">
-                        <thead>
-                            <tr>
-                                <th>FILE NAME</th>
-                                <th>SOURCE</th>
-                                <th class="align-center">ACCESS COUNT</th>
-                                <th class="align-right">WEIGHT</th>
-                            </tr>
-                        </thead>
-                        <tbody id="docsTableBody">
-                            ${renderDocRows(documents)}
-                        </tbody>
-                    </table>
+                    <div class="dash-docs-table-wrapper">
+                        <table class="dash-docs-table">
+                            <thead>
+                                <tr>
+                                    <th>FILE NAME</th>
+                                    <th>SOURCE</th>
+                                    <th class="align-center">ACCESS COUNT</th>
+                                    <th class="align-right">WEIGHT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docsTableBody">
+                                ${renderDocRows(documents)}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         `;
