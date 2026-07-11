@@ -3,8 +3,7 @@
 
 
 // لو عايز كل حاجة على السيرفر
-export const BASE_URL = 'http://192.168.2.66:8080';
-
+export const BASE_URL = 'https://filesystemapi.runasp.net';
 export async function fetchAPI(endpoint, options = {}) {
     // تجهيز الـ Headers
     const headers = {
