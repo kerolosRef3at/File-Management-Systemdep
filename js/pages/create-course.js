@@ -1,6 +1,6 @@
 // js/pages/create-course.js
 import { protectPage, getCurrentUser } from '../shared/auth.js';
-import { courseService, logService, folderService } from '../shared/services.js';
+import { courseService, logService, folderService, fileService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
 import { mockDepartments } from '../shared/mockData.js';
@@ -430,27 +430,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    function handleNewFiles(files) {
-        const lessonTitleInput = document.getElementById('lessonTitleInput');
-        let uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
-        
-        files.forEach((file, index) => {
-            const lessonName = lessonTitleInput ? lessonTitleInput.value.trim() || file.name.replace(/\.[^/.]+$/, '') : file.name;
-            const uniqueId = 'upload-' + Date.now() + '-' + index;
-            uploads.push({
-                id: uniqueId,
-                name: lessonName,
-                fileName: file.name,
-                size: file.size,
-                progress: 0,
-                completed: false
-            });
+function handleNewFiles(files) {
+    const lessonTitleInput = document.getElementById('lessonTitleInput');
+    const dept = document.getElementById('courseDept')?.value || 'IT';
+    let uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
+
+    // ✅ احفظ الـ File objects في memory
+    window._pendingFiles = window._pendingFiles || {};
+
+    files.forEach((file, index) => {
+        const lessonName = lessonTitleInput?.value.trim() || file.name.replace(/\.[^/.]+$/, '');
+        const uniqueId = 'upload-' + Date.now() + '-' + index;
+
+        uploads.push({
+            id: uniqueId,
+            name: lessonName,
+            fileName: file.name,
+            size: file.size,
+            progress: 100,
+            completed: true
         });
-        
-        localStorage.setItem('AITU_UPLOADS', JSON.stringify(uploads));
-        if (lessonTitleInput) lessonTitleInput.value = '';
-        renderUploads();
-    }
+
+        // ✅ احفظ الـ File object الفعلي في memory
+        window._pendingFiles[uniqueId] = {
+            file,
+            lessonName,
+            dept
+        };
+    });
+
+    localStorage.setItem('AITU_UPLOADS', JSON.stringify(uploads));
+    if (lessonTitleInput) lessonTitleInput.value = '';
+    renderUploads();
+}
+
 
     function getFileTypeInfo(file) {
         const ext = file.name.split('.').pop().toLowerCase();
@@ -699,21 +712,56 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (statusSize) statusSize.textContent = `Total: ${sizeStr}`;
     }
 
-    // Form submit
-    document.getElementById('courseBuilderForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const publishBtn = document.getElementById('publishCourseBtn');
-        const title = document.getElementById('courseTitle').value.trim();
-        const dept = document.getElementById('courseDept').value;
-        const desc = document.getElementById('courseDescription').value.trim();
-        const category = document.getElementById('courseCat').value;
+// Form submit
+document.getElementById('courseBuilderForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const publishBtn = document.getElementById('publishCourseBtn');
+    const title = document.getElementById('courseTitle').value.trim();
+    const dept = document.getElementById('courseDept').value;
+    const desc = document.getElementById('courseDescription').value.trim();
+    const category = document.getElementById('courseCat').value;
 
-        if (!title || !dept) {
-            showAlert(alertsContainer, 'Course title and department are required.', 'warning');
-            return;
+    if (!title || !dept) {
+        showAlert(alertsContainer, 'Course title and department are required.', 'warning');
+        return;
+    }
+
+    publishBtn.disabled = true;
+    publishBtn.innerText = 'Uploading files...';
+
+    try {
+        // ✅ 1. ارفع الملفات الفعلية الأول
+        const lessons = [];
+        const pendingFiles = window._pendingFiles || {};
+
+        for (const [uploadId, uploadData] of Object.entries(pendingFiles)) {
+            try {
+                const formData = new FormData();
+                formData.append('file', uploadData.file);
+
+                publishBtn.innerText = `Uploading ${uploadData.lessonName}...`;
+
+                const result = await fileService.uploadFile(
+                    formData,
+                    0,
+                    'courses',
+                    dept,
+                    uploadData.lessonName
+                );
+
+                lessons.push({
+                    id: uploadId,
+                    title: uploadData.lessonName,
+                    file: result.path || '',
+                    type: uploadData.file.type,
+                    size: (uploadData.file.size / 1048576).toFixed(1) + ' MB'
+                });
+            } catch (err) {
+                console.warn('Failed to upload file:', uploadData.file?.name, err);
+            }
         }
 
-        publishBtn.disabled = true;
+        // ✅ 2. بعد ما الملفات اترفعت، ابعت بيانات الكورس
         publishBtn.innerText = 'Publishing...';
 
         const coursePayload = {
@@ -722,21 +770,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             description: desc,
             category,
             img: thumbnailDataUrl || 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=500',
-            modules: [{ name: 'Module 1', lessons: [] }],
-            size: '120 MB'
+            modules: lessons.length > 0
+                ? [{ name: 'Module 1', lessons }]
+                : [{ name: 'Module 1', lessons: [] }],
+            size: lessons.reduce((acc, l) => acc + parseFloat(l.size || 0), 0).toFixed(1) + ' MB',
+            visibility: document.querySelector('input[name="visibility"]:checked')?.value || 'public',
+            guestDownloads: document.getElementById('guestDownloadToggle')?.checked || false
         };
 
-        try {
-            await courseService.createCourse(coursePayload);
-            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Course: ${title} (${dept})`);
-            showAlert(alertsContainer, 'Course published successfully! Redirecting...', 'success');
-            setTimeout(() => { window.location.href = 'courses.html'; }, 1500);
-        } catch (error) {
-            showAlert(alertsContainer, error.message || 'Failed to publish course.', 'error');
-            publishBtn.disabled = false;
-            publishBtn.innerText = 'Publish Course';
-        }
-    });
+        await courseService.createCourse(coursePayload);
+
+        // ✅ 3. امسح الـ pending files والـ localStorage
+        window._pendingFiles = {};
+        localStorage.removeItem('AITU_UPLOADS');
+
+        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'CreateCourse', `Course: ${title} (${dept})`);
+        showAlert(alertsContainer, 'Course published successfully! Redirecting...', 'success');
+        setTimeout(() => { window.location.href = 'courses.html'; }, 1500);
+
+    } catch (error) {
+        showAlert(alertsContainer, error.message || 'Failed to publish course.', 'error');
+        publishBtn.disabled = false;
+        publishBtn.innerText = 'Publish Course';
+    }
+});
 
     // Save Draft
     document.getElementById('saveDraftBtn').addEventListener('click', () => {

@@ -1324,7 +1324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
                     try {
-                        await folderService.createFolder(name, activeDept.id, { code: progId, deptId: activeDept.id });
+                        await folderService.createFolder(name, activeDept.id, activeDept.id);
                     } catch(e) {}
                     activeDept.programs.push({
                         id: progId,

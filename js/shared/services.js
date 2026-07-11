@@ -310,7 +310,7 @@ export const fileService = {
         try {
             const token = localStorage.getItem('aitu_token');
             const response = await fetch(
-                `${BASE_URL}/api/Files/download-zip`,
+            `${BASE_URL}/api/Files/zip`,
                 {
                     method: 'POST',
                     headers: {
@@ -349,18 +349,22 @@ export const folderService = {
         }
     },
 
-    async createFolder(name, parentFolderId = 0, extra = {}) {
-        await delay();
-        try {
-            return await fetchAPI('/api/Folders', {
-                method: 'POST',
-                body: JSON.stringify({ name, parentFolderId, ...extra })
-            });
-        } catch (err) {
-            console.warn("API failed to create folder.");
-            throw err;
-        }
-    },
+   async createFolder(name, parentFolderId = 0, dept = '') {
+    await delay();
+    try {
+        return await fetchAPI('/api/Folders', {
+            method: 'POST',
+            body: JSON.stringify({ 
+                name, 
+                parentFolderId,
+                dept: dept || ''
+            })
+        });
+    } catch (err) {
+        console.warn("API failed to create folder.");
+        throw err;
+    }
+},
 
     async getFolderDetails(id) {
         await delay();
