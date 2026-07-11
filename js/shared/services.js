@@ -225,7 +225,7 @@ export const fileService = {
                 version: f.version || 'v1.0',
                 size: formatFileSize(f.size),
                 dept: f.dept || 'IT DEPT',
-                deptId: deptId,
+                deptId: deptId || getDeptId(f.dept),
                 downloads: f.downloadCount || 0,
                 uploadDate: f.uploadedAt
                     ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -349,14 +349,14 @@ export const folderService = {
         }
     },
 
-   async createFolder(name, parentFolderId = 0, dept = '') {
+async createFolder(name, parentFolderId = null, dept = '') {
     await delay();
     try {
         return await fetchAPI('/api/Folders', {
             method: 'POST',
             body: JSON.stringify({ 
                 name, 
-                parentFolderId,
+                parentFolderId: typeof parentFolderId === 'number' ? parentFolderId : null,
                 dept: dept || ''
             })
         });
