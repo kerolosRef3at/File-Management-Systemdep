@@ -477,7 +477,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         let html = '<div class="program-cards-grid">';
 
         dept.programs.forEach(prog => {
-            const fileCount = allFiles.filter(f => f.program === prog.id).length;
+            const fileCount = allFiles.filter(f => {
+            const fProg = String(f.program || '').toLowerCase();
+            return fProg === String(prog.id).toLowerCase() || 
+            fProg === String(prog.name).toLowerCase();
+            }).length;
             const totalFiles = fileCount;
             const iconSvg = getProgramIconSvg(prog.id);
 
@@ -503,22 +507,38 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Category Delete handlers
         categoriesContainer.querySelectorAll('.delete-category-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation(); // prevent card click
-                const catId = btn.dataset.id;
-                const catName = btn.dataset.name;
-                if(confirm(`Are you sure you want to permanently delete category "${catName}"?`)) {
-                    try {
-                        await folderService.deleteFolder(catId);
-                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Category', catName);
-                        alert('Category deleted successfully.');
-                        window.location.reload();
-                    } catch(err) {
-                        alert('Failed to delete category.');
-                    }
-                }
-            });
-        });
+        btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const catId = btn.dataset.id;
+        const catName = btn.dataset.name;
+        
+        // ✅ تأكد إن الـ ID رقم
+        const numericId = parseInt(catId);
+        if (isNaN(numericId)) {
+            // لو مش رقم، شيله من الـ mockDepartments بس من غير ما تكلم الـ API
+            const dept = mockDepartments.find(d => d.id === currentDept);
+            if (dept) {
+                dept.programs = dept.programs.filter(p => p.id !== catId);
+                dept.categories = dept.programs.length;
+            }
+            renderDeptSidebar();
+            renderDeptSummaryCards();
+            renderCategoriesView();
+            return;
+        }
+        
+        if (confirm(`Are you sure you want to permanently delete category "${catName}"?`)) {
+            try {
+                await folderService.deleteFolder(numericId);
+                logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Category', catName);
+                alert('Category deleted successfully.');
+                window.location.reload();
+            } catch(err) {
+                alert('Failed to delete category.');
+            }
+        }
+    });
+});
 
         // Click handlers → enter files mode
         categoriesContainer.querySelectorAll('.program-card').forEach(card => {
@@ -1489,16 +1509,28 @@ if (currentProgram) {
         }
     } catch (e) {}
 
-    if (Array.isArray(allFiles)) {
-        allFiles.forEach(f => {
-            if (f.program && f.deptId) {
-                const targetDept = mockDepartments.find(d => d.id === String(f.deptId).toUpperCase() || d.shortName === String(f.deptId).toUpperCase());
-                if (targetDept && !targetDept.programs.some(p => String(p.id).toLowerCase() === String(f.program).toLowerCase())) {
-                    targetDept.programs.push({ id: f.program, name: f.programName || f.category || f.folderName || f.program });
+  if (Array.isArray(allFiles)) {
+    allFiles.forEach(f => {
+        if (f.program && f.deptId) {
+            const targetDept = mockDepartments.find(d => 
+                d.id === String(f.deptId).toUpperCase() || 
+                d.shortName === String(f.deptId).toUpperCase()
+            );
+            if (targetDept) {
+                // ✅ دور على البرنامج بالاسم مش الـ ID
+                const existingProg = targetDept.programs.find(p => 
+                    String(p.name).toLowerCase() === String(f.program).toLowerCase()
+                );
+                if (!existingProg) {
+                    targetDept.programs.push({ 
+                        id: f.program, 
+                        name: f.program 
+                    });
                 }
             }
-        });
-    }
+        }
+    });
+}
     mockDepartments.forEach(d => { d.categories = d.programs.length; });
 
     renderDeptSidebar();
