@@ -498,6 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Dynamically resolve API URL using BASE_URL
             const { BASE_URL } = await import('../shared/api.js');
+            const token = localStorage.getItem('aitu_token'); 
 
             await new Promise((resolve, reject) => {
                 xhr.upload.addEventListener('progress', (e) => {
@@ -523,9 +524,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 xhr.addEventListener('error', () => reject(new Error('Network error')));
                 xhr.addEventListener('abort', () => reject(new Error('Aborted')));
 
-                const token = localStorage.getItem('aitu_token');
-                
-                xhr.open('POST', `${BASE_URL}/api/Files/upload`);
+                const deptCode = globalDept || 'IT';
+                const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
+                const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
+                const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
+                xhr.open('POST', `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`);
                 if (token) {
                     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
                 }

@@ -229,7 +229,8 @@ export const fileService = {
                 downloads: f.downloadCount || 0,
                 uploadDate: f.uploadedAt
                     ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
-                program: f.program || f.category || f.folderName || (f.folderId ? String(f.folderId) : null) || f.programId || null
+                program: f.program || f.category || f.folderName || 
+                        (f.folderId ? String(f.folderId) : null) || null
             };
         });
     } catch (err) {
