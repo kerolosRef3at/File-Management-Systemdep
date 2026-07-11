@@ -849,15 +849,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         attachCheckboxListeners();
 
         // Download button per row
-        filesContainer.querySelectorAll('.repo-table-action-btn[data-download]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const fileId = btn.dataset.download;
-                const file = allFiles.find(f => f.id.toString() === fileId);
-                if (file) {
-                    alert(`Downloading: ${file.name} (${file.size})`);
-                }
-            });
-        });
+      filesContainer.querySelectorAll('.repo-table-action-btn[data-download]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const fileId = btn.dataset.download;
+        const file = allFiles.find(f => f.id.toString() === fileId);
+        if (file) {
+            await fileService.downloadFile(parseInt(fileId), file.name);
+        }
+    });
+});
         attachSingleFileDeleteListeners();
     }
 
