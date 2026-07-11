@@ -686,9 +686,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         // Program filter
-        if (currentProgram) {
-            filtered = filtered.filter(f => String(f.program || f.folderId || f.category || '').toLowerCase() === String(currentProgram).toLowerCase());
-        }
+        // Program filter
+if (currentProgram) {
+    const currentProg = mockDepartments
+        .flatMap(d => d.programs)
+        .find(p => p.id === currentProgram);
+    const progName = currentProg ? currentProg.name : currentProgram;
+    
+    filtered = filtered.filter(f => {
+        const fProgram = String(f.program || '').toLowerCase();
+        return fProgram === String(progName).toLowerCase() ||
+               fProgram === String(currentProgram).toLowerCase();
+    });
+}
 
         // Type filter
         if (currentFilterType !== 'all' && currentFilterType !== 'date') {
