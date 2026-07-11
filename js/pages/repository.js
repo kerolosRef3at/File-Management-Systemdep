@@ -950,6 +950,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 10. SELECTION BAR
     // ========================
     function updateSelectionBar() {
+        
         if (!selectionBar || !selectedCountEl) return;
         selectedCountEl.innerText = selectedFiles.size;
         
@@ -963,6 +964,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             selectionBar.classList.remove('visible');
         }
+        console.log("Classes:", selectionBar.className);
     }
 
     // Clear Selection
