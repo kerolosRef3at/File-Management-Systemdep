@@ -1509,15 +1509,17 @@ if (currentProgram) {
         }
     } catch (e) {}
 
-  if (Array.isArray(allFiles)) {
+if (Array.isArray(allFiles)) {
     allFiles.forEach(f => {
         if (f.program && f.deptId) {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(f.program));
+            if (isUUID) return;
+
             const targetDept = mockDepartments.find(d => 
                 d.id === String(f.deptId).toUpperCase() || 
                 d.shortName === String(f.deptId).toUpperCase()
             );
             if (targetDept) {
-                // ✅ دور على البرنامج بالاسم مش الـ ID
                 const existingProg = targetDept.programs.find(p => 
                     String(p.name).toLowerCase() === String(f.program).toLowerCase()
                 );
