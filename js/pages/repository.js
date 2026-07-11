@@ -512,8 +512,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const catId = btn.dataset.id;
         const catName = btn.dataset.name;
         
-        // ✅ تأكد إن الـ ID رقم
-        const numericId = parseInt(catId);
+        // تأكد إن الـ ID رقم
+        const numericId = /^\d+$/.test(String(catId)) ? parseInt(catId) : NaN;
         if (isNaN(numericId)) {
             // لو مش رقم، شيله من الـ mockDepartments بس من غير ما تكلم الـ API
             const dept = mockDepartments.find(d => d.id === currentDept);
@@ -1483,6 +1483,8 @@ if (currentProgram) {
             apiFolders.forEach(f => {
                 const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || (!f.parentFolderId && !f.deptId);
                 if (!isTopLevel) {
+                    const folderNameIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(f.name || ''));
+                    if (folderNameIsUUID) return;
                     const parentId = String(f.deptId || f.department || f.dept || f.parentFolderId || 'IT').toUpperCase();
                     const targetDept = mockDepartments.find(d => d.id === parentId || d.shortName === parentId) || mockDepartments[0];
                     if (targetDept) {
