@@ -499,8 +499,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
             const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
             const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
-            const uploadUrl = `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
-
+            const uploadUrl = `${BASE_URL}/api/Files/upload?type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
             const uploadFormData = new FormData();
             uploadFormData.append('file', nextFile.file);
 
@@ -554,7 +553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const deptCode = globalDept || 'IT';
             const progName = encodeURIComponent(file.title || file.name.split('.')[0]);
 
-            const url = `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
+            const url = `${BASE_URL}/api/Files/upload?type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
 
             const response = await fetch(url, {
                 method: 'POST',
