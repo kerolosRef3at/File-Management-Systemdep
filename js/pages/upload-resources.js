@@ -492,48 +492,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (globalProg) formData.append('program', globalProg);
 
             // Use XMLHttpRequest for progress tracking
-            const xhr = new XMLHttpRequest();
-            const abortController = { abort: () => xhr.abort() };
-            nextFile.abortController = abortController;
-
-            // Dynamically resolve API URL using BASE_URL
             const { BASE_URL } = await import('../shared/api.js');
-            const token = localStorage.getItem('aitu_token'); 
+            const token = localStorage.getItem('aitu_token');
 
-            await new Promise((resolve, reject) => {
-                xhr.upload.addEventListener('progress', (e) => {
-                    if (e.lengthComputable) {
-                        nextFile.progress = Math.round((e.loaded / e.total) * 100);
-                        render();
-                    }
-                });
+            const deptCode = globalDept || 'IT';
+            const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
+            const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
+            const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
+            const uploadUrl = `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
 
-                xhr.addEventListener('load', () => {
-                    if (xhr.status >= 200 && xhr.status < 300) {
-                        nextFile.progress = 100;
-                        nextFile.status = 'complete';
-                        try {
-                            nextFile.response = JSON.parse(xhr.responseText);
-                        } catch(e) {}
-                        resolve();
-                    } else {
-                        reject(new Error('Upload failed'));
-                    }
-                });
+            const uploadFormData = new FormData();
+            uploadFormData.append('file', nextFile.file);
 
-                xhr.addEventListener('error', () => reject(new Error('Network error')));
-                xhr.addEventListener('abort', () => reject(new Error('Aborted')));
-
-                const deptCode = globalDept || 'IT';
-                const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
-                const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
-                const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
-                xhr.open('POST', `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`);
-                if (token) {
-                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-                }
-                xhr.send(formData);
+            const uploadResponse = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: uploadFormData
             });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Upload failed: ' + uploadResponse.status);
+            }
+
+            nextFile.progress = 100;
+            nextFile.status = 'complete';
 
             // Log upload immediately after success
             const typeName = getFileTypeName(nextFile.name);
@@ -554,41 +536,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Move to next file
         setTimeout(() => uploadNext(), 300);
     }
-
+    
     function simulateUpload(file) {
-        return new Promise((resolve) => {
-            file.status = 'uploading';
-            file.progress = 0;
-            render();
+    return new Promise(async (resolve) => {
+        file.status = 'uploading';
+        file.progress = 0;
+        render();
 
-            const interval = setInterval(() => {
-                file.progress += Math.floor(Math.random() * 12) + 5;
-                if (file.progress >= 100) {
-                    file.progress = 100;
-                    file.status = 'complete';
-                    clearInterval(interval);
+        try {
+            const { BASE_URL } = await import('../shared/api.js');
+            const token = localStorage.getItem('aitu_token');
+            const formData = new FormData();
+            formData.append('file', file.file); // ✅ file.file مش file.fileObj
 
-                    const typeName = getFileTypeName(file.name);
-                    const isVideo = typeName.includes('Video');
-                    const actionType = isVideo ? 'Upload Video' : 'Add File';
-                    logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', actionType, file.name);
+            const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
+            const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
+            const deptCode = globalDept || 'IT';
+            const progName = encodeURIComponent(file.title || file.name.split('.')[0]);
 
-                    const formData = new FormData();
-                    formData.append('file', file.fileObj || new Blob([''], { type: 'application/octet-stream' }), file.name);
-                    try {
-                        fileService.uploadFile(formData, 0, file.name.split('.').pop().toUpperCase(), globalDept, file.title || file.name);
-                    } catch (err) {
-                        console.warn('API upload failed:', err);
-                    }
+            const url = `${BASE_URL}/api/Files/upload?folderId=0&type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
 
-                    render();
-                    resolve();
-                } else {
-                    render();
-                }
-            }, 200);
-        });
-    }
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: formData
+            });
+
+            if (response.ok) {
+                file.progress = 100;
+                file.status = 'complete';
+            } else {
+                file.status = 'failed';
+            }
+        } catch (err) {
+            console.warn('Fallback upload also failed:', err);
+            file.status = 'failed';
+        }
+
+        render();
+        resolve();
+    });
+}
 
     // Initial render
     render();
