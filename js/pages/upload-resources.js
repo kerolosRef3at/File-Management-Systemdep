@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const draftFiles = fileQueue.filter(f => f.status === 'draft' || f.status === 'failed');
                 if (draftFiles.length === 0) {
                     if (fileQueue.length > 0 && fileQueue.every(f => f.status === 'complete')) {
-                        window.location.href = `repository.html?dept=${globalDept}`;
+                        window.location.href = `repository.html?dept=${encodeURIComponent(globalDept)}`;
                     }
                     return;
                 }
@@ -468,7 +468,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     fileQueue.forEach(f => {
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Add File', f.name);
                     });
-                    window.location.href = `repository.html?dept=${globalDept}`;
+                    window.location.href = `repository.html?dept=${encodeURIComponent(globalDept)}`;
                 }, 800);
             }
             return;
@@ -490,7 +490,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const { BASE_URL } = await import('../shared/api.js');
             const token = localStorage.getItem('aitu_token');
 
-            const deptCode = globalDept || 'IT';
+            // encodeURIComponent is required: a dept code containing '&' (e.g.
+            // "A&D") would otherwise terminate the query parameter, so the
+            // server read dept="A" and the file landed in a folder nobody shows.
+            const deptCode = encodeURIComponent(globalDept || 'IT');
             const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
             const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
             const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
@@ -545,7 +548,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
             const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
-            const deptCode = globalDept || 'IT';
+            // See note above: without encoding, '&' in a dept code breaks the URL.
+            const deptCode = encodeURIComponent(globalDept || 'IT');
             const progName = encodeURIComponent(file.title || file.name.split('.')[0]);
 
             const url = `${BASE_URL}/api/Files/upload?type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
