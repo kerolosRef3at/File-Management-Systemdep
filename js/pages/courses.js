@@ -411,11 +411,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    // Only the three original departments have their own badge colour in the
+    // stylesheet. Anything else gets the neutral default rather than being
+    // painted as IT, which made DESIGN courses look like IT courses.
     function getDeptBadgeColor(dept) {
-        if (dept === 'IT') return 'it';
-        if (dept === 'ME') return 'me';
-        if (dept === 'EL') return 'el';
-        return 'it';
+        const d = String(dept || '').toUpperCase();
+        if (d === 'IT') return 'it';
+        if (d === 'ME') return 'me';
+        if (d === 'EL') return 'el';
+        return '';
     }
 
     function renderAdminCourses() {
@@ -512,7 +516,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             id: c.id || c.courseId || Math.random().toString(36).substr(2, 9),
             title: c.title || c.name || c.courseName || 'Untitled Course',
             description: c.description || c.desc || '',
-            dept: String(c.dept || c.deptId || c.department || 'IT').toUpperCase(),
+            // No 'IT' fallback: an unlabelled course is not an IT course.
+            dept: String(c.dept || c.deptId || c.department || '').toUpperCase(),
             category: c.category || c.program || c.subCategory || '',
             lessons: Number(c.lessons || c.lessonCount || c.totalLessons || 0),
             size: c.size || c.fileSize || '100 MB',

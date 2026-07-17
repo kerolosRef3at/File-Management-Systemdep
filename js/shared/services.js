@@ -171,13 +171,23 @@ function formatFileSize(bytes) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
+// The API returns the department CODE directly ("IT", "EL", "DESIGN", "AD"),
+// so there is nothing to guess.
+//
+// This used to hard-code the three original departments and fall through to
+// `return 'IT'` for anything else. Every department created after launch --
+// DESIGN, AD, any future one -- was silently relabelled as IT. Files uploaded
+// to DESIGN came back tagged deptId 'IT', so hydrateDepartments added their
+// program under IT, which is why "Designs Doc" appeared in both departments
+// and reappeared after every delete: it was being regenerated from the file
+// list on each load, not restored from any cache.
+//
+// The substring test was unsafe on its own terms too: any code containing
+// "it" or "me" matched (e.g. "MEDIA" -> ME, "SECURITY" -> IT).
 function getDeptId(deptStr) {
-    if (!deptStr) return 'IT';
-    const d = deptStr.toLowerCase();
-    if (d.includes('it') || d.includes('information')) return 'IT';
-    if (d.includes('el') || d.includes('elec')) return 'EL';
-    if (d.includes('me') || d.includes('mech')) return 'ME';
-    return 'IT';
+    if (!deptStr) return '';
+    // Tolerates the old "IT DEPT" format still stored in some rows.
+    return String(deptStr).trim().replace(/\s+DEPT$/i, '').toUpperCase();
 }
 
 function detectProgram(name, deptId) {
@@ -224,8 +234,10 @@ export const fileService = {
                 type: getFileTypeLabel(f.type),
                 version: f.version || 'v1.0',
                 size: formatFileSize(f.size),
-                dept: f.dept || 'IT DEPT',
-                deptId: deptId || getDeptId(f.dept),
+                // No 'IT DEPT' fallback: a file with no department is not an
+                // IT file, and pretending otherwise put it in the wrong place.
+                dept: f.dept || '',
+                deptId: deptId,
                 downloads: f.downloadCount || 0,
                 uploadDate: f.uploadedAt
                     ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],

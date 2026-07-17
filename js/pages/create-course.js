@@ -67,9 +67,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.9rem;">Department</label>
                                 <select class="form-control" id="courseDept" required>
                                     <option value="">Select...</option>
-                                    <option value="IT">IT</option>
-                                    <option value="ME">ME</option>
-                                    <option value="EL">EL</option>
+                                    ${mockDepartments.map(d =>
+                                        `<option value="${d.id}">${d.shortName} &mdash; ${d.name}</option>`
+                                    ).join('')}
                                 </select>
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
@@ -398,7 +398,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function handleNewFiles(files) {
     const lessonTitleInput = document.getElementById('lessonTitleInput');
-    const dept = document.getElementById('courseDept')?.value || 'IT';
+    // No 'IT' default: a course with no department chosen is not an IT course.
+    // Defaulting here filed lessons under the wrong department silently.
+    const dept = document.getElementById('courseDept')?.value || '';
     let uploads = JSON.parse(localStorage.getItem('AITU_UPLOADS') || '[]');
 
     // ✅ احفظ الـ File objects في memory
