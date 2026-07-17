@@ -37,30 +37,229 @@ export const mockDepartments = [
         shortName: 'ME',
         label: 'MECHANICAL ENG',
         icon: 'settings',
+        totalFiles: 0,
         categories: 0,
         programs: []
     }
 ];
 
-try {
-    const savedCats = JSON.parse(localStorage.getItem('AITU_CUSTOM_CATEGORIES') || '[]');
-    if (Array.isArray(savedCats)) {
-        savedCats.forEach(cat => {
-            if (!mockDepartments.some(d => d.id === cat.id)) {
-                mockDepartments.push(cat);
-            }
-        });
+
+// =====================================================================
+// FOLDER SANITY + HYDRATION  (single source of truth)
+// =====================================================================
+// Every page used to carry its own copy of the Pass 1 / Pass 2 folder
+// parsing loops, each with slightly different bugs. They all live here now.
+
+const RESERVED_FOLDER_NAMES = ['programs', 'departments', 'uploads', 'temp', 'tmp', 'root'];
+
+/**
+ * True for anything that must never be shown as a Department or Program:
+ * raw DB ids ("1", "2", "3", "6"), GUIDs, blanks, internal folder names.
+ */
+export function isJunkFolderName(value) {
+    const s = String(value === null || value === undefined ? '' : value).trim();
+    if (!s) return true;                                     // blank
+    if (/^\d+$/.test(s)) return true;                        // "1", "2", "3", "6"
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s)) return true;    // GUID
+    if (/^[0-9a-f]{32}$/i.test(s)) return true;              // GUID, no dashes
+    if (RESERVED_FOLDER_NAMES.includes(s.toLowerCase())) return true;
+    return false;
+}
+
+// --- field readers: the API is inconsistent about casing ---------------
+function pick(f, keys) {
+    for (const k of keys) {
+        if (f[k] !== undefined && f[k] !== null && f[k] !== '') return f[k];
     }
-    const savedProgs = JSON.parse(localStorage.getItem('AITU_CUSTOM_PROGRAMS') || '[]');
-    if (Array.isArray(savedProgs)) {
-        savedProgs.forEach(prog => {
-            const targetDept = mockDepartments.find(d => d.id === prog.deptId);
-            if (targetDept && !targetDept.programs.some(p => p.id === prog.id)) {
-                targetDept.programs.push({ id: prog.id, name: prog.name });
-            }
-        });
+    return undefined;
+}
+function folderName(f) { return String(pick(f, ['name', 'Name', 'folderName', 'FolderName', 'title', 'Title']) || ''); }
+function folderCode(f) { return String(pick(f, ['code', 'Code', 'shortName', 'ShortName']) || ''); }
+function folderDeptRef(f) { return String(pick(f, ['deptId', 'DeptId', 'department', 'Department', 'dept', 'Dept']) || ''); }
+function folderParent(f) {
+    const v = pick(f, ['parentFolderId', 'ParentFolderId', 'parentId', 'ParentId']);
+    return v === undefined ? null : v;
+}
+
+/**
+ * One definition of "top level", used by BOTH passes.
+ * Previously Pass 1 and Pass 2 disagreed, so folders were either counted
+ * twice or dropped entirely.
+ *
+ * A folder with a null parent but a dept reference is a PROGRAM whose parent
+ * link was lost (the old createFolder always sent parentFolderId: null).
+ * Treating it as a program is what stops it becoming a phantom category.
+ */
+function isTopLevelFolder(f) {
+    const parent = folderParent(f);
+    if (f.isDepartment === true || f.isCategory === true) return true;
+    if (parent === 0 || parent === '0') return true;
+    if (parent === null || parent === undefined || parent === '') {
+        return !folderDeptRef(f);   // no dept => genuinely a root folder
     }
-} catch(e) {}
+    return false;
+}
+
+// --- localStorage helpers ---------------------------------------------
+function readList(key) {
+    try {
+        const v = JSON.parse(localStorage.getItem(key) || '[]');
+        return Array.isArray(v) ? v : [];
+    } catch (e) {
+        return [];
+    }
+}
+function writeList(key, list) {
+    try {
+        localStorage.setItem(key, JSON.stringify(list));
+    } catch (e) {
+        console.warn('Could not persist ' + key + ':', e);
+    }
+}
+
+export function saveCustomCategory(cat) {
+    if (!cat || isJunkFolderName(cat.name) || isJunkFolderName(cat.id)) return;
+    const list = readList('AITU_CUSTOM_CATEGORIES');
+    if (list.some(c => c.id === cat.id)) return;
+    list.push(cat);
+    writeList('AITU_CUSTOM_CATEGORIES', list);
+}
+
+export function saveCustomProgram(prog) {
+    if (!prog || isJunkFolderName(prog.name)) return;
+    const list = readList('AITU_CUSTOM_PROGRAMS');
+    if (list.some(p => p.id === prog.id && p.deptId === prog.deptId)) return;
+    list.push(prog);
+    writeList('AITU_CUSTOM_PROGRAMS', list);
+}
+
+function addProgram(dept, id, name) {
+    if (!dept || isJunkFolderName(name)) return;
+    if (!Array.isArray(dept.programs)) dept.programs = [];
+    const exists = dept.programs.some(p =>
+        String(p.id).toLowerCase() === String(id).toLowerCase() ||
+        String(p.name).toLowerCase() === String(name).toLowerCase()
+    );
+    if (!exists) dept.programs.push({ id: String(id), name: String(name) });
+}
+
+function findDept(ref) {
+    const key = String(ref || '').toUpperCase();
+    if (!key) return null;
+    return mockDepartments.find(d =>
+        String(d.id).toUpperCase() === key ||
+        String(d.shortName).toUpperCase() === key ||
+        String(d.name).toUpperCase() === key
+    ) || null;
+}
+
+/**
+ * Fills mockDepartments from the API folder list + the file list.
+ * Call it once per page, right after fetching. Mutates and returns
+ * the shared mockDepartments array.
+ */
+export function hydrateDepartments(apiFolders, files) {
+    const folders = Array.isArray(apiFolders) ? apiFolders : [];
+
+    // Pass 1 -- top-level folders become departments / categories.
+    folders.forEach(f => {
+        if (!isTopLevelFolder(f)) return;
+
+        const name = folderName(f);
+        if (isJunkFolderName(name)) return;
+
+        // NEVER fall back to the numeric DB id for the code. That fallback is
+        // exactly what produced the phantom "1 / 2 / 3 / 6" categories.
+        const raw = folderCode(f);
+        const code = String(isJunkFolderName(raw) ? name : raw).toUpperCase();
+        if (isJunkFolderName(code)) return;
+
+        const dup = mockDepartments.some(d =>
+            String(d.id).toUpperCase() === code ||
+            String(d.name).toLowerCase() === name.toLowerCase()
+        );
+        if (dup) return;
+
+        mockDepartments.push({
+            id: code,
+            name: name,
+            shortName: code,
+            label: name.toUpperCase(),
+            icon: pick(f, ['icon', 'Icon']) || 'monitor',
+            totalFiles: 0,
+            categories: 0,
+            programs: []
+        });
+    });
+
+    // Pass 2 -- everything else becomes a program under its department.
+    folders.forEach(f => {
+        if (isTopLevelFolder(f)) return;
+
+        const name = folderName(f);
+        if (isJunkFolderName(name)) return;
+
+        // Match by dept code first, then by the parent folder's own code.
+        let dept = findDept(folderDeptRef(f));
+        if (!dept) {
+            const parent = folders.find(p => {
+                const pid = pick(p, ['id', 'Id', 'folderId', 'FolderId']);
+                return pid !== undefined && String(pid) === String(folderParent(f));
+            });
+            if (parent) dept = findDept(folderCode(parent) || folderName(parent));
+        }
+        // No match => drop it. It used to be dumped into mockDepartments[0],
+        // which is why unrelated programs kept showing up under IT.
+        if (!dept) return;
+
+        const raw = folderCode(f);
+        addProgram(dept, isJunkFolderName(raw) ? name : raw, name);
+    });
+
+    // Programs implied by uploaded files.
+    (Array.isArray(files) ? files : []).forEach(f => {
+        if (!f || !f.program || !f.deptId) return;
+        if (isJunkFolderName(f.program)) return;
+        const dept = findDept(f.deptId);
+        if (dept) addProgram(dept, f.program, f.program);
+    });
+
+    // Programs the admin created locally.
+    readList('AITU_CUSTOM_PROGRAMS').forEach(prog => {
+        if (!prog || isJunkFolderName(prog.name)) return;
+        const dept = findDept(prog.deptId);
+        if (dept) addProgram(dept, prog.id, prog.name);
+    });
+
+    // Final safety net: scrub anything that slipped through any source.
+    for (let i = mockDepartments.length - 1; i >= 0; i--) {
+        const d = mockDepartments[i];
+        if (!Array.isArray(d.programs)) d.programs = [];
+        d.programs = d.programs.filter(p => p && !isJunkFolderName(p.name));
+        if (isJunkFolderName(d.name) || isJunkFolderName(d.id)) {
+            mockDepartments.splice(i, 1);
+        }
+    }
+
+    mockDepartments.forEach(d => { d.categories = d.programs.length; });
+    return mockDepartments;
+}
+
+// Restore admin-created categories (filtered).
+readList('AITU_CUSTOM_CATEGORIES').forEach(cat => {
+    if (!cat || isJunkFolderName(cat.name) || isJunkFolderName(cat.id)) return;
+    if (mockDepartments.some(d => d.id === cat.id)) return;
+    if (!Array.isArray(cat.programs)) cat.programs = [];
+    if (cat.totalFiles === undefined) cat.totalFiles = 0;
+    mockDepartments.push(cat);
+});
+
+// Restore admin-created programs (filtered).
+readList('AITU_CUSTOM_PROGRAMS').forEach(prog => {
+    if (!prog || isJunkFolderName(prog.name)) return;
+    const dept = findDept(prog.deptId);
+    if (dept) addProgram(dept, prog.id, prog.name);
+});
 
 const defaultMockFiles = [];
 

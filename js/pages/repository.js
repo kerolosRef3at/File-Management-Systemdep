@@ -1,7 +1,7 @@
 // js/pages/repository.js
 import { getCurrentUser } from '../shared/auth.js';
 import { fileService, logService, folderService } from '../shared/services.js';
-import { mockDepartments } from '../shared/mockData.js';
+import { mockDepartments, hydrateDepartments, saveCustomCategory, saveCustomProgram } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 
@@ -1252,10 +1252,22 @@ if (currentProgram) {
                     return;
                 }
                 
+                // The server call is what creates the real folder on the QNAP
+                // drive and makes the category selectable on the Upload page.
                 try {
-                    await folderService.createFolder(name, 0, { code: id, shortName: id, icon: icon, isDepartment: true });
-                } catch(e) {}
-                mockDepartments.push({
+                    await folderService.createFolder(name, 0, {
+                        code: id, shortName: id, icon: icon, isDepartment: true
+                    });
+                } catch (e) {
+                    console.error('createFolder (category) failed:', e);
+                    alert(
+                        'The category was added locally, but the server rejected it.\n\n' +
+                        'No folder was created on the QNAP drive and other users will ' +
+                        'not see it.\n\nError: ' + (e && e.message ? e.message : e)
+                    );
+                }
+
+                const newCat = {
                     id: id,
                     name: name,
                     shortName: id,
@@ -1264,7 +1276,9 @@ if (currentProgram) {
                     totalFiles: 0,
                     categories: 0,
                     programs: []
-                });
+                };
+                mockDepartments.push(newCat);
+                saveCustomCategory(newCat);
                 
                 // Log action
                 logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Category: ${name} (${id})`);
@@ -1355,13 +1369,22 @@ if (currentProgram) {
                         alert('A program with this ID already exists in this department.');
                         return;
                     }
+                    // Creates the real subfolder on the QNAP drive.
                     try {
                         await folderService.createFolder(name, null, activeDept.id);
-                    } catch(e) {}
+                    } catch (e) {
+                        console.error('createFolder (program) failed:', e);
+                        alert(
+                            'The program was added locally, but the server rejected it.\n\n' +
+                            'No folder was created on the QNAP drive.\n\nError: ' +
+                            (e && e.message ? e.message : e)
+                        );
+                    }
                     activeDept.programs.push({
                         id: progId,
                         name: name
                     });
+                    saveCustomProgram({ id: progId, name: name, deptId: activeDept.id });
                     activeDept.categories = activeDept.programs.length;
                     
                     // Log action
@@ -1443,99 +1466,12 @@ if (currentProgram) {
         allFiles = [];
     }
 
+    // Departments + programs, filtered and de-duplicated (see mockData.js).
     try {
-        const savedCats = JSON.parse(localStorage.getItem('AITU_CUSTOM_CATEGORIES') || '[]');
-        if (Array.isArray(savedCats)) {
-            savedCats.forEach(cat => {
-                if (!mockDepartments.some(d => d.id === cat.id)) {
-                    mockDepartments.push(cat);
-                }
-            });
-        }
-    } catch (e) {}
-
-    try {
-        const apiFolders = await folderService.getFolders();
-        if (Array.isArray(apiFolders)) {
-            // Pass 1: top-level departments/categories
-            apiFolders.forEach(f => {
-                const parentId = f.parentFolderId !== undefined ? f.parentFolderId : (f.ParentFolderId !== undefined ? f.ParentFolderId : f.parentId);
-                const isTopLevel = parentId === 0 || parentId === '0' || parentId === null || parentId === undefined || f.isDepartment || f.isCategory;
-                if (isTopLevel) {
-                    const folderName = f.name || f.Name || f.folderName || f.FolderName || 'Unnamed Category';
-                    const code = String(f.code || f.Code || f.shortName || f.ShortName || f.id || f.Id || f.folderId || f.FolderId || folderName).toUpperCase();
-                    if (code && !mockDepartments.some(d => d.id === code || d.name.toLowerCase() === folderName.toLowerCase())) {
-                        mockDepartments.push({
-                            id: code,
-                            name: folderName,
-                            shortName: code,
-                            label: folderName.toUpperCase(),
-                            icon: f.icon || f.Icon || 'monitor',
-                            totalFiles: 0,
-                            categories: 0,
-                            programs: []
-                        });
-                    }
-                }
-            });
-
-            // Pass 2: programs / subfolders
-            apiFolders.forEach(f => {
-                const isTopLevel = f.parentFolderId === 0 || f.parentFolderId === '0' || (!f.parentFolderId && !f.deptId);
-                if (!isTopLevel) {
-                    const folderNameIsUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(f.name || ''));
-                    if (folderNameIsUUID) return;
-                    const parentId = String(f.deptId || f.department || f.dept || f.parentFolderId || 'IT').toUpperCase();
-                    const targetDept = mockDepartments.find(d => d.id === parentId || d.shortName === parentId) || mockDepartments[0];
-                    if (targetDept) {
-                        const progId = String(f.code || f.id || f.folderId || f.name);
-                        const progName = f.name || f.folderName || f.title || progId;
-                        if (!targetDept.programs.some(p => String(p.id).toLowerCase() === progId.toLowerCase())) {
-                            targetDept.programs.push({ id: progId, name: progName });
-                        }
-                    }
-                }
-            });
-        }
-    } catch (e) {}
-
-    try {
-        const savedProgs = JSON.parse(localStorage.getItem('AITU_CUSTOM_PROGRAMS') || '[]');
-        if (Array.isArray(savedProgs)) {
-            savedProgs.forEach(prog => {
-                const targetDept = mockDepartments.find(d => d.id === prog.deptId);
-                if (targetDept && !targetDept.programs.some(p => p.id === prog.id)) {
-                    targetDept.programs.push({ id: prog.id, name: prog.name });
-                }
-            });
-        }
-    } catch (e) {}
-
-if (Array.isArray(allFiles)) {
-    allFiles.forEach(f => {
-        if (f.program && f.deptId) {
-            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(f.program));
-            if (isUUID) return;
-
-            const targetDept = mockDepartments.find(d => 
-                d.id === String(f.deptId).toUpperCase() || 
-                d.shortName === String(f.deptId).toUpperCase()
-            );
-            if (targetDept) {
-                const existingProg = targetDept.programs.find(p => 
-                    String(p.name).toLowerCase() === String(f.program).toLowerCase()
-                );
-                if (!existingProg) {
-                    targetDept.programs.push({ 
-                        id: f.program, 
-                        name: f.program 
-                    });
-                }
-            }
-        }
-    });
-}
-    mockDepartments.forEach(d => { d.categories = d.programs.length; });
+        hydrateDepartments(await folderService.getFolders(), allFiles);
+    } catch (e) {
+        console.warn('Could not load folders:', e);
+    }
 
     renderDeptSidebar();
     renderDeptSummaryCards();

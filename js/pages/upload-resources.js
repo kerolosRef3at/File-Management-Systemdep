@@ -2,27 +2,22 @@
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
 import { fileService, logService, folderService } from '../shared/services.js';
-import { mockDepartments } from '../shared/mockData.js';
+import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
 
+    // Same source of truth as the Repository page, so whatever you can browse
+    // there is selectable here -- and nothing junk (1, 2, 3, 6) shows up.
     try {
-        const apiFolders = await folderService.getFolders();
-        if (Array.isArray(apiFolders)) {
-            apiFolders.forEach(f => {
-                const deptId = f.deptId || f.department || f.dept || f.parentFolderId || 'IT';
-                const targetDept = mockDepartments.find(d => d.id === deptId || d.shortName === deptId);
-                if (targetDept) {
-                    const progId = String(f.id || f.folderId || f.code || f.name);
-                    const progName = f.name || f.folderName || f.title || progId;
-                    if (!targetDept.programs.some(p => p.id === progId)) {
-                        targetDept.programs.push({ id: progId, name: progName });
-                    }
-                }
-            });
-        }
-    } catch (e) {}
+        const [apiFolders, files] = await Promise.all([
+            folderService.getFolders(),
+            fileService.getFiles().catch(() => [])
+        ]);
+        hydrateDepartments(apiFolders, files);
+    } catch (e) {
+        console.warn('Could not load folders:', e);
+    }
 
     // Render admin layout
     renderLayout('repository');
@@ -587,4 +582,3 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => loader.remove(), 400);
     }
 });
-

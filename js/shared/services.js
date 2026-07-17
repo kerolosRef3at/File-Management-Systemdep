@@ -349,19 +349,65 @@ export const folderService = {
         }
     },
 
-async createFolder(name, parentFolderId = null, dept = '') {
+/**
+ * Creates a folder on the server, which also creates the real folder on the
+ * QNAP drive. Accepts both call styles already used across the app:
+ *
+ *   createFolder('Civil Eng', 0, { code:'CE', shortName:'CE', icon:'zap', isDepartment:true })
+ *   createFolder('Networking', null, 'IT')
+ *
+ * Two bugs are fixed here:
+ *  1. The 3rd argument was typed as a string, but repository.js passed an
+ *     OBJECT. Model binding dropped it, so `code` never reached the server.
+ *     With no code stored, the UI fell back to the numeric DB id and rendered
+ *     categories literally named "1", "2", "3", "6".
+ *  2. Programs were sent with parentFolderId: null (because `typeof null` is
+ *     not 'number'), so the server stored every program as a ROOT folder and
+ *     the next page load promoted it to a phantom category. The server now
+ *     resolves the parent from `dept`, so null is the correct value to send.
+ *
+ * Note: parentFolderId 0 is NOT a real row (it broke the self-referencing FK
+ * and returned a 500). It is sent as null and the server treats both as root.
+ */
+async createFolder(name, parentFolderId = null, deptOrMeta = '') {
     await delay();
+
+    const meta = (deptOrMeta && typeof deptOrMeta === 'object') ? deptOrMeta : {};
+    const deptCode = String(
+        (deptOrMeta && typeof deptOrMeta === 'object')
+            ? (meta.code || meta.shortName || '')
+            : (deptOrMeta || '')
+    ).toUpperCase();
+
+    const isDepartment = meta.isDepartment === true || parentFolderId === 0;
+
+    const payload = {
+        name: String(name || '').trim(),
+        // Root is null. Anything else must be a real folder id.
+        parentFolderId: (typeof parentFolderId === 'number' && parentFolderId > 0)
+            ? parentFolderId
+            : null,
+        dept: deptCode,
+        code: isDepartment ? deptCode : '',
+        shortName: isDepartment ? deptCode : '',
+        icon: meta.icon || '',
+        isDepartment: isDepartment
+    };
+
     try {
-        return await fetchAPI('/api/Folders', {
+        const result = await fetchAPI('/api/Folders', {
             method: 'POST',
-            body: JSON.stringify({ 
-                name, 
-                parentFolderId: typeof parentFolderId === 'number' ? parentFolderId : null,
-                dept: dept || ''
-            })
+            body: JSON.stringify(payload)
         });
+
+        // The server reports a folder it saved but could not create on the
+        // drive. Surface it instead of reporting a false success.
+        if (result && result.warning) {
+            console.warn('createFolder warning:', result.warning);
+        }
+        return result;
     } catch (err) {
-        console.warn("API failed to create folder.");
+        console.error('createFolder failed. Payload was:', payload, err);
         throw err;
     }
 },
