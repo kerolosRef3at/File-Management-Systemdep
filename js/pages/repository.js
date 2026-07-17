@@ -1254,16 +1254,31 @@ if (currentProgram) {
                 
                 // The server call is what creates the real folder on the QNAP
                 // drive and makes the category selectable on the Upload page.
+                // If it fails we must NOT add the category locally: it would show
+                // in this sidebar while being invisible to everyone else and
+                // absent from the drive.
+                let apiResult;
                 try {
-                    await folderService.createFolder(name, 0, {
+                    apiResult = await folderService.createFolder(name, 0, {
                         code: id, shortName: id, icon: icon, isDepartment: true
                     });
                 } catch (e) {
                     console.error('createFolder (category) failed:', e);
                     alert(
-                        'The category was added locally, but the server rejected it.\n\n' +
-                        'No folder was created on the QNAP drive and other users will ' +
-                        'not see it.\n\nError: ' + (e && e.message ? e.message : e)
+                        'The category was not created.\n\n' +
+                        (e && e.message ? e.message : e) +
+                        '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
+                        ', and cannot be blank, a plain number, or a GUID.' +
+                        '\n\nNothing was changed. Fix the name and try again.'
+                    );
+                    return;   // keep the modal open so the name can be corrected
+                }
+
+                // Saved in the database, but the drive folder could not be made.
+                if (apiResult && apiResult.warning) {
+                    alert(
+                        'The category was created, but the folder on the drive was not:\n\n' +
+                        apiResult.warning
                     );
                 }
 
@@ -1369,17 +1384,30 @@ if (currentProgram) {
                         alert('A program with this ID already exists in this department.');
                         return;
                     }
-                    // Creates the real subfolder on the QNAP drive.
+                    // Creates the real subfolder on the QNAP drive. Same rule as
+                    // above: if the server rejects it, do not add it locally.
+                    let progResult;
                     try {
-                        await folderService.createFolder(name, null, activeDept.id);
+                        progResult = await folderService.createFolder(name, null, activeDept.id);
                     } catch (e) {
                         console.error('createFolder (program) failed:', e);
                         alert(
-                            'The program was added locally, but the server rejected it.\n\n' +
-                            'No folder was created on the QNAP drive.\n\nError: ' +
-                            (e && e.message ? e.message : e)
+                            'The program was not created.\n\n' +
+                            (e && e.message ? e.message : e) +
+                            '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
+                            ', and cannot be blank, a plain number, or a GUID.' +
+                            '\n\nNothing was changed. Fix the name and try again.'
+                        );
+                        return;
+                    }
+
+                    if (progResult && progResult.warning) {
+                        alert(
+                            'The program was created, but the folder on the drive was not:\n\n' +
+                            progResult.warning
                         );
                     }
+
                     activeDept.programs.push({
                         id: progId,
                         name: name
