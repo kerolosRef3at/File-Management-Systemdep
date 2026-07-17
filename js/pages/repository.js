@@ -1455,7 +1455,11 @@ if (currentProgram) {
     // ========================
     // INIT: Load and Render Everything
     // ========================
-    handleUrlParams();
+    // handleUrlParams() used to run HERE, before the departments were fetched.
+    // It looks the ?dept= code up in mockDepartments, so it only ever worked
+    // for the three departments that were hard-coded into that array at module
+    // scope -- ?dept=DESIGN was silently ignored. Now that the list is built
+    // entirely from the server, it has to run after the fetch. See below.
 
     // Show Skeletons before fetching data
     const filesContainerEl = document.getElementById('filesContainer');
@@ -1497,6 +1501,9 @@ if (currentProgram) {
     } catch (e) {
         console.warn('Could not load folders:', e);
     }
+
+    // Only now can ?dept=CODE be resolved against a real department list.
+    handleUrlParams();
 
     renderDeptSidebar();
     renderDeptSummaryCards();
