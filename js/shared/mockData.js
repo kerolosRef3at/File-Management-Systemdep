@@ -122,14 +122,28 @@ function purgeLegacyLocalCache() {
 
 purgeLegacyLocalCache();
 
-function addProgram(dept, id, name) {
+// dbId is the folder's real numeric primary key. Without it the delete button
+// had nothing but prog.id, and prog.id falls back to the folder NAME whenever
+// code is null (which it always is for programs). The delete handler tests
+// /^\d+$/ on that value, got a name, and silently skipped the API call --
+// removing the card from memory only. The folder stayed in the database, so
+// the next reload brought it straight back.
+function addProgram(dept, id, name, dbId) {
     if (!dept || isJunkFolderName(name)) return;
     if (!Array.isArray(dept.programs)) dept.programs = [];
-    const exists = dept.programs.some(p =>
+    const existing = dept.programs.find(p =>
         String(p.id).toLowerCase() === String(id).toLowerCase() ||
         String(p.name).toLowerCase() === String(name).toLowerCase()
     );
-    if (!exists) dept.programs.push({ id: String(id), name: String(name) });
+    if (existing) {
+        if (dbId !== undefined && dbId !== null && existing.dbId === undefined) {
+            existing.dbId = dbId;
+        }
+        return;
+    }
+    const prog = { id: String(id), name: String(name) };
+    if (dbId !== undefined && dbId !== null) prog.dbId = dbId;
+    dept.programs.push(prog);
 }
 
 function findDept(ref) {
@@ -202,7 +216,8 @@ export function hydrateDepartments(apiFolders, files) {
         if (!dept) return;
 
         const raw = folderCode(f);
-        addProgram(dept, isJunkFolderName(raw) ? name : raw, name);
+        const dbId = pick(f, ['id', 'Id', 'folderId', 'FolderId']);
+        addProgram(dept, isJunkFolderName(raw) ? name : raw, name, dbId);
     });
 
     // Programs implied by uploaded files.

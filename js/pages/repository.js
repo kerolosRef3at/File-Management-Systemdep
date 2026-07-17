@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <span class="program-card-count">${totalFiles.toLocaleString()} Files</span>
                         <div style="display:flex; align-items:center; gap:8px;">
                             <span class="program-card-badge">${dept.shortName} DEPT</span>
-                            ${!isGuest ? `<button class="delete-category-btn" data-id="${prog.id}" data-name="${prog.name}" title="Delete Category" style="background:none; border:none; color:#dc2626; cursor:pointer; padding:0; display:flex; align-items:center;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                            ${!isGuest ? `<button class="delete-category-btn" data-id="${prog.dbId ?? prog.id}" data-name="${prog.name}" title="Delete Category" style="background:none; border:none; color:#dc2626; cursor:pointer; padding:0; display:flex; align-items:center;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
                         </div>
                     </div>
                 </div>
@@ -515,15 +515,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // تأكد إن الـ ID رقم
         const numericId = /^\d+$/.test(String(catId)) ? parseInt(catId) : NaN;
         if (isNaN(numericId)) {
-            // لو مش رقم، شيله من الـ mockDepartments بس من غير ما تكلم الـ API
-            const dept = mockDepartments.find(d => d.id === currentDept);
-            if (dept) {
-                dept.programs = dept.programs.filter(p => p.id !== catId);
-                dept.categories = dept.programs.length;
-            }
-            renderDeptSidebar();
-            renderDeptSummaryCards();
-            renderCategoriesView();
+            // This used to quietly drop the card from memory and return without
+            // ever calling the API, so the folder stayed in the database and
+            // reappeared on the next reload. Never pretend a delete succeeded.
+            alert(
+                'Cannot delete "' + catName + '": no server id was found for this ' +
+                'program, so there is nothing to delete on the server.\n\n' +
+                'Reload the page and try again.'
+            );
             return;
         }
         
