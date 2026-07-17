@@ -100,38 +100,27 @@ function isTopLevelFolder(f) {
     return false;
 }
 
-// --- localStorage helpers ---------------------------------------------
-function readList(key) {
+// --- one-time cleanup of the old local cache -------------------------
+// Categories and programs used to be mirrored into localStorage because the
+// API could not persist them (parentFolderId 0 broke the self-referencing FK,
+// so every create returned a swallowed 500). The server is authoritative now,
+// and keeping a second copy created ghosts: deleting a program removed it from
+// the database but the localStorage copy survived and hydrateDepartments put
+// it straight back on the next reload -- sometimes under the wrong department,
+// because an old entry carried a stale deptId.
+//
+// This clears the stale keys once so the ghosts disappear for existing users.
+// Nothing writes to them any more.
+function purgeLegacyLocalCache() {
     try {
-        const v = JSON.parse(localStorage.getItem(key) || '[]');
-        return Array.isArray(v) ? v : [];
+        localStorage.removeItem('AITU_CUSTOM_CATEGORIES');
+        localStorage.removeItem('AITU_CUSTOM_PROGRAMS');
     } catch (e) {
-        return [];
-    }
-}
-function writeList(key, list) {
-    try {
-        localStorage.setItem(key, JSON.stringify(list));
-    } catch (e) {
-        console.warn('Could not persist ' + key + ':', e);
+        // Private mode or storage disabled -- nothing to purge.
     }
 }
 
-export function saveCustomCategory(cat) {
-    if (!cat || isJunkFolderName(cat.name) || isJunkFolderName(cat.id)) return;
-    const list = readList('AITU_CUSTOM_CATEGORIES');
-    if (list.some(c => c.id === cat.id)) return;
-    list.push(cat);
-    writeList('AITU_CUSTOM_CATEGORIES', list);
-}
-
-export function saveCustomProgram(prog) {
-    if (!prog || isJunkFolderName(prog.name)) return;
-    const list = readList('AITU_CUSTOM_PROGRAMS');
-    if (list.some(p => p.id === prog.id && p.deptId === prog.deptId)) return;
-    list.push(prog);
-    writeList('AITU_CUSTOM_PROGRAMS', list);
-}
+purgeLegacyLocalCache();
 
 function addProgram(dept, id, name) {
     if (!dept || isJunkFolderName(name)) return;
@@ -224,13 +213,6 @@ export function hydrateDepartments(apiFolders, files) {
         if (dept) addProgram(dept, f.program, f.program);
     });
 
-    // Programs the admin created locally.
-    readList('AITU_CUSTOM_PROGRAMS').forEach(prog => {
-        if (!prog || isJunkFolderName(prog.name)) return;
-        const dept = findDept(prog.deptId);
-        if (dept) addProgram(dept, prog.id, prog.name);
-    });
-
     // Final safety net: scrub anything that slipped through any source.
     for (let i = mockDepartments.length - 1; i >= 0; i--) {
         const d = mockDepartments[i];
@@ -244,22 +226,6 @@ export function hydrateDepartments(apiFolders, files) {
     mockDepartments.forEach(d => { d.categories = d.programs.length; });
     return mockDepartments;
 }
-
-// Restore admin-created categories (filtered).
-readList('AITU_CUSTOM_CATEGORIES').forEach(cat => {
-    if (!cat || isJunkFolderName(cat.name) || isJunkFolderName(cat.id)) return;
-    if (mockDepartments.some(d => d.id === cat.id)) return;
-    if (!Array.isArray(cat.programs)) cat.programs = [];
-    if (cat.totalFiles === undefined) cat.totalFiles = 0;
-    mockDepartments.push(cat);
-});
-
-// Restore admin-created programs (filtered).
-readList('AITU_CUSTOM_PROGRAMS').forEach(prog => {
-    if (!prog || isJunkFolderName(prog.name)) return;
-    const dept = findDept(prog.deptId);
-    if (dept) addProgram(dept, prog.id, prog.name);
-});
 
 const defaultMockFiles = [];
 

@@ -1,7 +1,7 @@
 // js/pages/repository.js
 import { getCurrentUser } from '../shared/auth.js';
 import { fileService, logService, folderService } from '../shared/services.js';
-import { mockDepartments, hydrateDepartments, saveCustomCategory, saveCustomProgram } from '../shared/mockData.js';
+import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 
@@ -1293,7 +1293,6 @@ if (currentProgram) {
                     programs: []
                 };
                 mockDepartments.push(newCat);
-                saveCustomCategory(newCat);
                 
                 // Log action
                 logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Category: ${name} (${id})`);
@@ -1412,7 +1411,6 @@ if (currentProgram) {
                         id: progId,
                         name: name
                     });
-                    saveCustomProgram({ id: progId, name: name, deptId: activeDept.id });
                     activeDept.categories = activeDept.programs.length;
                     
                     // Log action
