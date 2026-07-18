@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (e) { /* silently fail on poll */ }
         }, 30000);
     } catch (err) {
-        content.innerHTML = '<div style="padding: 40px; color: #E63946; text-align: center;">Failed to load dashboard data. Please try again.</div>';
+        console.error('DASHBOARD LOAD FAILED:', err);
+        content.innerHTML = '<div style="padding: 40px; color: #E63946; text-align: center;">Failed to load dashboard data.<br><br><code style="font-size:12px;color:#333;">' + (err && err.message ? err.message : err) + '</code></div>';
     } finally {
         // Hide Global Loader
         const loader = document.getElementById('global-page-loader');
