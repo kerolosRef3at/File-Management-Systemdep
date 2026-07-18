@@ -5,9 +5,26 @@ import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
+
+// Mirrors RoleHelper.cs. A hard-coded list like
+//     ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager']
+// locks out the manager of every department created after launch: a
+// DESIGN Manager is not in the list, so the page bounces them to login.
+// Matching the SHAPE of the role instead means any department works.
+function canManageContent(role) {
+    const r = String(role || '').trim();
+    if (r === 'Supervisor') return true;
+    return /\s+Manager$/i.test(r);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Route guard
-    if (!protectPage(['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'])) {
+    // protectPage() takes a list, so ask it only for a logged-in user and do
+    // the role test here by shape -- see canManageContent above.
+    if (!protectPage()) return;
+    if (!canManageContent(getCurrentUser()?.role)) {
+        alert('You do not have permission to create courses.');
+        window.location.href = 'courses.html';
         return;
     }
 

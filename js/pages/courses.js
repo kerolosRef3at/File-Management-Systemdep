@@ -5,6 +5,18 @@ import { getCurrentUser } from '../shared/auth.js';
 import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
+
+// Mirrors RoleHelper.cs. A hard-coded list like
+//     ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager']
+// locks out the manager of every department created after launch: a
+// DESIGN Manager is not in the list, so the page bounces them to login.
+// Matching the SHAPE of the role instead means any department works.
+function canManageContent(role) {
+    const r = String(role || '').trim();
+    if (r === 'Supervisor') return true;
+    return /\s+Manager$/i.test(r);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Departments + programs, filtered and de-duplicated (see mockData.js).
     try {
@@ -15,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
-    const canManageCourses = user && ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'].includes(user.role);
+    const canManageCourses = user && canManageContent(user.role);
 
     let allCourses = [];
     let currentDeptFilter = 'all';
@@ -336,9 +348,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <div class="admin-dept-tabs" id="adminDeptTabs">
                     <button class="admin-dept-tab active" data-dept="all">All Departments</button>
-                    <button class="admin-dept-tab" data-dept="IT">IT</button>
-                    <button class="admin-dept-tab" data-dept="ME">ME</button>
-                    <button class="admin-dept-tab" data-dept="EL">EL</button>
+                    ${mockDepartments.map(d =>
+                        `<button class="admin-dept-tab" data-dept="${d.id}">${d.shortName}</button>`
+                    ).join('')}
                 </div>
             </div>
             <div id="adminAlerts"></div>

@@ -3,9 +3,25 @@ import { renderLayout } from '../shared/layout.js';
 import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { dashboardService } from '../shared/services.js';
 
+
+// Mirrors RoleHelper.cs. A hard-coded list like
+//     ['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager']
+// locks out the manager of every department created after launch: a
+// DESIGN Manager is not in the list, so the page bounces them to login.
+// Matching the SHAPE of the role instead means any department works.
+function canManageContent(role) {
+    const r = String(role || '').trim();
+    if (r === 'Supervisor') return true;
+    return /\s+Manager$/i.test(r);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Protect: only authenticated non-public users
-    if (!protectPage(['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager'])) return;
+    if (!protectPage()) return;
+    if (!canManageContent(getCurrentUser()?.role)) {
+        window.location.href = 'repository.html';
+        return;
+    }
 
     // Render the admin sidebar layout
     renderLayout('dashboard');
@@ -320,17 +336,45 @@ document.addEventListener('DOMContentLoaded', async () => {
             '</svg>';
     }
 
-    // --- Donut Chart SVG ---
-    function renderDonutSVG(mix) {
-        const colors = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
-        const total = (mix.it || 0) + (mix.el || 0) + (mix.me || 0);
-        if (total === 0) return '<div style="color:#6B7A99;text-align:center;">No data</div>';
+    // --- Donut charts -----------------------------------------------------
+    // These used to read mix.it / mix.el / mix.me and nothing else, so the
+    // charts could only ever describe three departments. Everything else was
+    // invisible: a DESIGN slice simply did not exist, and the percentages of
+    // the three that were drawn were wrong because the total ignored the rest.
+    //
+    // services.js keys resourceMix/programDownloads by department CODE, for
+    // however many departments there are. Both renderers now take whatever
+    // keys they are handed.
 
-        const data = [
-            { key: 'IT', value: mix.it, color: colors.IT },
-            { key: 'EL', value: mix.el, color: colors.EL },
-            { key: 'ME', value: mix.me, color: colors.ME }
-        ];
+    // Named colours for the three original departments; the rest are generated
+    // by spacing hues evenly around the wheel, so any number of slices stays
+    // legible without anyone maintaining a colour list.
+    const NAMED_DEPT_COLORS = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
+
+    function deptColor(code, index, count) {
+        if (NAMED_DEPT_COLORS[code]) return NAMED_DEPT_COLORS[code];
+        const hue = Math.round((index * 360) / Math.max(count, 1));
+        return `hsl(${hue}, 55%, 45%)`;
+    }
+
+    /** { IT: 2, DESIGN: 1 } -> [{ key, value, color }], biggest first, zeroes dropped. */
+    function mixToSlices(mix) {
+        const entries = Object.entries(mix || {})
+            .map(([k, v]) => [String(k).toUpperCase(), Number(v) || 0])
+            .filter(([, v]) => v > 0)
+            .sort((a, b) => b[1] - a[1]);
+
+        return entries.map(([key, value], i) => ({
+            key,
+            value,
+            color: deptColor(key, i, entries.length)
+        }));
+    }
+
+    function renderDonutSVG(mix) {
+        const data = mixToSlices(mix);
+        const total = data.reduce((sum, d) => sum + d.value, 0);
+        if (total === 0) return '<div style="color:#6B7A99;text-align:center;">No data</div>';
 
         const cx = 85, cy = 85, R = 70, r = 45;
         let startAngle = -90; // Start at top
@@ -366,17 +410,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function renderDonutLegend(mix, suffix = '') {
-        const colors = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
-        const labels = { IT: 'Information Tech', EL: 'Electrical Eng.', ME: 'Mechanical Eng.' };
-        const total = (mix.it || 0) + (mix.el || 0) + (mix.me || 0);
+        const data = mixToSlices(mix);
+        const total = data.reduce((sum, d) => sum + d.value, 0);
 
-        return ['IT', 'EL', 'ME'].map(key => {
-            const val = mix[key.toLowerCase()] || 0;
-            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
-            return '<a class="dash-legend-item" href="repository.html?dept=' + key + '">' +
-                '<div class="dash-legend-dot" style="background:' + colors[key] + '"></div>' +
-                '<span class="dash-legend-label">' + labels[key] + '</span>' +
-                '<span class="dash-legend-value">' + val + (suffix ? ' ' + suffix : '') + ' <span style="font-size:11px;color:#6B7A99;">(' + pct + '%)</span></span>' +
+        if (total === 0) {
+            return '<div style="color:#6B7A99;font-size:13px;">No data</div>';
+        }
+
+        return data.map(d => {
+            const pct = Math.round((d.value / total) * 100);
+            // The label was looked up in a fixed { IT: 'Information Tech', ... }
+            // map, so a new department had no name to show. The code is what the
+            // API returns and what ?dept= expects, so use it directly.
+            return '<a class="dash-legend-item" href="repository.html?dept=' + encodeURIComponent(d.key) + '">' +
+                '<div class="dash-legend-dot" style="background:' + d.color + '"></div>' +
+                '<span class="dash-legend-label">' + escapeHtml(d.key) + '</span>' +
+                '<span class="dash-legend-value">' + d.value + (suffix ? ' ' + suffix : '') +
+                ' <span style="font-size:11px;color:#6B7A99;">(' + pct + '%)</span></span>' +
                 '</a>';
         }).join('');
     }

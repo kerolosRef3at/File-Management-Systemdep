@@ -20,6 +20,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     let allUsers = [];
     let currentRoleFilter = 'all';
 
+    // Departments and roles come from the server. Both used to be typed into
+    // this file by hand -- three <option> tags, a name->id map, and a fixed set
+    // of role cards -- so a department created in the Repository had no entry
+    // anywhere here. Picking it was impossible; the code fell through to
+    // deptId = 1 (IT) and role "Mechanical Manager".
+    //   GET /api/Admin/departments -> [{ id, name, code, icon, managerRole }]
+    //   GET /api/Admin/roles       -> [{ role, deptCode, description }]
+    let departments = [];
+    let roles = [];
+
+    async function loadOrgData() {
+        try {
+            [departments, roles] = await Promise.all([
+                userService.getDepartments(),
+                userService.getRoles()
+            ]);
+        } catch (e) {
+            console.warn('Could not load departments/roles:', e);
+            departments = [];
+            roles = [];
+        }
+    }
+
+    /** "DESIGN Manager" -> "DESIGN". Null for Supervisor/Faculty. Mirrors RoleHelper.cs. */
+    function deptCodeFromRole(role) {
+        const r = String(role || '').trim();
+        const m = r.match(/^(.+)\s+Manager$/i);
+        return m ? m[1].trim().toUpperCase() : null;
+    }
+
+    const isManagerRole = role => deptCodeFromRole(role) !== null;
+
     function initUsersList() {
         contentArea.innerHTML = `
             <div class="page-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:15px;">
@@ -39,10 +71,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
                 <select class="filter-select" id="roleFilter">
                     <option value="all">All Roles</option>
-                    <option value="Supervisor">Supervisor</option>
-                    <option value="IT Manager">IT Manager</option>
-                    <option value="EL Manager">EL Manager</option>
-                    <option value="Mechanical Manager">Mechanical Manager</option>
+                    ${roles.map(r => `<option value="${r.role}">${r.role}</option>`).join('')}
                 </select>
             </div>
 
@@ -55,13 +84,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="metric-value" style="font-size: 1.8rem;" id="statSup">0</div>
                     <div class="metric-card-header" style="margin:0;">Supervisors</div>
                 </div>
-                <div class="metric-card stat-btn" data-role="IT Manager" style="padding: 15px; border-bottom: 4px solid #0284c7; cursor:pointer;" id="cardStatIT">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statIT">0</div>
-                    <div class="metric-card-header" style="margin:0;">IT Managers</div>
+                <!-- Counts by KIND of role, not by department. The old cards were
+                     "IT Managers" and "Field Managers" (EL + Mechanical), which
+                     meant a DESIGN Manager was counted in neither and the grid
+                     would need a new card for every department added. -->
+                <div class="metric-card stat-btn" data-role="managers" style="padding: 15px; border-bottom: 4px solid #0284c7; cursor:pointer;" id="cardStatManagers">
+                    <div class="metric-value" style="font-size: 1.8rem;" id="statManagers">0</div>
+                    <div class="metric-card-header" style="margin:0;">Dept. Managers</div>
                 </div>
-                <div class="metric-card stat-btn" data-role="Field" style="padding: 15px; border-bottom: 4px solid #16a34a; cursor:pointer;" id="cardStatField">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statField">0</div>
-                    <div class="metric-card-header" style="margin:0;">Field Managers</div>
+                <div class="metric-card stat-btn" data-role="Faculty" style="padding: 15px; border-bottom: 4px solid #16a34a; cursor:pointer;" id="cardStatFaculty">
+                    <div class="metric-value" style="font-size: 1.8rem;" id="statFaculty">0</div>
+                    <div class="metric-card-header" style="margin:0;">Faculty</div>
                 </div>
             </div>
 
@@ -197,29 +230,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     function updateStats() {
         const statTotal = document.getElementById('statTotal');
         const statSup = document.getElementById('statSup');
-        const statIT = document.getElementById('statIT');
-        const statField = document.getElementById('statField');
+        const statManagers = document.getElementById('statManagers');
+        const statFaculty = document.getElementById('statFaculty');
 
+        // Exact matches. The old code used .includes('it') / .includes('el'),
+        // which is why counts drifted: any role whose text happened to contain
+        // those letters was tallied, and new departments were counted nowhere.
         if (statTotal) statTotal.innerText = allUsers.length;
-        if (statSup) statSup.innerText = allUsers.filter(u => String(u.role || '').toLowerCase().includes('supervisor')).length;
-        if (statIT) statIT.innerText = allUsers.filter(u => String(u.role || '').toLowerCase().includes('it')).length;
-        if (statField) statField.innerText = allUsers.filter(u => {
-            const r = String(u.role || '').toLowerCase();
-            return r.includes('el') || r.includes('mechanical') || r.includes('mechanic');
-        }).length;
+        if (statSup) statSup.innerText = allUsers.filter(u => u.role === 'Supervisor').length;
+        if (statManagers) statManagers.innerText = allUsers.filter(u => isManagerRole(u.role)).length;
+        if (statFaculty) statFaculty.innerText = allUsers.filter(u => u.role === 'Faculty').length;
     }
 
+    // Only these three department codes have a badge colour in the stylesheet.
+    // Anything else gets the neutral default instead of being painted as ME,
+    // which is what `return 'role-me'` did to every new department.
+    // Substring tests are gone: .includes('it') also matched "Security ...",
+    // .includes('el') matched "Field ...".
     function getRoleBadgeClass(role) {
-        const r = String(role || '').toLowerCase();
-        if (r.includes('supervisor')) return 'role-supervisor';
-        if (r.includes('it')) return 'role-it';
-        if (r.includes('el')) return 'role-el';
-        return 'role-me';
+        if (role === 'Supervisor') return 'role-supervisor';
+        const code = deptCodeFromRole(role);
+        if (code === 'IT') return 'role-it';
+        if (code === 'EL') return 'role-el';
+        if (code === 'ME') return 'role-me';
+        return '';
     }
 
     function getRoleDisplay(role) {
-        if (role === 'Mechanic Manager') return 'Mechanical Manager';
-        return role;
+        // "Mechanic Manager" and "Mechanical Manager" are pre-migration names.
+        // The code-based scheme calls it "ME Manager".
+        if (role === 'Mechanic Manager' || role === 'Mechanical Manager') return 'ME Manager';
+        return role || '';
     }
 
     function renderUsers(usersToRender) {
@@ -359,12 +400,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Department</label>
+                                    <!-- value is the real Folders.Id. The old options carried
+                                         display NAMES, which the submit handler then mapped back
+                                         to an id with a hard-coded if/else chain. -->
                                     <select id="addDepartment" class="form-control" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
                                         <option value="" disabled selected>Select Department</option>
-                                        <option value="Information Tech">Information Tech (IT)</option>
-                                        <option value="Electrical Eng">Electrical Eng. (EL)</option>
-                                        <option value="Mechanical Eng">Mechanical Eng. (ME)</option>
+                                        ${departments.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('')}
                                     </select>
+                                    ${departments.length === 0 ? `
+                                        <div style="font-size:0.75rem; color:#dc2626; margin-top:6px;">
+                                            No departments found. Create one in the Repository first.
+                                        </div>` : ''}
                                 </div>
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Designation / Job Title</label>
@@ -413,28 +459,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <!-- Role Selector Cards -->
                         <div class="role-selector-group" style="display:flex; flex-direction:column; gap:15px;">
                             
-                            <!-- Faculty -->
+                            <!-- Three cards, whatever the number of departments.
+                                 There used to be a card per role, including a
+                                 hard-coded "IT Manager" one; DESIGN Manager had
+                                 nowhere to appear. "Department Manager" now
+                                 resolves to "{CODE} Manager" from the department
+                                 chosen above, exactly as RoleHelper.cs builds it. -->
+
                             <div class="role-option-card active" data-role="Faculty" style="border:2px solid #0b3b70; background:#eff6ff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
                                 <div style="font-weight:700; color:#0b3b70; font-size:0.95rem; margin-bottom:5px;">Faculty</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Basic access to upload course materials, manage own student lists, and view personal research repository.</div>
+                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Basic access to upload course materials and view the repository.</div>
                             </div>
 
-                            <!-- Department Head -->
-                            <div class="role-option-card" data-role="Department Head" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Department Head</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Full access to department-wide repositories, curriculum approval tools, and staff performance metrics.</div>
+                            <div class="role-option-card" data-role="Department Manager" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
+                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Department Manager</div>
+                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">
+                                    Full access to their own department's repository and courses.
+                                    The role is taken from the department selected on the left
+                                    &mdash; e.g. <strong id="roleManagerPreview">select a department</strong>.
+                                </div>
                             </div>
 
-                            <!-- IT Manager -->
-                            <div class="role-option-card" data-role="IT Manager" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">IT Manager</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Infrastructure management, user account provisioning (limited), and system configuration access.</div>
-                            </div>
-
-                            <!-- Super Admin -->
                             <div class="role-option-card" data-role="Supervisor" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Super Admin</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Unrestricted access to all system modules, global settings, audit logs, and security protocols.</div>
+                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Supervisor</div>
+                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Unrestricted access to every department, user management, and audit logs.</div>
                             </div>
 
                         </div>
@@ -481,6 +529,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         });
 
+        // Show the role the chosen department will actually produce, so the
+        // admin sees "DESIGN Manager" before saving rather than after.
+        const deptSelect = document.getElementById('addDepartment');
+        const rolePreview = document.getElementById('roleManagerPreview');
+        if (deptSelect && rolePreview) {
+            const syncPreview = () => {
+                const d = departments.find(x => String(x.id) === String(deptSelect.value));
+                rolePreview.textContent = d && d.code
+                    ? `${d.code} Manager`
+                    : 'select a department';
+            };
+            deptSelect.addEventListener('change', syncPreview);
+            syncPreview();
+        }
+
         // Trigger profile picture upload click
         const uploadArea = document.querySelector('.profile-pic-upload');
         const fileInput = document.getElementById('addProfilePic');
@@ -512,6 +575,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
+                // The old code defaulted a missing/unknown department to id 1 (IT)
+                // and silently created the user in the wrong place.
+                const chosenDept = departments.find(d => String(d.id) === String(department));
+                if (!chosenDept) {
+                    showAlert(alertBox, 'Please select a department.', 'error');
+                    return;
+                }
+
+                if (selectedRole === 'Department Manager' && !chosenDept.code) {
+                    showAlert(alertBox, `"${chosenDept.name}" has no department code, so it cannot have a manager. Set a code for it in the Repository.`, 'error');
+                    return;
+                }
+
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(email)) {
                     showAlert(alertBox, 'Please enter a valid email address.', 'error');
@@ -524,19 +600,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 try {
                     const username = email.split('@')[0];
 
-                    let resolvedRole = 'Public User';
-                    if (selectedRole === 'Supervisor') resolvedRole = 'Supervisor';
-                    else if (selectedRole === 'IT Manager') resolvedRole = 'IT Manager';
-                    else if (selectedRole === 'Department Head') {
-                        if (department === 'Information Tech') resolvedRole = 'IT Manager';
-                        else if (department === 'Electrical Eng') resolvedRole = 'EL Manager';
-                        else resolvedRole = 'Mechanical Manager';
-                    }
+                    // department is already the real Folders.Id.
+                    const deptId = parseInt(department, 10);
+                    const dept = departments.find(d => String(d.id) === String(department));
 
-                    let deptId = 1;
-                    if (department === 'Information Tech') deptId = 1;
-                    else if (department === 'Electrical Eng') deptId = 2;
-                    else if (department === 'Mechanical Eng') deptId = 3;
+                    // "Department Manager" means the manager of the department
+                    // chosen above: DESIGN -> "DESIGN Manager". Built the same
+                    // way RoleHelper.ManagerRoleFor() builds it server-side, so
+                    // any department works the moment it exists.
+                    let resolvedRole = selectedRole;
+                    if (selectedRole === 'Department Manager') {
+                        resolvedRole = `${dept.code} Manager`;
+                    }
 
                     await userService.createUser(username, email, phone, resolvedRole, deptId);
                     logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Add User', username);
@@ -555,6 +630,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Initialize list view on load
+    // Departments and roles must be in hand before anything renders: both the
+    // list filter and the create form are built from them.
+    await loadOrgData();
     initUsersList();
 });

@@ -190,28 +190,12 @@ function getDeptId(deptStr) {
     return String(deptStr).trim().replace(/\s+DEPT$/i, '').toUpperCase();
 }
 
-function detectProgram(name, deptId) {
-    const lower = (name || '').toLowerCase();
-    if (deptId === 'IT') {
-        if (lower.includes('net') || lower.includes('infra') || lower.includes('cs204') || lower.includes('ip') || lower.includes('route') || lower.includes('switch')) return 'it-net';
-        if (lower.includes('security') || lower.includes('cyber') || lower.includes('firewall') || lower.includes('pene') || lower.includes('cs410')) return 'it-cyber';
-        if (lower.includes('db') || lower.includes('sql') || lower.includes('data') || lower.includes('query') || lower.includes('cs301') || lower.includes('migration')) return 'it-db';
-        return 'it-prog'; // default program for IT
-    }
-    if (deptId === 'EL') {
-        if (lower.includes('power') || lower.includes('grid') || lower.includes('transformer') || lower.includes('ee305')) return 'el-power';
-        if (lower.includes('embed') || lower.includes('micro') || lower.includes('arduino') || lower.includes('ee201')) return 'el-embed';
-        return 'el-digital'; // default program for EL
-    }
-    if (deptId === 'ME') {
-        if (lower.includes('thermo') || lower.includes('heat') || lower.includes('turbine') || lower.includes('me201')) return 'me-thermo';
-        if (lower.includes('fluid') || lower.includes('pump') || lower.includes('flow') || lower.includes('me301')) return 'me-fluid';
-        if (lower.includes('cad') || lower.includes('3d') || lower.includes('design') || lower.includes('catalog') || lower.includes('blueprint')) return 'me-cad';
-        if (lower.includes('steel') || lower.includes('compos') || lower.includes('material') || lower.includes('me350')) return 'me-materials';
-        return 'me-manufacturing'; // default program for ME
-    }
-    return null;
-}
+// detectProgram() lived here: ~20 lines mapping file names to hard-coded
+// program ids ('it-net', 'el-power', 'me-cad') for the three original
+// departments. It was already dead code -- nothing called it -- and it could
+// never have worked for a department added after launch. Programs come from
+// the folder tree now.
+
 // ==========================================
 // 2. File Repository Service
 // ==========================================
@@ -511,6 +495,30 @@ export const courseService = {
 // 4. User Account Service
 // ==========================================
 export const userService = {
+    // The department list, straight from the server. Was hard-coded in users.js
+    // as three <option> tags plus a name->id map (Information Tech = 1, ...).
+    async getDepartments() {
+        try {
+            const res = await fetchAPI('/api/Admin/departments');
+            return Array.isArray(res) ? res : [];
+        } catch (err) {
+            console.warn('API failed to get departments:', err);
+            return [];
+        }
+    },
+
+    // Roles, generated server-side from the department codes. A new department
+    // brings its "{CODE} Manager" role along with no code change here.
+    async getRoles() {
+        try {
+            const res = await fetchAPI('/api/Admin/roles');
+            return Array.isArray(res) ? res : [];
+        } catch (err) {
+            console.warn('API failed to get roles:', err);
+            return [];
+        }
+    },
+
     async getUsers() {
         try {
             const res = await fetchAPI('/api/Admin/all');
@@ -648,16 +656,26 @@ async function getLiveAggregates() {
     if (!Array.isArray(folders)) folders = [];
     if (!Array.isArray(logs)) logs = [];
 
-    const resourceMix = { it: 0, el: 0, me: 0 };
-    const programDownloads = { it: 0, el: 0, me: 0 };
+    // Keyed by department CODE, built from whatever departments actually exist.
+    //
+    // These were fixed objects { it, el, me } filled by substring tests:
+    //     if (dept.includes('el')) ... else if (dept.includes('me')) ... else it++
+    // so a DESIGN file fell through to the else and was counted as IT, and a
+    // MEDIA file matched 'me' and was counted as Mechanical. The dashboard
+    // could only ever describe three departments, and described them wrong.
+    const resourceMix = {};
+    const programDownloads = {};
     let totalMB = 0;
 
+    const deptCodeOf = f =>
+        String(f.deptId || f.department || f.dept || '')
+            .trim().replace(/\s+DEPT$/i, '').toUpperCase() || 'UNASSIGNED';
+
     files.forEach(f => {
-        const dept = String(f.deptId || f.department || f.dept || 'it').toLowerCase();
+        const code = deptCodeOf(f);
         const dl = Number(f.downloads) || 0;
-        if (dept.includes('el')) { resourceMix.el++; programDownloads.el += dl; }
-        else if (dept.includes('me')) { resourceMix.me++; programDownloads.me += dl; }
-        else { resourceMix.it++; programDownloads.it += dl; }
+        resourceMix[code] = (resourceMix[code] || 0) + 1;
+        programDownloads[code] = (programDownloads[code] || 0) + dl;
 
         if (f.size) {
             const str = String(f.size).trim().toLowerCase();
@@ -749,8 +767,14 @@ export const dashboardService = {
     async getResourceMix() {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            if (data && data.resourceMix && (data.resourceMix.it > 0 || data.resourceMix.el > 0 || data.resourceMix.me > 0)) {
-                return data.resourceMix;
+            // The old guard tested data.resourceMix.it/el/me. The API returns
+            // { documents, media, logs } -- different keys entirely -- so it was
+            // always false and this always fell through to the live aggregate.
+            // Keep using the live one, but say so.
+            if (data && data.resourceMix && Object.values(data.resourceMix).some(v => v > 0)) {
+                // Only usable if it is keyed by department code.
+                const keys = Object.keys(data.resourceMix);
+                if (!keys.includes('documents')) return data.resourceMix;
             }
         } catch (err) {}
         const live = await getLiveAggregates();
@@ -760,7 +784,8 @@ export const dashboardService = {
     async getProgramDownloads() {
         try {
             const data = await fetchAPI('/api/Dashboard/metrics');
-            if (data && data.programDownloads && (data.programDownloads.it > 0 || data.programDownloads.el > 0 || data.programDownloads.me > 0)) {
+            if (data && data.programDownloads &&
+                Object.values(data.programDownloads).some(v => v > 0)) {
                 return data.programDownloads;
             }
         } catch (err) {}

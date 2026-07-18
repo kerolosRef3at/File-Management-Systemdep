@@ -9,40 +9,18 @@ export const mockUsers = [
     { id: 6, username: "aitu.localadmin", email: "admin@aitu.local", phone: "+1 555-0000", role: "Supervisor", joined: "2026-06-27", isProtected: true, password: "Admin123", name: "aitu.localadmin" }
 ];
 
-// Department hierarchy for the academic sidebar tree
-export const mockDepartments = [
-    {
-        id: 'IT',
-        name: 'Information Tech',
-        shortName: 'IT',
-        label: 'INFORMATION TECH',
-        icon: 'monitor',
-        totalFiles: 0,
-        categories: 0,
-        programs: []
-    },
-    {
-        id: 'EL',
-        name: 'Electrical Eng.',
-        shortName: 'EL',
-        label: 'ELECTRICAL ENG',
-        icon: 'zap',
-        totalFiles: 0,
-        categories: 0,
-        programs: []
-    },
-    {
-        id: 'ME',
-        name: 'Mechanical Eng.',
-        shortName: 'ME',
-        label: 'MECHANICAL ENG',
-        icon: 'settings',
-        totalFiles: 0,
-        categories: 0,
-        programs: []
-    }
-];
-
+// The department list. Deliberately EMPTY at module scope.
+//
+// This used to be hard-coded with IT / EL / ME, and hydrateDepartments only
+// ever APPENDED to it. That meant those three were pinned into the UI whether
+// or not they existed on the server: delete IT from the database and it still
+// showed up, and a system with different departments entirely still displayed
+// them. Every page shipped the same three fictional rows.
+//
+// The server is the only source of departments now. Whatever
+// GET /api/Folders returns with isDepartment = true is what the user sees --
+// three of them, or thirty, or none.
+export const mockDepartments = [];
 
 // =====================================================================
 // FOLDER SANITY + HYDRATION  (single source of truth)
