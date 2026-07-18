@@ -36,40 +36,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     let yearPickerOpen = false;
     let pollingInterval = null;
 
-    // --- Initial render with skeletons ---
-    renderDashboardSkeleton(content);
+    // --- Load (or reload) the whole dashboard for the current window --------
+    // One fetch, keyed by currentDays, feeds every section. The date dropdown
+    // calls this again, so changing the window updates the chart, donuts,
+    // events and captions together -- not just the stat cards.
+    async function loadDashboard() {
+        if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+        renderDashboardSkeleton(content);
+        try {
+            const m = await dashboardService.getMetrics(currentDays);
 
-    // --- Load all data ---
-    try {
-        const [stats, downloads, resourceMix, programDownloads, documents, events] = await Promise.all([
-            dashboardService.getStats(currentDays),
-            dashboardService.getDownloads(currentYear),
-            dashboardService.getResourceMix(),
-            dashboardService.getProgramDownloads(),
-            dashboardService.getDocuments(5),
-            dashboardService.getEvents(10)
-        ]);
+            const stats = {
+                totalFiles: m.totalFiles,
+                totalCourses: m.totalCourses,
+                totalPrograms: m.totalPrograms,
+                qnapStorage: m.qnapStorage || {
+                    usedPercentage: m.storageCapacityUsed || 0,
+                    usedValue: (m.storageCapacityValue || '0 GB / 0 GB').split('/')[0].trim(),
+                    totalValue: (m.storageCapacityValue || '0 GB / 0 GB').split('/')[1]?.trim() || 'Total'
+                },
+                pendingTasks: m.pendingTasks || 0,
+                netActivity: m.netActivity || '0',
+                trends: m.trends || {}
+            };
 
-        renderDashboard(content, { stats, downloads, resourceMix, programDownloads, documents, events });
+            renderDashboard(content, {
+                stats,
+                downloads: m.downloadVelocity || [],
+                resourceMix: m.resourceMix || {},
+                programDownloads: m.programDownloads || {},
+                documents: (m.highImpactDocuments || []).slice(0, 5),
+                events: (m.recentEvents || []).slice(0, 10)
+            });
 
-        // Poll events every 30s
-        pollingInterval = setInterval(async () => {
-            try {
-                const freshEvents = await dashboardService.getEvents(10);
-                renderEventsOnly(freshEvents);
-            } catch (e) { /* silently fail on poll */ }
-        }, 30000);
-    } catch (err) {
-        console.error('DASHBOARD LOAD FAILED:', err);
-        content.innerHTML = '<div style="padding: 40px; color: #E63946; text-align: center;">Failed to load dashboard data.<br><br><code style="font-size:12px;color:#333;">' + (err && err.message ? err.message : err) + '</code></div>';
-    } finally {
-        // Hide Global Loader
-        const loader = document.getElementById('global-page-loader');
-        if (loader) {
-            loader.classList.add('hide-loader');
-            setTimeout(() => loader.remove(), 400);
+            pollingInterval = setInterval(async () => {
+                try {
+                    const fresh = await dashboardService.getMetrics(currentDays);
+                    renderEventsOnly((fresh.recentEvents || []).slice(0, 10));
+                } catch (e) { /* silently fail on poll */ }
+            }, 30000);
+        } catch (err) {
+            console.error('Dashboard load failed:', err);
+            content.innerHTML = '<div style="padding: 40px; color: #E63946; text-align: center;">Failed to load dashboard data. Please try again.</div>';
+        } finally {
+            const loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(() => loader.remove(), 400);
+            }
         }
     }
+
+    await loadDashboard();
 
     // --- Skeleton loader ---
     function renderDashboardSkeleton(container) {
@@ -121,8 +139,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <select class="dash-filter-select" id="dashDaysFilter">
                         <option value="7"${currentDays === 7 ? ' selected' : ''}>Last 7 days</option>
                         <option value="30"${currentDays === 30 ? ' selected' : ''}>Last 30 days</option>
-                        <option value="90"${currentDays === 90 ? ' selected' : ''}>Last 90 days</option>
-                        <option value="365"${currentDays === 365 ? ' selected' : ''}>This Year</option>
+                        <option value="180"${currentDays === 180 ? ' selected' : ''}>Last 6 months</option>
+                        <option value="365"${currentDays === 365 ? ' selected' : ''}>Last year</option>
                     </select>
                 </div>
             </div>
@@ -350,10 +368,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Named colours for the three original departments; the rest are generated
     // by spacing hues evenly around the wheel, so any number of slices stays
     // legible without anyone maintaining a colour list.
-    const NAMED_DEPT_COLORS = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
+    // A function, not a const: function declarations hoist, so this is usable
+    // from renderDashboard above. As a const it sat in the temporal dead zone
+    // until execution reached line 353, and renderDonutSVG -- called earlier --
+    // threw "Cannot access 'NAMED_DEPT_COLORS' before initialization", which is
+    // what blanked the whole dashboard.
+    function namedDeptColor(code) {
+        const named = { IT: '#1B2340', EL: '#E63946', ME: '#6B7A99' };
+        return named[code] || null;
+    }
 
     function deptColor(code, index, count) {
-        if (NAMED_DEPT_COLORS[code]) return NAMED_DEPT_COLORS[code];
+        const named = namedDeptColor(code);
+        if (named) return named;
         const hue = Math.round((index * 360) / Math.max(count, 1));
         return `hsl(${hue}, 55%, 45%)`;
     }
@@ -481,20 +508,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (daysSelect) {
             daysSelect.addEventListener('change', async (e) => {
                 currentDays = Number(e.target.value);
-                try {
-                    const stats = await dashboardService.getStats(currentDays);
-                    // Re-render stat cards only
-                    const grid = document.querySelector('.dash-stats-grid');
-                    if (grid) {
-                        grid.innerHTML =
-                            renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles || 0), stats.trends?.totalFiles, 'files', 'blue') +
-                            renderStorageCard(stats) +
-                            renderStatCard('TOTAL COURSES', stats.totalCourses || 0, stats.trends?.totalCourses, 'courses', 'red') +
-                            renderStatCard('TOTAL PROGRAMS', stats.totalPrograms || 0, stats.trends?.totalPrograms, 'programs', 'green');
-                    }
-                } catch (err) {
-                    console.error('Failed to refresh stats:', err);
-                }
+                // The window drives the chart, the donuts, the events and the
+                // trend captions -- not just the stat cards. Reload everything.
+                await loadDashboard();
             });
         }
 

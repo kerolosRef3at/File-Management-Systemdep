@@ -726,10 +726,19 @@ async function getLiveAggregates() {
 // 7. Dashboard Service
 // ==========================================
 export const dashboardService = {
+    // One fetch for the whole dashboard, carrying the selected window.
+    // The page used to call six separate methods that each hit
+    // /api/Dashboard/metrics with no ?days, so the server was queried six times
+    // per load and the window was never sent. Call this once, pass the result
+    // to the render functions.
+    async getMetrics(days = 30) {
+        return await fetchAPI(`/api/Dashboard/metrics?days=${days}`);
+    },
+
     async getStats(days = 30) {
         let apiData = null;
         try {
-            apiData = await fetchAPI('/api/Dashboard/metrics');
+            apiData = await fetchAPI(`/api/Dashboard/metrics?days=${days}`);
         } catch (err) {}
 
         const live = await getLiveAggregates();
