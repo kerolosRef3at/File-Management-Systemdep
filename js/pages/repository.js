@@ -243,9 +243,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isActive = currentDept === dept.id;
             const deptIconSvg = getDeptIconSvg(dept.icon);
             const deptFilesCount = allFiles.filter(f => {
-                const fDeptId = String(f.deptId || f.department || '').toUpperCase();
-                const fDeptStr = String(f.dept || '').toUpperCase();
-                return fDeptId === dept.id.toUpperCase() || fDeptStr.startsWith(dept.shortName.toUpperCase());
+                // Exact match, not startsWith. "MEDIA".startsWith("ME") is true,
+                // so every MEDIA file was also counted under ME -- which is why
+                // ME showed 2 files when it had 1.
+                const fDept = String(f.dept || f.deptId || f.department || '').toUpperCase();
+                const deptId = String(dept.id).toUpperCase();
+                const deptCode = String(dept.shortName || '').toUpperCase();
+                return fDept === deptId || fDept === deptCode;
             }).length;
             html += `
                 <div class="dept-summary-card ${isActive ? 'active' : ''}" data-dept="${dept.id}">
@@ -477,10 +481,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         let html = '<div class="program-cards-grid">';
 
         dept.programs.forEach(prog => {
+            // Count only files that are BOTH in this department AND this program.
+            // The department check was missing, so a file whose program name
+            // matched (e.g. any "Mec Doc") was counted here regardless of which
+            // department it actually belonged to -- inflating the card's number.
+            const deptCode = String(dept.shortName || dept.id || '').toLowerCase();
             const fileCount = allFiles.filter(f => {
-            const fProg = String(f.program || '').toLowerCase();
-            return fProg === String(prog.id).toLowerCase() || 
-            fProg === String(prog.name).toLowerCase();
+                const fDept = String(f.dept || f.deptId || '').toLowerCase();
+                if (fDept !== deptCode) return false;
+                const fProg = String(f.program || '').toLowerCase();
+                return fProg === String(prog.id).toLowerCase() ||
+                       fProg === String(prog.name).toLowerCase();
             }).length;
             const totalFiles = fileCount;
             const iconSvg = getProgramIconSvg(prog.id);
@@ -695,12 +706,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     function getFilteredFiles() {
         let filtered = [...allFiles];
 
-        // Department filter
+        // Department filter -- exact match. startsWith let "MEDIA" files leak
+        // into the "ME" view (and any code that is a prefix of another).
         if (currentDept) {
+            const want = String(currentDept).toUpperCase();
             filtered = filtered.filter(f => {
-                const fDeptId = String(f.deptId || f.department || '').toUpperCase();
-                const fDeptStr = String(f.dept || '').toUpperCase();
-                return fDeptId === currentDept.toUpperCase() || fDeptStr.startsWith(currentDept.toUpperCase());
+                const fDept = String(f.dept || f.deptId || f.department || '').toUpperCase();
+                return fDept === want;
             });
         }
 

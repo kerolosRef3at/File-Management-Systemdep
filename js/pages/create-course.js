@@ -760,7 +760,8 @@ document.getElementById('courseBuilderForm').addEventListener('submit', async (e
                 : [{ name: 'Module 1', lessons: [] }],
             size: lessons.reduce((acc, l) => acc + parseFloat(l.size || 0), 0).toFixed(1) + ' MB',
             visibility: document.querySelector('input[name="visibility"]:checked')?.value || 'public',
-            guestDownloads: document.getElementById('guestDownloadToggle')?.checked || false
+            guestDownloads: document.getElementById('guestDownloadToggle')?.checked || false,
+            status: 'published'
         };
 
         await courseService.createCourse(coursePayload);
@@ -780,8 +781,59 @@ document.getElementById('courseBuilderForm').addEventListener('submit', async (e
     }
 });
 
-    // Save Draft
-    document.getElementById('saveDraftBtn').addEventListener('click', () => {
-        showAlert(alertsContainer, 'Draft configuration stored locally.', 'success');
+    // Save Draft -- text only, saved on the server.
+    // Files are NOT uploaded here; they belong to Publish. A draft records the
+    // course settings and lesson TITLES so the work survives on any device and
+    // is visible to any admin. It auto-expires after 30 days (server side).
+    document.getElementById('saveDraftBtn').addEventListener('click', async () => {
+        const saveDraftBtn = document.getElementById('saveDraftBtn');
+        const title = document.getElementById('courseTitle').value.trim();
+        const dept = document.getElementById('courseDept').value;
+
+        if (!title || !dept) {
+            showAlert(alertsContainer, 'Give the course a title and department before saving a draft.', 'warning');
+            return;
+        }
+
+        saveDraftBtn.disabled = true;
+        saveDraftBtn.innerText = 'Saving draft...';
+
+        try {
+            // Lesson titles only -- the pending files stay on this machine until
+            // the course is published.
+            const pendingFiles = window._pendingFiles || {};
+            const lessonStubs = Object.entries(pendingFiles).map(([id, d]) => ({
+                id,
+                title: d.lessonName,
+                file: '',
+                type: '',
+                size: ''
+            }));
+
+            const draftPayload = {
+                title,
+                dept,
+                description: document.getElementById('courseDescription').value.trim(),
+                category: document.getElementById('courseCat').value,
+                img: thumbnailDataUrl || '',
+                modules: [{ name: 'Module 1', lessons: lessonStubs }],
+                size: '0 MB',
+                visibility: document.querySelector('input[name="visibility"]:checked')?.value || 'public',
+                guestDownloads: document.getElementById('guestDownloadToggle')?.checked || false,
+                status: 'draft'
+            };
+
+            await courseService.createCourse(draftPayload);
+            showAlert(alertsContainer, 'Draft saved. It will be kept for 30 days and is visible to any admin.', 'success');
+            saveDraftBtn.innerText = 'Draft saved';
+            setTimeout(() => {
+                saveDraftBtn.disabled = false;
+                saveDraftBtn.innerText = 'Save Draft';
+            }, 2000);
+        } catch (err) {
+            showAlert(alertsContainer, err.message || 'Could not save the draft.', 'error');
+            saveDraftBtn.disabled = false;
+            saveDraftBtn.innerText = 'Save Draft';
+        }
     });
 });
