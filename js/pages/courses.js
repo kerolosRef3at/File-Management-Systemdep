@@ -17,6 +17,13 @@ function canManageContent(role) {
     return /\s+Manager$/i.test(r);
 }
 
+// Minimal HTML escaper for user-supplied draft text (title/description).
+function escapeHtml(str) {
+    return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     // Departments + programs, filtered and de-duplicated (see mockData.js).
     try {
@@ -351,6 +358,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ${mockDepartments.map(d =>
                         `<button class="admin-dept-tab" data-dept="${d.id}">${d.shortName}</button>`
                     ).join('')}
+                    <button class="admin-dept-tab" id="draftsTabBtn" data-dept="__drafts__"
+                        style="margin-left:8px;border:1px dashed #94a3b8;">
+                        Drafts <span id="draftsCountBadge" style="opacity:.7;"></span>
+                    </button>
                 </div>
             </div>
             <div id="adminAlerts"></div>
@@ -368,9 +379,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentDeptFilter = tab.dataset.dept;
-                renderAdminCourses();
+                if (currentDeptFilter === '__drafts__') {
+                    renderDrafts();
+                } else {
+                    renderAdminCourses();
+                }
             });
         });
+
+        // Show the draft count on the button as soon as the page loads.
+        refreshDraftsCount();
 
         // Load More
         document.getElementById('adminLoadMoreBtn').addEventListener('click', () => {
@@ -434,9 +452,110 @@ document.addEventListener('DOMContentLoaded', async () => {
         return '';
     }
 
+    // ===== Drafts =========================================================
+    // A draft is a course saved with Save Draft: text only, no files, hidden
+    // from the public list, auto-deleted after 30 days server-side.
+
+    async function refreshDraftsCount() {
+        try {
+            const drafts = await courseService.getDrafts();
+            const badge = document.getElementById('draftsCountBadge');
+            if (badge) badge.textContent = drafts.length ? `(${drafts.length})` : '';
+        } catch (e) { /* non-critical */ }
+    }
+
+    async function renderDrafts() {
+        const grid = document.getElementById('adminCourseGrid');
+        const footer = document.getElementById('adminCourseFooter');
+        if (footer) footer.style.display = 'none';
+        if (!grid) return;
+
+        grid.innerHTML = '<p style="padding:20px;color:#64748b;">Loading drafts...</p>';
+
+        let drafts = [];
+        try {
+            drafts = await courseService.getDrafts();
+        } catch (e) {
+            grid.innerHTML = '<p style="padding:20px;color:#dc2626;">Could not load drafts.</p>';
+            return;
+        }
+
+        // Lay the drafts out in a responsive grid.
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(320px, 1fr))';
+        grid.style.gap = '16px';
+
+        if (drafts.length === 0) {
+            grid.innerHTML = `
+                <div style="padding:40px;text-align:center;color:#64748b;">
+                    <p style="font-weight:600;margin-bottom:6px;">No drafts</p>
+                    <p style="font-size:0.9rem;">Use <strong>Save Draft</strong> on a new course to keep a work-in-progress here.</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = drafts.map(d => `
+            <div data-draft-id="${d.id}" style="
+                background:#fff;border:1px dashed #cbd5e1;border-radius:12px;
+                padding:20px;display:flex;flex-direction:column;gap:12px;
+                box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="background:#fef3c7;color:#92400e;font-size:0.7rem;
+                        font-weight:700;letter-spacing:0.03em;padding:3px 8px;border-radius:5px;">DRAFT</span>
+                    <span style="background:#eff6ff;color:#1e40af;font-size:0.7rem;
+                        font-weight:700;padding:3px 8px;border-radius:5px;">${escapeHtml(d.dept || '')}</span>
+                </div>
+                <div>
+                    <h3 style="font-size:1.15rem;font-weight:700;color:#0f172a;margin:0 0 4px;">
+                        ${escapeHtml(d.title || 'Untitled')}</h3>
+                    <p style="font-size:0.88rem;color:#64748b;margin:0;line-height:1.5;
+                        display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                        ${escapeHtml(d.description || 'No description yet.')}</p>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button class="draft-continue" data-id="${d.id}" style="
+                        flex:1;background:#0b3b70;color:#fff;border:none;border-radius:8px;
+                        padding:10px;font-weight:600;cursor:pointer;">Continue</button>
+                    <button class="draft-delete" data-id="${d.id}" data-title="${escapeHtml(d.title || 'Untitled')}" style="
+                        background:#fff;color:#dc2626;border:1px solid #dc2626;border-radius:8px;
+                        padding:10px 16px;font-weight:600;cursor:pointer;">Delete</button>
+                </div>
+            </div>
+        `).join('');
+
+        // Continue -> open the create page with this draft id to resume it.
+        grid.querySelectorAll('.draft-continue').forEach(btn => {
+            btn.addEventListener('click', () => {
+                window.location.href = `create-course.html?draft=${btn.dataset.id}`;
+            });
+        });
+
+        // Delete -> remove the draft (with confirmation).
+        grid.querySelectorAll('.draft-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (!confirm(`Delete draft "${btn.dataset.title}"? This cannot be undone.`)) return;
+                btn.disabled = true;
+                try {
+                    await courseService.deleteCourse(btn.dataset.id);
+                    await renderDrafts();
+                    refreshDraftsCount();
+                } catch (e) {
+                    alert('Could not delete the draft.');
+                    btn.disabled = false;
+                }
+            });
+        });
+    }
+
     function renderAdminCourses() {
         const grid = document.getElementById('adminCourseGrid');
         if (!grid) return;
+
+        // renderDrafts() sets inline grid styles on this element; clear them so
+        // the normal course layout (its own CSS class) is restored.
+        grid.style.display = '';
+        grid.style.gridTemplateColumns = '';
+        grid.style.gap = '';
 
         let filtered = [...allCourses];
 

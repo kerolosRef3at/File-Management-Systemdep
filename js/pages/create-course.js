@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check if edit mode
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('edit');
+    const draftId = urlParams.get('draft');
 
     // Load persisted uploads
     loadPersistedUploads();
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <p style="color: var(--text-gray);">Drafting specialized academic content for the 2024 Semester.</p>
                 </div>
                 <div style="display:flex; gap:15px;">
+                    <button type="button" class="btn-outline" id="discardBtn" style="color:#dc2626;border-color:#dc2626;">Discard</button>
                     <button type="button" class="btn-outline" id="saveDraftBtn">Save Draft</button>
                     <button type="submit" class="btn-primary" id="publishCourseBtn">Publish Course</button>
                 </div>
@@ -385,6 +387,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         const subEl = document.querySelector('.create-course-subtitle');
         if (titleEl) titleEl.textContent = 'Edit Course Package';
         if (subEl) subEl.textContent = 'Update the details and content of this existing curriculum package.';
+    }
+
+    // Resuming a draft: pull the saved values back into the form. Files were
+    // never part of the draft (text only), so the file list starts empty --
+    // add the files before publishing.
+    if (draftId) {
+        const titleEl = document.querySelector('.create-course-title h1');
+        if (titleEl) titleEl.textContent = 'Continue Draft';
+        try {
+            const d = await courseService.getCourseDetails(draftId);
+            if (d) {
+                const tEl = document.getElementById('courseTitle');
+                const descEl = document.getElementById('courseDescription');
+                const deptSel = document.getElementById('courseDept');
+                if (tEl) tEl.value = d.title || '';
+                if (descEl) descEl.value = d.description || '';
+                if (deptSel && d.dept) {
+                    deptSel.value = d.dept;
+                    // Fire change so the category list for this dept is built.
+                    deptSel.dispatchEvent(new Event('change'));
+                }
+                // Category options are populated by the change handler above;
+                // set the saved category on the next tick, once they exist.
+                setTimeout(() => {
+                    const catSel = document.getElementById('courseCat');
+                    if (catSel && d.category) catSel.value = d.category;
+                }, 50);
+                if (typeof thumbnailDataUrl !== 'undefined' && d.img) {
+                    // best-effort: keep the saved thumbnail reference
+                    try { thumbnailDataUrl = d.img; } catch (e) {}
+                }
+                showAlert(alertsContainer,
+                    'Draft loaded. Add the course files, then Publish. Publishing removes the draft.',
+                    'info');
+            }
+        } catch (e) {
+            showAlert(alertsContainer, 'Could not load this draft.', 'error');
+        }
     }
 
     // Upload file inputs
@@ -766,6 +806,11 @@ document.getElementById('courseBuilderForm').addEventListener('submit', async (e
 
         await courseService.createCourse(coursePayload);
 
+        // If this was a resumed draft, remove it so it doesn't linger.
+        if (draftId) {
+            try { await courseService.deleteCourse(draftId); } catch (e) { /* best effort */ }
+        }
+
         // ✅ 3. امسح الـ pending files والـ localStorage
         window._pendingFiles = {};
         localStorage.removeItem('AITU_UPLOADS');
@@ -780,6 +825,27 @@ document.getElementById('courseBuilderForm').addEventListener('submit', async (e
         publishBtn.innerText = 'Publish Course';
     }
 });
+
+    // Discard -- abandon the form. If we were resuming a draft, offer to delete
+    // it; otherwise just leave. Always confirms first so nothing is lost by a
+    // stray click.
+    const discardBtn = document.getElementById('discardBtn');
+    if (discardBtn) {
+        discardBtn.addEventListener('click', async () => {
+            const hasWork = document.getElementById('courseTitle').value.trim()
+                || Object.keys(window._pendingFiles || {}).length > 0;
+            if (hasWork && !confirm('Discard this course? Anything not saved as a draft will be lost.')) {
+                return;
+            }
+            if (draftId) {
+                if (confirm('Also delete the saved draft?')) {
+                    try { await courseService.deleteCourse(draftId); } catch (e) { /* best effort */ }
+                }
+            }
+            window._pendingFiles = {};
+            window.location.href = 'courses.html';
+        });
+    }
 
     // Save Draft -- text only, saved on the server.
     // Files are NOT uploaded here; they belong to Publish. A draft records the

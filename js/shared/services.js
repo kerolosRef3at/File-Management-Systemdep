@@ -458,6 +458,17 @@ export const courseService = {
         }
     },
 
+    // Drafts are hidden from the public list; this asks for them explicitly.
+    async getDrafts() {
+        try {
+            const all = await fetchAPI('/api/Courses?includeDrafts=true');
+            return (all || []).filter(c => c.status === 'draft');
+        } catch (err) {
+            console.warn("API failed to get drafts:", err);
+            return [];
+        }
+    },
+
     async getCourseDetails(id) {
         try {
             return await fetchAPI(`/api/Courses/${id}`);
