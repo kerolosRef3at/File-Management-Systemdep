@@ -7,6 +7,7 @@
     <title>Login - AITU Admin Portal</title>
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/rtl.css">
     <script>(function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();</script>
 </head>
 
@@ -58,7 +59,7 @@
 
                         <div class="form-group">
                             <label for="password" data-i18n="login_password_label">Password</label>
-                            <input type="password" id="password" class="form-control has-icon" placeholder="********" required>
+                            <input type="password" id="password" class="form-control has-icon" data-i18n-placeholder="login_password_placeholder" placeholder="Enter Your Password" required>
                             <span class="toggle-password" id="togglePasswordBtn">
                                 <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>

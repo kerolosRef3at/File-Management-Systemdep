@@ -473,6 +473,28 @@
     color: var(--text-gray);
 }
 
+.delete-dept-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+.delete-dept-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+    transform: scale(1.06);
+}
+
 .dept-card-icon {
     width: 42px;
     height: 42px;
@@ -780,6 +802,12 @@
     transition: all 0.2s;
     background: var(--white);
     vertical-align: middle;
+}
+
+.repo-file-card,
+.repo-file-table tbody tr[data-file-id] {
+    cursor: pointer !important;
+    user-select: none;
 }
 
 .repo-table-checkbox:checked {
@@ -1237,9 +1265,13 @@
 }
 
 .repo-footer-brand img {
-    border-radius: 6px;
-    background: white;
-    padding: 2px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: transparent;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .repo-footer-brand strong {
@@ -1278,6 +1310,12 @@
 }
 
 @media (max-width: 768px) {
+    /* Mobile-only: Hide non-active department cards when a department is selected */
+    .dept-summary-cards.has-active-card .dept-summary-card:not(.active),
+    .dept-summary-cards:has(.dept-summary-card.active) .dept-summary-card:not(.active) {
+        display: none !important;
+    }
+
     .repo-navbar-inner {
         padding: 0 16px;
         gap: 10px;
@@ -1542,7 +1580,7 @@
    RTL Support for Repository
 ========================================= */
 html[dir="rtl"] .repo-navbar-inner {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 html[dir="rtl"] .repo-nav-links {
@@ -1550,29 +1588,22 @@ html[dir="rtl"] .repo-nav-links {
 }
 
 html[dir="rtl"] .repo-nav-right {
-    flex-direction: row-reverse;
+    margin-left: 0;
+    margin-right: auto;
 }
 
 html[dir="rtl"] .repo-body {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 html[dir="rtl"] .dept-sidebar {
-    border-right: none;
-    border-left: 1px solid var(--border-color);
-}
-
-html[dir="rtl"] .dept-group-header {
-    flex-direction: row-reverse;
+    border-left: none;
+    border-right: 1px solid var(--border-color);
     text-align: right;
 }
 
-html[dir="rtl"] .dept-group-header .dept-chevron {
-    transform: rotate(180deg);
-}
-
-html[dir="rtl"] .dept-group-header.expanded .dept-chevron {
-    transform: rotate(90deg);
+html[dir="rtl"] .dept-group-header {
+    text-align: right;
 }
 
 html[dir="rtl"] .dept-programs {
@@ -1593,7 +1624,7 @@ html[dir="rtl"] .repo-title-section {
 }
 
 html[dir="rtl"] .repo-controls-bar {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 html[dir="rtl"] .repo-breadcrumb {
@@ -1601,12 +1632,10 @@ html[dir="rtl"] .repo-breadcrumb {
 }
 
 html[dir="rtl"] .dept-summary-card {
-    flex-direction: row-reverse;
     text-align: right;
 }
 
 html[dir="rtl"] .sidebar-top-heading {
-    flex-direction: row-reverse;
     text-align: right;
 }
 
@@ -1614,13 +1643,16 @@ html[dir="rtl"] .sidebar-heading-text {
     text-align: right;
 }
 
+html[dir="rtl"] .bulk-download-cta {
+    text-align: right;
+}
+
 html[dir="rtl"] .repo-footer-inner {
-    flex-direction: row-reverse;
+    direction: rtl;
     text-align: right;
 }
 
 html[dir="rtl"] .repo-footer-brand {
-    flex-direction: row-reverse;
     text-align: right;
 }
 

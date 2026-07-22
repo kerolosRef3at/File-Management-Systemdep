@@ -4,6 +4,8 @@ import { courseService, folderService } from '../shared/services.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
+import { getDeptDisplayName, getCurrentLang } from '../shared/jssharedi18n.js';
+import { initCourseBuilder } from './create-course.js';
 
 
 // Mirrors RoleHelper.cs. A hard-coded list like
@@ -24,33 +26,63 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Departments + programs, filtered and de-duplicated (see mockData.js).
-    try {
-        hydrateDepartments(await folderService.getFolders());
-    } catch (e) {
-        console.warn('Could not load folders:', e);
-    }
-
+document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
     const canManageCourses = user && canManageContent(user.role);
 
     let allCourses = [];
     let currentDeptFilter = 'all';
-    let currentProgramFilter = 'all'; // متغير الفلتر الفرعي الجديد
+    let currentProgramFilter = 'all';
     let searchTerm = '';
     let currentPage = 1;
     const coursesPerPage = 6;
 
-    // ============================
-    // DECIDE: PUBLIC or ADMIN
-    // ============================
+    // 1. Render layout shell immediately so the page is never blank!
     if (isAdmin) {
         renderAdminView();
     } else {
         renderPublicView();
     }
+
+    // 2. Hide global loader fast
+    const dismissLoader = () => {
+        const loader = document.getElementById('global-page-loader');
+        if (loader) {
+            loader.classList.add('hide-loader');
+            setTimeout(() => loader.remove(), 250);
+        }
+    };
+    setTimeout(dismissLoader, 150);
+
+    // 3. Load Folders and Courses in background
+    (async () => {
+        try {
+            const [foldersData, coursesData] = await Promise.all([
+                folderService.getFolders().catch(() => []),
+                courseService.getCourses().catch(() => [])
+            ]);
+
+            if (foldersData && foldersData.length) {
+                hydrateDepartments(foldersData);
+                if (!isAdmin) renderPublicDeptTree();
+            }
+
+            if (coursesData && coursesData.length) {
+                allCourses = normalizeCourses(coursesData);
+            }
+
+            if (isAdmin) {
+                renderAdminCourses();
+            } else {
+                renderPublicCourses();
+            }
+        } catch (e) {
+            console.warn('Courses data load issue:', e);
+        } finally {
+            dismissLoader();
+        }
+    })();
 
     // ============================
     // PUBLIC VIEW
@@ -86,7 +118,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (mobileBtn && leftPanel && overlay) mobileBtn.addEventListener('click', togglePanel);
         if (filterBtn && leftPanel && overlay) filterBtn.addEventListener('click', togglePanel);
-        
+
         if (overlay) {
             overlay.addEventListener('click', () => {
                 leftPanel.classList.remove('open');
@@ -107,13 +139,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        // Load courses
-        loadAndRenderPublic();
-    }
-
-    async function loadAndRenderPublic() {
+        // Initial skeleton grid
         const grid = document.getElementById('publicCourseGrid');
-        if (grid) {
+        if (grid && allCourses.length === 0) {
             grid.innerHTML = `
                 <div class="skeleton-grid-container">
                     <div class="global-skeleton skeleton-card"></div>
@@ -125,20 +153,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </div>
             `;
         }
-        try {
-            const rawCourses = await courseService.getCourses();
-            allCourses = normalizeCourses(rawCourses);
-            renderPublicCourses();
-        } catch (e) {
-            if (grid) grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">Failed to load courses.</p>';
-        } finally {
-            // Hide Global Loader
-            const loader = document.getElementById('global-page-loader');
-            if (loader) {
-                loader.classList.add('hide-loader');
-                setTimeout(() => loader.remove(), 400);
-            }
-        }
+    }
+
+    async function loadAndRenderPublic() {
+        renderPublicCourses();
     }
 
     function renderPublicDeptTree() {
@@ -154,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="dept-group">
                     <div class="dept-group-header ${isExpanded ? 'expanded' : ''}" data-dept="${dept.id}">
                         <svg class="dept-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${deptIconSvg}</svg>
-                        <span class="dept-group-name">${dept.name}</span>
+                        <span class="dept-group-name">${getDeptDisplayName(dept.name)}</span>
                         <svg class="dept-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                     </div>
                     <div class="dept-programs ${isExpanded ? 'open' : ''}" data-dept-programs="${dept.id}">
@@ -201,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         tree.querySelectorAll('.dept-program-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation(); // منع تداخل الحدث مع القسم الرئيسي
-                
+
                 currentDeptFilter = item.dataset.dept;
                 currentProgramFilter = item.dataset.program;
                 currentPage = 1;
@@ -213,10 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // الحفاظ على القسم الرئيسي مفتوح
                 const header = tree.querySelector(`.dept-group-header[data-dept="${currentDeptFilter}"]`);
                 const programs = tree.querySelector(`[data-dept-programs="${currentDeptFilter}"]`);
-                
+
                 tree.querySelectorAll('.dept-group-header').forEach(h => h.classList.remove('expanded'));
                 tree.querySelectorAll('.dept-programs').forEach(p => p.classList.remove('open'));
-                
+
                 if (header) header.classList.add('expanded');
                 if (programs) programs.classList.add('open');
 
@@ -256,15 +274,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const startIdx = (currentPage - 1) * coursesPerPage;
         const pageCourses = filtered.slice(startIdx, startIdx + coursesPerPage);
+        const isAr = getCurrentLang() === 'ar';
 
         if (total === 0) {
-            grid.innerHTML = '<p style="text-align:center;color:var(--text-gray);padding:40px;">No courses match your criteria.</p>';
+            grid.innerHTML = `<p style="text-align:center;color:var(--text-gray);padding:40px;">${isAr ? 'لا توجد كورسات تطابق معاييرك.' : 'No courses match your criteria.'}</p>`;
             document.getElementById('coursesPagination').innerHTML = '';
             return;
         }
 
         grid.innerHTML = pageCourses.map(course => {
-            const deptClass = course.dept.toLowerCase();
+            const deptClass = getDeptBadgeColor(course.dept);
             return `
                 <div class="course-card-public" data-course-id="${course.id}">
                     <div class="course-card-thumb">
@@ -280,7 +299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="course-card-meta">
                             <span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                ${course.lessons} Lessons
+                                ${course.lessons} ${isAr ? 'درس' : 'Lessons'}
                             </span>
                             <span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
@@ -347,28 +366,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         const contentArea = document.getElementById('page-content');
         if (!contentArea) return;
 
+        const isAr = getCurrentLang() === 'ar';
+
         contentArea.innerHTML = `
             <div class="admin-courses-header">
                 <div>
-                    <h1>Course Repository</h1>
-                    <p>Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.</p>
+                    <h1>${isAr ? 'مستودع الكورسات الأكاديمية' : 'Course Repository'}</h1>
+                    <p>${isAr ? 'استكشف وادر المناهج الأكاديمية المعتمدة لكلية الهندسة وتكنولوجيا المعلومات.' : 'Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.'}</p>
                 </div>
                 <div class="admin-dept-tabs" id="adminDeptTabs">
-                    <button class="admin-dept-tab active" data-dept="all">All Departments</button>
+                    <button class="admin-dept-tab active" data-dept="all">${isAr ? 'جميع الأقسام' : 'All Departments'}</button>
                     ${mockDepartments.map(d =>
-                        `<button class="admin-dept-tab" data-dept="${d.id}">${d.shortName}</button>`
-                    ).join('')}
+            `<button class="admin-dept-tab" data-dept="${d.id}">${d.shortName}</button>`
+        ).join('')}
                     <button class="admin-dept-tab" id="draftsTabBtn" data-dept="__drafts__"
                         style="margin-left:8px;border:1px dashed #94a3b8;">
-                        Drafts <span id="draftsCountBadge" style="opacity:.7;"></span>
+                        ${isAr ? 'المسودات' : 'Drafts'} <span id="draftsCountBadge" style="opacity:.7;"></span>
                     </button>
                 </div>
             </div>
             <div id="adminAlerts"></div>
             <div class="admin-course-grid" id="adminCourseGrid"></div>
             <div class="admin-course-footer" id="adminCourseFooter" style="display:none;">
-                <p>Showing <span id="adminVisibleCount">0</span> of <span id="adminTotalCount">0</span> Courses</p>
-                <button class="btn-outline" id="adminLoadMoreBtn">Load More Resources</button>
+                <p>${isAr ? 'عرض' : 'Showing'} <span id="adminVisibleCount">0</span> ${isAr ? 'من أصل' : 'of'} <span id="adminTotalCount">0</span> ${isAr ? 'كورس' : 'Courses'}</p>
+                <button class="btn-outline" id="adminLoadMoreBtn">${isAr ? 'تحميل المزيد من الموارد' : 'Load More Resources'}</button>
             </div>
         `;
 
@@ -567,6 +588,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             filtered = filtered.filter(c => c.title.toLowerCase().includes(searchTerm));
         }
 
+        const isAr = getCurrentLang() === 'ar';
+
         grid.innerHTML = filtered.map(course => `
             <div class="admin-course-card" data-id="${course.id}">
                 <div class="admin-card-thumb">
@@ -578,7 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="admin-card-meta">
                         <span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                            ${course.lessons} Lessons
+                            ${course.lessons} ${isAr ? 'دروس' : 'Lessons'}
                         </span>
                         <span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
@@ -596,12 +619,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="admin-add-icon">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </div>
-                    <h3>Upload New Course</h3>
-                    <p>Standardize curriculum by adding new course modules to the central repository.</p>
+                    <h3>${isAr ? 'رفع كورس جديد' : 'Upload New Course'}</h3>
+                    <p>${isAr ? 'قم بتوحيد المناهج الأكاديمية عن طريق إضافة كورسات جديدة لمستودع النظام.' : 'Standardize curriculum by adding new course modules to the central repository.'}</p>
                 </div>
             `;
             document.getElementById('addNewCourseCard').addEventListener('click', () => {
-                window.location.href = 'create-course.html';
+                openCreateCourseModal();
             });
         }
 
@@ -624,9 +647,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // ============================
-    // UTILITY
-    // ============================
+    function openCreateCourseModal(editId = null, draftId = null) {
+        const modal = document.getElementById('createCourseModal');
+        const modalBody = document.getElementById('createCourseModalBody');
+        if (!modal || !modalBody) return;
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        initCourseBuilder(modalBody, (saved) => {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            if (saved) {
+                // Refresh courses list
+                if (isAdmin) {
+                    loadAndRenderAdmin();
+                    refreshDraftsCount();
+                } else {
+                    renderPublicCourses();
+                }
+            }
+        }, editId, draftId);
+    }
+
     function getDeptIconSvg(icon) {
         switch (icon) {
             case 'monitor':

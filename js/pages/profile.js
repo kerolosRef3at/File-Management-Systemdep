@@ -3,6 +3,7 @@ import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { profileService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
+import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // Guards access: requires authenticated active admin session
@@ -17,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!contentArea) return;
 
     const user = getCurrentUser();
+    const lang = getCurrentLang();
+    const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
     // Standardize role presentation label
     function getRoleDisplay(role) {
@@ -28,15 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
     contentArea.innerHTML = `
         <div class="page-header-actions" style="margin-bottom: 30px;">
             <div>
-                <h1 style="color: var(--primary-dark); font-size: 2rem;">Profile & Account Settings</h1>
-                <p style="color: var(--text-gray);">Manage your AITU administrative credentials and security preferences.</p>
+                <h1 style="color: var(--primary-dark); font-size: 2rem;">${t('profile_title')}</h1>
+                <p style="color: var(--text-gray);">${t('profile_subtitle')}</p>
             </div>
         </div>
 
         <div class="profile-grid">
             <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden;">
                 <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
-                    Account Information
+                    ${t('profile_account_info')}
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 </div>
                 <div class="profile-card-body" style="padding:25px;">
@@ -55,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <form id="profileForm">
                         <div class="profile-form-row">
                             <div class="form-group" style="margin-bottom:0;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Username (Read-only)</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_username')}</label>
                                 <input type="text" class="form-control" value="${user.username}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
@@ -66,17 +69,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
                         <div class="profile-form-row">
                             <div class="form-group" style="margin-bottom:0;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Role / Designation</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_role')}</label>
                                 <input type="text" class="form-control" value="${getRoleDisplay(user.role)}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Date Joined</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_since')}</label>
                                 <input type="text" class="form-control" value="${user.joined}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
                             </div>
                         </div>
 
                         <div class="form-group" style="margin-bottom:15px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Email Address</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_email')}</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                 <input type="email" id="email" class="form-control" value="${user.email || (user.username ? user.username + '@aitu.edu.eg' : '')}" style="padding-left: 40px;" required>
@@ -84,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <div class="form-group" style="margin-bottom:15px;">
-                            <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Phone Number</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_phone')}</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                                 <input type="text" id="mobile" class="form-control" placeholder="+20 (1__) ___-____" value="${user.phone || ''}" style="padding-left: 40px;" required>
@@ -92,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <div style="text-align: right; margin-top: 25px;">
-                            <button type="submit" class="btn-primary" id="saveProfileBtn">Save Changes</button>
+                            <button type="submit" class="btn-primary" id="saveProfileBtn">${t('profile_save')}</button>
                         </div>
                         <div class="form-alert" id="profileAlert" style="margin-top:15px; display:none;"></div>
                     </form>
@@ -102,24 +105,24 @@ document.addEventListener('DOMContentLoaded', () => {
             <div>
                 <div class="profile-card" style="background:white; border:1px solid var(--border-color); border-radius:10px; overflow:hidden; margin-bottom:25px;">
                     <div class="profile-card-header" style="padding:20px 25px; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center; color:var(--primary-dark); font-weight:600; font-size:1.1rem;">
-                        Security
+                        ${t('profile_security')}
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
                     <div class="profile-card-body" style="padding:25px;">
                         <form id="securityForm">
                             <div class="form-group" style="margin-bottom:15px;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Current Password</label>
-                                <input type="password" id="oldPassword" class="form-control" placeholder="********" required>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_current_pw')}</label>
+                                <input type="password" id="oldPassword" class="form-control" placeholder="${t('profile_current_pw')}" required>
                             </div>
                             <div class="form-group" style="margin-bottom:15px;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">New Password</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_new_pw')}</label>
                                 <input type="password" id="newPassword" class="form-control" placeholder="Create new password" required>
                             </div>
                             <div class="form-group" style="margin-bottom:15px;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Confirm New Password</label>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_confirm_pw')}</label>
                                 <input type="password" id="repeatPassword" class="form-control" placeholder="Confirm new password" required>
                             </div>
-                            <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--primary-blue); color: var(--primary-blue);" id="updatePasswordBtn">Update Password</button>
+                            <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--primary-blue); color: var(--primary-blue);" id="updatePasswordBtn">${t('profile_update_pw')}</button>
                             <div class="form-alert" id="securityAlert" style="margin-top:15px; display:none;"></div>
                         </form>
                     </div>

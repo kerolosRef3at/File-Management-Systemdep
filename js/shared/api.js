@@ -32,6 +32,9 @@ export async function fetchAPI(endpoint, options = {}) {
         
         // معالجة حالة انتهاء الجلسة (Unauthorized)
         if (response.status === 401) {
+            if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
+                throw new Error('Invalid credentials');
+            }
             localStorage.removeItem('aitu_token');
             window.location.href = 'login.html';
             throw new Error('Session expired. Please login again.');

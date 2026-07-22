@@ -813,8 +813,15 @@ body.login-page-bg {
     .cards-grid { grid-template-columns: 1fr; }
     
     .hero .container { flex-direction: column; text-align: center; }
-    .hero-content p { margin: 0 auto 30px auto; }
-    .hero-buttons { justify-content: center; }
+    .hero-content { text-align: center !important; }
+    .hero-content h1, .hero-content p { text-align: center !important; margin-left: auto !important; margin-right: auto !important; }
+    .hero-buttons { 
+        justify-content: center !important; 
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+    }
 }
 
 /* =========================================
@@ -989,7 +996,7 @@ html[dir="rtl"] .hero-content {
 }
 
 html[dir="rtl"] .hero-buttons {
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 html[dir="rtl"] .cards-grid {

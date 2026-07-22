@@ -2,6 +2,7 @@
 import { renderLayout } from '../shared/layout.js';
 import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { dashboardService } from '../shared/services.js';
+import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 
 // Mirrors RoleHelper.cs. A hard-coded list like
@@ -35,6 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     let chartMenuOpen = false;
     let yearPickerOpen = false;
     let pollingInterval = null;
+
+    const lang = getCurrentLang();
+    const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
     // --- Load (or reload) the whole dashboard for the current window --------
     // One fetch, keyed by currentDays, feeds every section. The date dropdown
@@ -121,11 +125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const userDisplayName = user ? (user.name || user.username) : 'User';
         
         const hour = new Date().getHours();
-        let greeting = 'Good evening';
+        let greeting = t('dash_evening');
         if (hour >= 5 && hour < 12) {
-            greeting = 'Good morning';
+            greeting = t('dash_morning');
         } else if (hour >= 12 && hour < 17) {
-            greeting = 'Good afternoon';
+            greeting = t('dash_afternoon');
         }
 
         container.innerHTML = `
@@ -133,24 +137,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="dash-header">
                 <div class="dash-header-left">
                     <h1>${greeting}, ${userDisplayName} 👋</h1>
-                    <p>Here's your workspace overview</p>
+                    <p>${t('dash_overview')}</p>
                 </div>
                 <div class="dash-header-right">
                     <select class="dash-filter-select" id="dashDaysFilter">
-                        <option value="7"${currentDays === 7 ? ' selected' : ''}>Last 7 days</option>
-                        <option value="30"${currentDays === 30 ? ' selected' : ''}>Last 30 days</option>
-                        <option value="180"${currentDays === 180 ? ' selected' : ''}>Last 6 months</option>
-                        <option value="365"${currentDays === 365 ? ' selected' : ''}>Last year</option>
+                        <option value="7"${currentDays === 7 ? ' selected' : ''}>${t('dash_last7')}</option>
+                        <option value="30"${currentDays === 30 ? ' selected' : ''}>${t('dash_last30')}</option>
+                        <option value="180"${currentDays === 180 ? ' selected' : ''}>${t('dash_last6m')}</option>
+                        <option value="365"${currentDays === 365 ? ' selected' : ''}>${t('dash_lasty')}</option>
                     </select>
                 </div>
             </div>
 
             <!-- Stat Cards -->
             <div class="dash-stats-grid">
-                ${renderStatCard('TOTAL FILES', formatNumber(stats.totalFiles || 0), stats.trends?.totalFiles, 'files', 'blue')}
+                ${renderStatCard(t('dash_total_files'), formatNumber(stats.totalFiles || 0), stats.trends?.totalFiles, 'files', 'blue')}
                 ${renderStorageCard(stats)}
-                ${renderStatCard('TOTAL COURSES', stats.totalCourses || 0, stats.trends?.totalCourses, 'courses', 'red')}
-                ${renderStatCard('TOTAL PROGRAMS', stats.totalPrograms || 0, stats.trends?.totalPrograms, 'programs', 'green')}
+                ${renderStatCard(t('dash_total_courses'), stats.totalCourses || 0, stats.trends?.totalCourses, 'courses', 'red')}
+                ${renderStatCard(t('dash_total_programs'), stats.totalPrograms || 0, stats.trends?.totalPrograms, 'programs', 'green')}
             </div>
 
             <!-- Charts Row -->
@@ -158,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <!-- Download Velocity -->
                 <div class="dash-chart-card">
                     <div class="dash-chart-header">
-                        <h3 class="dash-chart-title">Download Velocity</h3>
+                        <h3 class="dash-chart-title">${t('dash_download_velocity')}</h3>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span id="chartYearLabel" style="font-size:13px;font-weight:600;color:#6B7A99;">${currentYear}</span>
                             <div style="position:relative;">
@@ -181,23 +185,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 <!-- Program Downloads -->
                 <div class="dash-donut-card">
-                    <h3 class="dash-chart-title">Program Downloads</h3>
+                    <h3 class="dash-chart-title">${t('dash_program_downloads')}</h3>
                     <div class="dash-donut-wrapper" id="donutChartContainer1">
                         ${renderDonutSVG(programDownloads)}
                     </div>
                     <div class="dash-donut-legend" id="donutLegend1">
-                        ${renderDonutLegend(programDownloads, 'DLs')}
+                        ${renderDonutLegend(programDownloads, t('dash_downloads'))}
                     </div>
                 </div>
 
                 <!-- Resource Mix -->
                 <div class="dash-donut-card">
-                    <h3 class="dash-chart-title">Resource Mix</h3>
+                    <h3 class="dash-chart-title">${t('dash_resource_mix')}</h3>
                     <div class="dash-donut-wrapper" id="donutChartContainer2">
                         ${renderDonutSVG(resourceMix)}
                     </div>
                     <div class="dash-donut-legend" id="donutLegend2">
-                        ${renderDonutLegend(resourceMix, 'Files')}
+                        ${renderDonutLegend(resourceMix, t('dash_files'))}
                     </div>
                 </div>
             </div>
@@ -207,17 +211,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <!-- High-Impact Documents -->
                 <div class="dash-docs-card">
                     <div class="dash-docs-header">
-                        <h3>High-Impact Documents</h3>
-                        <a class="dash-docs-viewall" href="repository.html">View All</a>
+                        <h3>${t('dash_high_impact')}</h3>
+                        <a class="dash-docs-viewall" href="repository.html">${t('dash_view_all')}</a>
                     </div>
                     <div class="dash-docs-table-wrapper">
                         <table class="dash-docs-table">
                             <thead>
                                 <tr>
-                                    <th>FILE NAME</th>
-                                    <th>SOURCE</th>
-                                    <th class="align-center">ACCESS COUNT</th>
-                                    <th class="align-right">WEIGHT</th>
+                                    <th>${t('dash_filename')}</th>
+                                    <th>${t('dash_source')}</th>
+                                    <th class="align-center">${t('dash_access_count')}</th>
+                                    <th class="align-right">${t('dash_weight')}</th>
                                 </tr>
                             </thead>
                             <tbody id="docsTableBody">
@@ -247,6 +251,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isMuted = typeof change === 'string' && (change.includes('Requires') || change.includes('capacity'));
         const changeClass = isMuted ? 'muted' : (isPositive ? 'positive' : 'muted');
 
+        function formatTrend(str) {
+            if (!str || typeof str !== 'string') return str || '';
+            if (lang !== 'ar') return str;
+            return str
+                .replace(/^in\s+(\d+)\s+days/gi, 'خلال $1 يوم')
+                .replace(/^Active in\s+(\d+)\s+departments/gi, 'نشط في $1 أقسام')
+                .replace(/Drive not connected/gi, 'القرص غير متصل')
+                .replace(/Live files count/gi, 'عدد الملفات المباشر')
+                .replace(/Live courses count/gi, 'عدد الكورسات المباشر')
+                .replace(/Live programs count/gi, 'عدد البرامج المباشر');
+        }
+
+        const formattedChange = formatTrend(change);
+
         return `
             <div class="dash-stat-card">
                 <div class="dash-stat-top">
@@ -254,7 +272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="dash-stat-icon ${iconColor}">${icons[type] || ''}</div>
                 </div>
                 <div class="dash-stat-value">${value}</div>
-                <div class="dash-stat-change ${changeClass}">${isPositive ? '↑ ' : ''}${change}</div>
+                <div class="dash-stat-change ${changeClass}">${isPositive ? '↑ ' : ''}${formattedChange}</div>
             </div>
         `;
     }
@@ -264,16 +282,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const usedValue = stats.qnapStorage ? stats.qnapStorage.usedValue : (stats.storageCapacityValue || '0 TB');
         const totalValue = stats.qnapStorage ? stats.qnapStorage.totalValue : 'Total';
 
+        const displayTotalValue = (totalValue === 'Drive not connected' || totalValue === 'Total') ? t('dash_drive_not_connected') : totalValue;
+
         return `
             <div class="dash-stat-card">
                 <div class="dash-stat-top">
-                    <span class="dash-stat-label">QNAP STORAGE CAPACITY</span>
+                    <span class="dash-stat-label">${t('dash_qnap_storage')}</span>
                     <div class="dash-stat-icon blue">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </div>
                 </div>
                 <div class="dash-stat-value" style="font-size: 20px;">
-                    ${usedValue} <span style="font-size:13px; color:#6B7A99; font-weight:500;">/ ${totalValue}</span>
+                    ${usedValue} <span style="font-size:13px; color:#6B7A99; font-weight:500;">/ ${displayTotalValue}</span>
                     <span class="percent">${usedPercent}%</span>
                 </div>
                 <div class="dash-progress-track">
@@ -462,7 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Documents table rows ---
     function renderDocRows(documents) {
         if (!documents || !documents.length) {
-            return '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6B7A99;">No documents found</td></tr>';
+            return '<tr><td colspan="4" style="text-align:center;padding:20px;color:#6B7A99;">' + t('dash_no_data') + '</td></tr>';
         }
         return documents.map(doc => {
             const typeClass = (doc.type || '').toLowerCase();
@@ -478,7 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Events timeline ---
     function renderEventItems(events) {
         if (!events || !events.length) {
-            return '<div style="text-align:center;color:#6B7A99;padding:20px;">No recent events</div>';
+            return '<div style="text-align:center;color:#6B7A99;padding:20px;">' + t('dash_no_data') + '</div>';
         }
         return events.map(ev => {
             const dotClass = ev.type === 'critical' ? 'critical' : (ev.type === 'info' ? 'info' : 'neutral');

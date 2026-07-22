@@ -1,7 +1,7 @@
 // js/shared/layout.js
 import { getCurrentUser, logout } from './auth.js';
 import { fileService, dashboardService } from './services.js';
-import { getCurrentLang, toggleLanguage } from './jssharedi18n.js';
+import { getCurrentLang, toggleLanguage, translations } from './jssharedi18n.js';
 
 export function renderLayout(activePage = 'repository') {
     const appContainer = document.getElementById('app');
@@ -14,53 +14,56 @@ export function renderLayout(activePage = 'repository') {
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
 
+    // Translation helper
+    const t = (key) => (translations[lang] || translations.en)[key] || (translations.en)[key] || key;
+
     // Check permissions for user/log views
     const isSupervisor = user && user.role === 'Supervisor';
     const isPublicUser = !user || user.role === 'Public User';
     const isManager = user && (user.role.includes('Manager') || isSupervisor);
 
     const pageTitles = {
-        dashboard: 'Dashboard',
-        repository: 'Repository',
-        courses: 'Courses',
-        users: 'User Management',
-        logs: 'System Logs',
-        profile: 'Profile Settings'
+        dashboard: t('sidebar_dashboard'),
+        repository: t('sidebar_repository'),
+        courses: t('sidebar_courses'),
+        users: t('users_title'),
+        logs: t('sidebar_logs'),
+        profile: t('profile_title')
     };
 
     const pageSubtitles = {
-        dashboard: 'Overview of tasks, teams & performance',
-        repository: 'Academic programs and files repository',
-        courses: 'Manage classes, curricula, and schedules',
-        users: 'Manage system access, roles, and administrative privileges',
-        logs: 'System audit trails and event records',
-        profile: 'Update your personal profile and preferences'
+        dashboard: t('sidebar_sub_dashboard'),
+        repository: t('sidebar_sub_repository'),
+        courses: t('sidebar_sub_courses'),
+        users: t('sidebar_sub_users'),
+        logs: t('sidebar_sub_logs'),
+        profile: t('sidebar_sub_profile')
     };
 
     const displayTitle = pageTitles[activePage] || 'Tech Services';
     const displaySubtitle = pageSubtitles[activePage] || 'Portal Overview';
 
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = new Date().toLocaleDateString('en-US', dateOptions);
+    const formattedDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', dateOptions);
 
     // Build sidebar menu links based on role
     const navItems = [];
     
     if (!isPublicUser) {
-        navItems.push({ href: 'dashboard.html', page: 'dashboard', label: 'Dashboard', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' });
+        navItems.push({ href: 'dashboard.html', page: 'dashboard', label: t('sidebar_dashboard'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' });
     }
 
-    navItems.push({ href: 'repository.html', page: 'repository', label: 'Repository', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' });
+    navItems.push({ href: 'repository.html', page: 'repository', label: t('sidebar_repository'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' });
 
-    navItems.push({ href: 'courses.html', page: 'courses', label: 'Courses', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' });
+    navItems.push({ href: 'courses.html', page: 'courses', label: t('sidebar_courses'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' });
 
     if (isSupervisor) {
-        navItems.push({ href: 'users.html', page: 'users', label: 'Users', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' });
-        navItems.push({ href: 'logs.html', page: 'logs', label: 'System Logs', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' });
+        navItems.push({ href: 'users.html', page: 'users', label: t('sidebar_users'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' });
+        navItems.push({ href: 'logs.html', page: 'logs', label: t('sidebar_logs'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' });
     }
 
     if (!isPublicUser) {
-        navItems.push({ href: 'profile.html', page: 'profile', label: 'Profile', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' });
+        navItems.push({ href: 'profile.html', page: 'profile', label: t('sidebar_profile'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' });
     }
 
     const menuHTML = navItems.map(item => {
@@ -69,9 +72,9 @@ export function renderLayout(activePage = 'repository') {
     }).join('');
 
     const actionButtons = {
-        repository: { label: 'Add Program', id: 'globalUploadBtn' },
-        courses: { label: 'Add Course', id: 'addCourseBtn' },
-        users: { label: 'Add User', id: 'addUserBtn' }
+        repository: { label: t('sidebar_add_program'), id: 'globalUploadBtn' },
+        courses: { label: t('sidebar_add_course'), id: 'addCourseBtn' },
+        users: { label: t('sidebar_add_user'), id: 'addUserBtn' }
     };
 
     let actionBtnHTML = '';
@@ -161,7 +164,7 @@ export function renderLayout(activePage = 'repository') {
             
             <aside class="sidebar" id="adminSidebar">
                <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 85px; box-sizing: border-box;" onclick="window.location.href='index.html'">
-            <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/aitu_logo.png'">
+            <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/logo_AITU.jpg'">
                 <div style="display:flex; flex-direction:column; justify-content:center; overflow:hidden; text-align:left;">
                     <span style="font-size:0.82rem; font-weight:700; color:#ffffff; line-height:1.3; display:block;">Assiut International Technological University</span>
                     <span style="font-size:0.7rem; font-weight:500; color:#8B9CC8; margin-top:3px; display:block; letter-spacing:0.3px;">File Management System</span>
@@ -190,7 +193,7 @@ export function renderLayout(activePage = 'repository') {
                     </button>
                     <button id="sidebarLogoutBtn" class="logout-btn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; color:#ef4444; font-weight:600; font-size:0.95rem; border-radius:8px; cursor:pointer; transition:0.2s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                        Logout
+                        ${t('sidebar_logout')}
                     </button>
                 </div>
             </aside>
@@ -405,20 +408,13 @@ export function renderLayout(activePage = 'repository') {
     // Language toggle button
     const langToggleBtn = document.getElementById('langToggleBtn');
     if (langToggleBtn) {
-        langToggleBtn.addEventListener('click', () => {
-            toggleLanguage();
-            // Reload page to re-render layout with correct language
-            setTimeout(() => window.location.reload(), 100);
-        });
+        langToggleBtn.onclick = (e) => toggleLanguage(e);
     }
 
     // Sidebar language toggle (mobile)
     const sidebarLangBtn = document.getElementById('sidebarLangBtn');
     if (sidebarLangBtn) {
-        sidebarLangBtn.addEventListener('click', () => {
-            toggleLanguage();
-            setTimeout(() => window.location.reload(), 100);
-        });
+        sidebarLangBtn.onclick = (e) => toggleLanguage(e);
     }
 
     const uploadBtn = document.getElementById('globalUploadBtn');
@@ -495,4 +491,11 @@ export function renderLayout(activePage = 'repository') {
             }
         });
     }
+
+    // Restore persistent background upload widget if present
+    import('../pages/upload-resources.js').then(mod => {
+        if (mod && mod.initPersistentUploadWidget) {
+            mod.initPersistentUploadWidget();
+        }
+    }).catch(() => {});
 }

@@ -161,8 +161,10 @@ export function hydrateDepartments(apiFolders, files) {
         );
         if (dup) return;
 
+        const dbId = pick(f, ['id', 'Id', 'folderId', 'FolderId', 'dbId']);
         mockDepartments.push({
             id: code,
+            dbId: dbId,
             name: name,
             shortName: code,
             label: name.toUpperCase(),

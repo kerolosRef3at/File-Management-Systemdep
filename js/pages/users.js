@@ -3,6 +3,7 @@ import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { userService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert } from '../shared/components.js';
+import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Guards access: Users Page is strictly restricted to Supervisor role
@@ -19,6 +20,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     let allUsers = [];
     let currentRoleFilter = 'all';
+
+    const lang = getCurrentLang();
+    const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
     // Departments and roles come from the server. Both used to be typed into
     // this file by hand -- three <option> tags, a name->id map, and a fixed set
@@ -56,10 +60,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         contentArea.innerHTML = `
             <div class="page-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:15px;">
                 <div>
-                    <h1 style="color: var(--primary-dark); font-size: 2rem;">User Management & Access Control</h1>
-                    <p style="color: var(--text-gray);">Manage system access, roles, and administrative privileges.</p>
+                    <h1 style="color: var(--primary-dark); font-size: 2rem;">${t('users_title')}</h1>
+                    <p style="color: var(--text-gray);">${t('sidebar_sub_users')}</p>
                 </div>
-                <button class="btn-primary" id="openAddUserBtn">+ Add New User</button>
+                <button class="btn-primary" id="openAddUserBtn">+ ${t('users_add')}</button>
             </div>
 
             <div id="usersPageAlerts"></div>
@@ -67,10 +71,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="filters-bar" style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
                 <div class="search-bar" style="width: 300px; background: var(--white);">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="userSearch" placeholder="Search by email or username...">
+                    <input type="text" id="userSearch" placeholder="${t('users_search')}">
                 </div>
                 <select class="filter-select" id="roleFilter">
-                    <option value="all">All Roles</option>
+                    <option value="all">${t('users_all_roles')}</option>
                     ${roles.map(r => `<option value="${r.role}">${r.role}</option>`).join('')}
                 </select>
             </div>
@@ -102,15 +106,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <table class="data-table" style="width: 100%;">
                     <thead style="background: #f8fafc;">
                         <tr>
-                            <th style="padding: 15px 20px;">User</th>
-                            <th>Role</th>
-                            <th>Phone</th>
-                            <th>Joined</th>
-                            <th>Actions</th>
+                            <th style="padding: 15px 20px;">${t('users_col_user')}</th>
+                            <th>${t('users_col_role')}</th>
+                            <th>${t('users_col_phone')}</th>
+                            <th>${t('users_col_joined')}</th>
+                            <th>${t('users_col_actions')}</th>
                         </tr>
                     </thead>
                     <tbody id="usersTableBody">
-                        <tr><td colspan="5" style="text-align: center; padding: 20px;">Loading users...</td></tr>
+                        <tr><td colspan="5" style="text-align: center; padding: 20px;">${t('loader_text')}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -270,7 +274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         usersTableBody.innerHTML = '';
 
         if (!Array.isArray(usersToRender) || usersToRender.length === 0) {
-            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">No user accounts match your search or filter.</td></tr>';
+            usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">' + t('users_no_found') + '</td></tr>';
             return;
         }
 
@@ -298,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${user.phone || 'N/A'}</td>
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${user.joined}</td>
                 <td>
-                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="Delete User" ${deleteDisabled} style="background:none; border:none; cursor:pointer; color:var(--text-gray); transition:0.3s;">
+                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="${t('users_delete')}" ${deleteDisabled} style="background:none; border:none; cursor:pointer; color:var(--text-gray); transition:0.3s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
@@ -312,7 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const targetUser = allUsers.find(u => u.id == id);
                 if (!targetUser) return;
 
-                if (confirm(`Are you sure you want to permanently delete user account "${targetUser.username}"?`)) {
+                if (confirm(t('users_confirm_delete'))) {
                     try {
                         await userService.deleteUser(id);
                         logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Delete User', targetUser.username);
@@ -335,13 +339,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="create-user-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                     <div>
                         <div class="create-user-breadcrumb" style="font-size:0.85rem; color:var(--text-gray); margin-bottom:4px;">
-                            User Management &gt; <span style="color:var(--primary-dark); font-weight:600;">Add New User</span>
+                            ${t('users_title')} &gt; <span style="color:var(--primary-dark); font-weight:600;">${t('users_add')}</span>
                         </div>
-                        <h1 style="color:var(--primary-dark); font-size:2.2rem; font-weight:700; margin:0;">Create New User</h1>
+                        <h1 style="color:var(--primary-dark); font-size:2.2rem; font-weight:700; margin:0;">${t('users_create_title')}</h1>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button class="btn-outline" id="btnCancelCreate" style="height:46px; padding:0 24px;">Cancel</button>
-                        <button class="btn-primary" id="btnSubmitCreate" style="height:46px; padding:0 24px; background-color:#0b3b70; border:none; color:#fff; border-radius:6px; font-weight:600; cursor:pointer;">Create User</button>
+                        <button class="btn-outline" id="btnCancelCreate" style="height:46px; padding:0 24px;">${t('users_cancel')}</button>
+                        <button class="btn-primary" id="btnSubmitCreate" style="height:46px; padding:0 24px; background-color:#0b3b70; border:none; color:#fff; border-radius:6px; font-weight:600; cursor:pointer;">${t('users_create_btn')}</button>
                     </div>
                 </div>
 
@@ -365,14 +369,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <input type="text" id="addFullName" class="form-control" placeholder="e.g. Dr. John Smith" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
                                 </div>
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Email Address</label>
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_email')}</label>
                                     <input type="email" id="addEmail" class="form-control" placeholder="john.smith@aitu.edu" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
                                 </div>
                             </div>
 
                             <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px; align-items:center;">
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Phone Number</label>
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_phone')}</label>
                                     <input type="text" id="addPhone" class="form-control" placeholder="+20 (1__) ___-____" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
                                 </div>
                                 
@@ -399,12 +403,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                             
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Department</label>
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_dept')}</label>
                                     <!-- value is the real Folders.Id. The old options carried
                                          display NAMES, which the submit handler then mapped back
                                          to an id with a hard-coded if/else chain. -->
                                     <select id="addDepartment" class="form-control" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
-                                        <option value="" disabled selected>Select Department</option>
+                                        <option value="" disabled selected>${t('users_select_dept')}</option>
                                         ${departments.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('')}
                                     </select>
                                     ${departments.length === 0 ? `

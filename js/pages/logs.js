@@ -3,6 +3,7 @@ import { protectPage } from '../shared/auth.js';
 import { logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert } from '../shared/components.js';
+import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Guards access: Logs Page is strictly restricted to Supervisor role
@@ -16,18 +17,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const contentArea = document.getElementById('page-content');
     if (!contentArea) return;
 
+    const lang = getCurrentLang();
+    const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
+
     let allLogs = [];
 
     // Inject outer layout framework
     contentArea.innerHTML = `
         <div class="page-header-actions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; flex-wrap:wrap; gap:15px;">
             <div>
-                <h1 style="color: var(--primary-dark); font-size: 2rem;">AITU System Logs</h1>
-                <p style="color: var(--text-gray);"><strong style="color:var(--text-dark);" id="logCount">0</strong> events recorded — full administrator activity trail</p>
+                <h1 style="color: var(--primary-dark); font-size: 2rem;">${t('logs_title')}</h1>
+                <p style="color: var(--text-gray);"><strong style="color:var(--text-dark);" id="logCount">0</strong> ${t('logs_subtitle')}</p>
             </div>
             <button class="btn-outline" id="exportCSVBtn" style="display:flex; align-items:center; gap:8px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                Export CSV
+                ${t('logs_export_csv')}
             </button>
         </div>
 
@@ -35,22 +39,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         <div class="logs-filters-container">
             <div class="chips-wrapper" id="actionChips" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border-color);">
-                <button class="chip-btn active" data-action="all">ALL</button>
-                <button class="chip-btn" data-action="Login"><span class="action-dot dot-blue"></span> Login</button>
-                <button class="chip-btn" data-action="Add File"><span class="action-dot dot-green"></span> Add File</button>
-                <button class="chip-btn" data-action="Delete File"><span class="action-dot dot-red"></span> Delete File</button>
-                <button class="chip-btn" data-action="Create Folder"><span class="action-dot dot-green"></span> Create Folder</button>
-                <button class="chip-btn" data-action="Upload Video"><span class="action-dot dot-purple"></span> Upload Video</button>
-                <button class="chip-btn" data-action="Add User"><span class="action-dot dot-cyan"></span> Add User</button>
-                <button class="chip-btn" data-action="Delete User"><span class="action-dot dot-red"></span> Delete User</button>
-                <button class="chip-btn" data-action="Change Password"><span class="action-dot dot-orange"></span> Change Password</button>
-                <button class="chip-btn" data-action="Update Profile"><span class="action-dot dot-blue"></span> Update Profile</button>
+                <button class="chip-btn active" data-action="all">${t('logs_all')}</button>
+                <button class="chip-btn" data-action="Login"><span class="action-dot dot-blue"></span> ${t('logs_login')}</button>
+                <button class="chip-btn" data-action="Add File"><span class="action-dot dot-green"></span> ${t('logs_add_file')}</button>
+                <button class="chip-btn" data-action="Delete File"><span class="action-dot dot-red"></span> ${t('logs_delete_file')}</button>
+                <button class="chip-btn" data-action="Create Folder"><span class="action-dot dot-green"></span> ${t('logs_create_folder')}</button>
+                <button class="chip-btn" data-action="Upload Video"><span class="action-dot dot-purple"></span> ${t('logs_upload_video')}</button>
+                <button class="chip-btn" data-action="Add User"><span class="action-dot dot-cyan"></span> ${t('logs_add_user')}</button>
+                <button class="chip-btn" data-action="Delete User"><span class="action-dot dot-red"></span> ${t('logs_delete_user')}</button>
+                <button class="chip-btn" data-action="Change Password"><span class="action-dot dot-orange"></span> ${t('logs_change_pw')}</button>
+                <button class="chip-btn" data-action="Update Profile"><span class="action-dot dot-blue"></span> ${t('logs_update_profile')}</button>
             </div>
 
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
                 <div class="search-bar" style="flex: 1; min-width: 250px;">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="logSearch" placeholder="Search by admin or target...">
+                    <input type="text" id="logSearch" placeholder="${t('logs_search')}">
                 </div>
                 <input type="date" id="dateFilter" class="form-control" style="width: auto; height: 38px;">
             </div>
@@ -60,15 +64,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             <table class="data-table" style="width: 100%; min-width: 800px;">
                 <thead style="background: #f8fafc;">
                     <tr>
-                        <th style="padding: 15px 20px;">Admin</th>
-                        <th>Role</th>
-                        <th>Action</th>
-                        <th>Target</th>
-                        <th>Date & Time</th>
+                        <th style="padding: 15px 20px;">${t('logs_col_admin')}</th>
+                        <th>${t('logs_col_role')}</th>
+                        <th>${t('logs_col_action')}</th>
+                        <th>${t('logs_col_target')}</th>
+                        <th>${t('logs_col_datetime')}</th>
                     </tr>
                 </thead>
                 <tbody id="logsTableBody">
-                    <tr><td colspan="5" style="text-align: center; padding: 20px;">Loading logs...</td></tr>
+                    <tr><td colspan="5" style="text-align: center; padding: 20px;">${t('loader_text')}</td></tr>
                 </tbody>
             </table>
         </div>
@@ -145,7 +149,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (logCountEl) logCountEl.innerText = logsToRender.length;
 
         if (!Array.isArray(logsToRender) || logsToRender.length === 0) {
-            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color:var(--text-gray);">No system logs match your criteria.</td></tr>';
+            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 30px; color:var(--text-gray);">' + t('logs_no_match') + '</td></tr>';
             return;
         }
 
