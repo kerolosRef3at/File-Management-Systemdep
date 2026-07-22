@@ -1,6 +1,7 @@
 // js/pages/courses.js
 import { renderLayout } from '../shared/layout.js';
 import { courseService, folderService } from '../shared/services.js';
+import { BASE_URL } from '../shared/api.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
@@ -20,6 +21,17 @@ function canManageContent(role) {
 }
 
 // Minimal HTML escaper for user-supplied draft text (title/description).
+// Course thumbnails are stored as an API path now ("/api/Files/thumbnail/x.jpg"),
+// not base64. The page runs on a different origin than the API, so a bare
+// "/api/..." would resolve against the page's host. Prefix API paths with the
+// API origin; leave full URLs and local asset paths as-is.
+function resolveImg(img) {
+    if (!img) return 'assets/images/default-course.png';
+    if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
+    if (img.startsWith('/api/')) return BASE_URL + img;
+    return img;
+}
+
 function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -66,6 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (foldersData && foldersData.length) {
                 hydrateDepartments(foldersData);
                 if (!isAdmin) renderPublicDeptTree();
+                // The dept tabs were built from an empty mockDepartments during
+                // the initial layout render. Now that departments exist, rebuild
+                // them so IT/EL/ME/DESIGN/... actually show up.
+                if (isAdmin) rebuildAdminDeptTabs();
             }
 
             if (coursesData && coursesData.length) {
@@ -568,6 +584,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Rebuild the department tab row from the now-loaded departments, and
+    // re-attach the click handlers. Called after hydrateDepartments so the tabs
+    // aren't stuck at just "All Departments" + "Drafts".
+    function rebuildAdminDeptTabs() {
+        const wrap = document.getElementById('adminDeptTabs');
+        if (!wrap) return;
+        const isAr = (localStorage.getItem('aitu_lang') || 'en') === 'ar';
+        wrap.innerHTML =
+            `<button class="admin-dept-tab ${currentDeptFilter === 'all' ? 'active' : ''}" data-dept="all">${isAr ? 'جميع الأقسام' : 'All Departments'}</button>` +
+            mockDepartments.map(d =>
+                `<button class="admin-dept-tab ${currentDeptFilter === d.id ? 'active' : ''}" data-dept="${d.id}">${d.shortName}</button>`
+            ).join('') +
+            `<button class="admin-dept-tab ${currentDeptFilter === '__drafts__' ? 'active' : ''}" id="draftsTabBtn" data-dept="__drafts__" style="margin-left:8px;border:1px dashed #94a3b8;">Drafts <span id="draftsCountBadge" style="opacity:.7;"></span></button>`;
+
+        wrap.querySelectorAll('.admin-dept-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                wrap.querySelectorAll('.admin-dept-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentDeptFilter = tab.dataset.dept;
+                if (currentDeptFilter === '__drafts__') renderDrafts();
+                else renderAdminCourses();
+            });
+        });
+        refreshDraftsCount();
+    }
+
     function renderAdminCourses() {
         const grid = document.getElementById('adminCourseGrid');
         if (!grid) return;
@@ -695,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
             category: c.category || c.program || c.subCategory || '',
             lessons: Number(c.lessons || c.lessonCount || c.totalLessons || 0),
             size: c.size || c.fileSize || '100 MB',
-            img: c.img || c.image || c.thumbnail || 'assets/images/default-course.png'
+            img: resolveImg(c.img || c.image || c.thumbnail)
         }));
     }
 });

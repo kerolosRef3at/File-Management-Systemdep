@@ -195,18 +195,37 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         const thumbDrop = document.getElementById('ccThumbDrop');
         const thumbInput = document.getElementById('ccThumbInput');
         thumbDrop?.addEventListener('click', () => thumbInput.click());
-        thumbInput?.addEventListener('change', (e) => {
+        thumbInput?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+
+            // Show an instant local preview (base64, in-memory only)...
             const reader = new FileReader();
             reader.onload = (ev) => {
-                thumbnailDataUrl = ev.target.result;
                 document.getElementById('ccThumbContent').innerHTML = `
-                    <img src="${thumbnailDataUrl}" style="max-height:120px;border-radius:8px;object-fit:cover;margin:0 auto;display:block;">
-                    <p style="font-size:0.8rem;color:var(--primary-blue);margin-top:6px;">${t('cc_thumb_change')}</p>
+                    <img src="${ev.target.result}" style="max-height:120px;border-radius:8px;object-fit:cover;margin:0 auto;display:block;">
+                    <p style="font-size:0.8rem;color:var(--primary-blue);margin-top:6px;">Uploading...</p>
                 `;
             };
             reader.readAsDataURL(file);
+
+            // ...but upload the actual FILE and keep only its short URL. The
+            // base64 string is never sent to the server or stored in the course,
+            // so the course JSON stays small.
+            try {
+                const res = await fileService.uploadThumbnail(file);
+                thumbnailDataUrl = res.url;   // e.g. /api/Files/thumbnail/xxxx.jpg
+                const content = document.getElementById('ccThumbContent');
+                if (content) {
+                    const note = content.querySelector('p');
+                    if (note) { note.textContent = t('cc_thumb_change'); note.style.color = 'var(--primary-blue)'; }
+                }
+            } catch (err) {
+                showAlert(alertsContainer, 'Could not upload the thumbnail. Try a smaller image.', 'error');
+                thumbnailDataUrl = '';
+                document.getElementById('ccThumbContent').innerHTML =
+                    `<p style="font-size:0.85rem;color:#dc2626;">Upload failed. Click to try again.</p>`;
+            }
         });
 
         // Bulk Files Upload Input & Drag-Drop

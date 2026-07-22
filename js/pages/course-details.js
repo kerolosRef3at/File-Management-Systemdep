@@ -1,7 +1,15 @@
 // js/pages/course-details.js
 import { courseService, logService } from '../shared/services.js';
+import { BASE_URL } from '../shared/api.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
+
+function resolveImg(img) {
+    if (!img) return 'assets/images/default-course.png';
+    if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
+    if (img.startsWith('/api/')) return BASE_URL + img;
+    return img;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
@@ -117,7 +125,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Hero Banner -->
             <div class="course-detail-hero">
-                <img src="${course.img}" alt="${course.title}" loading="lazy">
+                <img src="${resolveImg(course.img)}" alt="${course.title}" loading="lazy">
                 <div class="course-detail-hero-overlay">
                     <div class="hero-package-info">
                         <div class="hero-package-label">
@@ -212,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return `
                                 <div class="related-bundle-item" data-id="${rel.id}">
                                     <div class="related-bundle-thumb">
-                                        <img src="${rel.img}" alt="${rel.title}">
+                                        <img src="${resolveImg(rel.img)}" alt="${rel.title}">
                                     </div>
                                     <div>
                                         <div class="related-bundle-name">${rel.title}</div>

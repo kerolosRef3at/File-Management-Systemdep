@@ -256,6 +256,16 @@ export const fileService = {
     }
 },
 
+    // Upload a course thumbnail image; returns { url } to store instead of base64.
+    async uploadThumbnail(file) {
+        const fd = new FormData();
+        fd.append('file', file);
+        return await fetchAPI('/api/Files/thumbnail', {
+            method: 'POST',
+            body: fd
+        });
+    },
+
     async uploadFile(formData, folderId = 0, type = '', dept = '', customName = '') {
         try {
             let url = `/api/Files/upload?folderId=${folderId}`;
@@ -468,7 +478,14 @@ export const folderService = {
             clearTimeout(timer);
 
             if (Array.isArray(res)) {
-                sessionStorage.setItem(cacheKey, JSON.stringify(res));
+                // Same guard as courses: never let a cache write failure
+                // (quota exceeded on large payloads) swallow the real data.
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(res));
+                } catch (storageErr) {
+                    console.warn("sessionStorage quota exceeded, skipping folders cache:", storageErr);
+                    sessionStorage.removeItem(cacheKey);
+                }
                 return res;
             }
         } catch (err) {
