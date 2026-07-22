@@ -291,6 +291,100 @@ export const fileService = {
      * @param {(percent:number)=>void} onProgress - Called with 0-100 during upload.
      * @returns {Promise<object>} Parsed JSON response from the server.
      */
+    /**
+     * Chunked upload for very large files (multi-GB). Splits the file into
+     * fixed-size chunks and uploads them one at a time, so a dropped connection
+     * resumes from the last chunk instead of restarting. Memory stays flat.
+     *
+     * @param {File} file
+     * @param {object} params - { folderId, type, dept, customName, program }
+     * @param {(percent:number)=>void} onProgress
+     * @param {string} [existingUploadId] - pass to resume a previous attempt
+     * @returns {Promise<object>} the completed file record
+     */
+    async uploadFileChunked(file, params = {}, onProgress = () => {}, existingUploadId = null) {
+        const CHUNK_SIZE = 5 * 1024 * 1024;   // 5 MB per chunk
+        const token = localStorage.getItem('aitu_token');
+        const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        // A stable id for this upload. Reusing one lets the server resume.
+        const uploadId = existingUploadId ||
+            `up_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+        // Ask the server which chunks it already has (resume support).
+        let received = new Set();
+        try {
+            const statusRes = await fetch(
+                `${BASE_URL}/api/Files/chunk/status?uploadId=${encodeURIComponent(uploadId)}`,
+                { headers: authHeader });
+            if (statusRes.ok) {
+                const data = await statusRes.json();
+                received = new Set(data.received || []);
+            }
+        } catch { /* no prior chunks; start fresh */ }
+
+        // Upload each missing chunk in order.
+        for (let index = 0; index < totalChunks; index++) {
+            if (received.has(index)) {
+                onProgress(Math.round(((index + 1) / totalChunks) * 100));
+                continue;
+            }
+
+            const start = index * CHUNK_SIZE;
+            const blob = file.slice(start, start + CHUNK_SIZE);
+
+            const fd = new FormData();
+            fd.append('chunk', blob);
+            fd.append('uploadId', uploadId);
+            fd.append('index', index);
+
+            // One retry per chunk before giving up.
+            let ok = false;
+            for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+                try {
+                    const res = await fetch(`${BASE_URL}/api/Files/chunk`, {
+                        method: 'POST',
+                        headers: authHeader,
+                        body: fd
+                    });
+                    ok = res.ok;
+                } catch { ok = false; }
+            }
+            if (!ok) {
+                const err = new Error(`Chunk ${index} failed. Upload paused -- retry to resume.`);
+                err.uploadId = uploadId;   // caller can resume with this id
+                throw err;
+            }
+
+            onProgress(Math.round(((index + 1) / totalChunks) * 100));
+        }
+
+        // All chunks are up: ask the server to stitch and register the file.
+        const { folderId = 0, type = '', dept = '', customName = '', program = '' } = params;
+        const completeRes = await fetch(`${BASE_URL}/api/Files/chunk/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...authHeader },
+            body: JSON.stringify({
+                uploadId,
+                totalChunks,
+                fileName: file.name,
+                folderId,
+                type,
+                dept,
+                customName,
+                program
+            })
+        });
+
+        if (!completeRes.ok) {
+            const msg = await completeRes.json().catch(() => ({}));
+            throw new Error(msg.message || 'Failed to finalize the upload.');
+        }
+        return await completeRes.json();
+    },
+
     uploadFileWithProgress(formData, params = {}, onProgress = () => {}) {
         return new Promise((resolve, reject) => {
             const { folderId = 0, type = '', dept = '', customName = '', program = '' } = params;

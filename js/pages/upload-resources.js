@@ -544,22 +544,36 @@ export async function openUploadModal() {
             const { BASE_URL } = await import('../shared/api.js');
             const token = localStorage.getItem('aitu_token');
 
-            const deptCode = encodeURIComponent(globalDept || 'IT');
-            const progName = encodeURIComponent(nextFile.title || nextFile.name.split('.')[0]);
+            const deptCode = globalDept || 'IT';
+            const customName = nextFile.title || nextFile.name.split('.')[0];
             const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
-            const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
-            const uploadUrl = `${BASE_URL}/api/Files/upload?type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
-            const uploadFormData = new FormData();
-            uploadFormData.append('file', nextFile.file);
+            const progFolder = selectedProg ? selectedProg.name : '';
 
-            const uploadResponse = await fetch(uploadUrl, {
-                method: 'POST',
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                body: uploadFormData
-            });
+            // Large files go through the chunked uploader: it survives a dropped
+            // connection (resumes from the last chunk) and never buffers the whole
+            // file. Small files use the plain single-request upload -- simpler and
+            // fine under the threshold.
+            const CHUNK_THRESHOLD = 50 * 1024 * 1024;   // 50 MB
+            if (nextFile.file.size > CHUNK_THRESHOLD) {
+                await fileService.uploadFileChunked(
+                    nextFile.file,
+                    { type: 'programs', dept: deptCode, program: progFolder, customName },
+                    (percent) => { nextFile.progress = percent; render(); }
+                );
+            } else {
+                const uploadUrl = `${BASE_URL}/api/Files/upload?type=programs&dept=${encodeURIComponent(deptCode)}&program=${encodeURIComponent(progFolder)}&customName=${encodeURIComponent(customName)}`;
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', nextFile.file);
 
-            if (!uploadResponse.ok) {
-                throw new Error('Upload failed: ' + uploadResponse.status);
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    body: uploadFormData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('Upload failed: ' + uploadResponse.status);
+                }
             }
 
             nextFile.progress = 100;
