@@ -31,6 +31,7 @@ export async function openUploadModal() {
     let fileQueue = [];
     let overallProgress = 0;
     let isUploading = false;
+    let uploadCancelled = false;   // set by Discard to stop the in-flight upload
     let nextFileId = 1;
     let globalDept = '';
     let globalProg = '';
@@ -117,6 +118,36 @@ export async function openUploadModal() {
         if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return bytes + ' B';
+    }
+
+    // Update just the progress numbers/bars in place, WITHOUT rebuilding the
+    // modal. render() replaces the whole innerHTML, so calling it on every
+    // progress tick (many times a second) tears the buttons out from under the
+    // cursor -- that's why Discard felt unclickable / "clicked many times".
+    // The upload loop calls this instead; render() is only for structural changes.
+    function updateProgressUI() {
+        const totalSize = fileQueue.reduce((acc, f) => acc + f.size, 0);
+        const uploadedSize = fileQueue.reduce((acc, f) => {
+            if (f.status === 'complete') return acc + f.size;
+            if (f.status === 'uploading') return acc + (f.size * f.progress / 100);
+            return acc;
+        }, 0);
+        const pct = totalSize > 0 ? Math.round((uploadedSize / totalSize) * 100) : 0;
+
+        const pctEl = overlay?.querySelector('.upload-progress-percent');
+        const fillEl = overlay?.querySelector('.upload-progress-fill');
+        if (pctEl) pctEl.textContent = pct + '%';
+        if (fillEl) fillEl.style.width = pct + '%';
+
+        // per-file mini bars (real class names from renderFileItem)
+        fileQueue.forEach(f => {
+            const card = overlay?.querySelector(`.file-queue-item[data-id="${f.id}"]`);
+            if (!card) return;
+            const bar = card.querySelector('.file-progress-fill');
+            const label = card.querySelector('.file-progress-text');
+            if (bar) bar.style.width = (f.progress || 0) + '%';
+            if (label) label.textContent = (f.progress || 0) + '%';
+        });
     }
 
     function render() {
@@ -407,7 +438,14 @@ export async function openUploadModal() {
         const discardBtn = overlay.querySelector('#discardDraftBtn');
         if (discardBtn) {
             discardBtn.addEventListener('click', () => {
-                if (fileQueue.length === 0 || confirm('Are you sure you want to discard all uploads?')) {
+                const anyActive = isUploading || fileQueue.some(f => f.status === 'uploading');
+                const msg = anyActive
+                    ? 'An upload is in progress. Discard and stop it?'
+                    : 'Are you sure you want to discard all uploads?';
+                if (fileQueue.length === 0 || confirm(msg)) {
+                    // Signal the upload loop to stop, then clear.
+                    uploadCancelled = true;
+                    isUploading = false;
                     fileQueue = [];
                     closeModal();
                 }
@@ -504,11 +542,17 @@ export async function openUploadModal() {
 
     function startUpload() {
         if (isUploading) return;
+        uploadCancelled = false;   // fresh run
         isUploading = true;
         uploadNext();
     }
 
     async function uploadNext() {
+        // Discard sets this; bail out of the loop entirely.
+        if (uploadCancelled) {
+            isUploading = false;
+            return;
+        }
         const nextFile = fileQueue.find(f => f.status === 'waiting');
         if (!nextFile) {
             isUploading = false;
@@ -558,22 +602,19 @@ export async function openUploadModal() {
                 await fileService.uploadFileChunked(
                     nextFile.file,
                     { type: 'programs', dept: deptCode, program: progFolder, customName },
-                    (percent) => { nextFile.progress = percent; render(); }
+                    (percent) => { nextFile.progress = percent; updateProgressUI(); }
                 );
             } else {
-                const uploadUrl = `${BASE_URL}/api/Files/upload?type=programs&dept=${encodeURIComponent(deptCode)}&program=${encodeURIComponent(progFolder)}&customName=${encodeURIComponent(customName)}`;
+                // Small files: single request, but via the progress-capable
+                // helper so the bar still moves (plain fetch reports no upload
+                // progress at all, which is why it sat at 0% then jumped).
                 const uploadFormData = new FormData();
                 uploadFormData.append('file', nextFile.file);
-
-                const uploadResponse = await fetch(uploadUrl, {
-                    method: 'POST',
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-                    body: uploadFormData
-                });
-
-                if (!uploadResponse.ok) {
-                    throw new Error('Upload failed: ' + uploadResponse.status);
-                }
+                await fileService.uploadFileWithProgress(
+                    uploadFormData,
+                    { type: 'programs', dept: deptCode, program: progFolder, customName },
+                    (percent) => { nextFile.progress = percent; updateProgressUI(); }
+                );
             }
 
             nextFile.progress = 100;

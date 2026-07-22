@@ -335,26 +335,43 @@ export const fileService = {
             const start = index * CHUNK_SIZE;
             const blob = file.slice(start, start + CHUNK_SIZE);
 
-            const fd = new FormData();
-            fd.append('chunk', blob);
-            fd.append('uploadId', uploadId);
-            fd.append('index', index);
+            // Upload this chunk with XHR so progress updates DURING the chunk,
+            // not only after it finishes. With 5 MB chunks on a slow uplink, a
+            // whole chunk can take many seconds -- without intra-chunk progress
+            // the bar looks frozen, then jumps. base is the % already done from
+            // completed chunks; the chunk's own upload adds a slice on top.
+            const base = (index / totalChunks) * 100;
+            const slice = (1 / totalChunks) * 100;
+
+            const uploadOneChunk = () => new Promise((res) => {
+                const fd = new FormData();
+                fd.append('chunk', blob);
+                fd.append('uploadId', uploadId);
+                fd.append('index', index);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${BASE_URL}/api/Files/chunk`, true);
+                if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const within = (e.loaded / e.total) * slice;
+                        onProgress(Math.min(99, Math.round(base + within)));
+                    }
+                });
+                xhr.addEventListener('load', () => res(xhr.status >= 200 && xhr.status < 300));
+                xhr.addEventListener('error', () => res(false));
+                xhr.send(fd);
+            });
 
             // One retry per chunk before giving up.
             let ok = false;
             for (let attempt = 0; attempt < 2 && !ok; attempt++) {
-                try {
-                    const res = await fetch(`${BASE_URL}/api/Files/chunk`, {
-                        method: 'POST',
-                        headers: authHeader,
-                        body: fd
-                    });
-                    ok = res.ok;
-                } catch { ok = false; }
+                ok = await uploadOneChunk();
             }
             if (!ok) {
                 const err = new Error(`Chunk ${index} failed. Upload paused -- retry to resume.`);
-                err.uploadId = uploadId;   // caller can resume with this id
+                err.uploadId = uploadId;
                 throw err;
             }
 
