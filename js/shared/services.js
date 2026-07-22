@@ -365,55 +365,22 @@ export const fileService = {
 
       async downloadFile(id, filename, fileObj = null) {
         try {
-            const token = localStorage.getItem('aitu_token');
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-            let response = null;
-
-            try {
-                response = await fetch(`${BASE_URL}/api/Files/download/${id}`, { headers });
-                if (!response || !response.ok) {
-                    response = await fetch(`${BASE_URL}/api/Files/${id}/download`, { headers });
-                }
-            } catch (e) {
-                console.warn('API download call failed:', e);
-            }
-
-            if (response && response.ok) {
-                const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename || 'downloaded_file';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
-                return { success: true };
-            }
-
-            // Fallback 1: Direct URL from file object
-            const directUrl = fileObj?.url || fileObj?.fileUrl || fileObj?.filePath || fileObj?.downloadUrl;
-            if (directUrl) {
-                const a = document.createElement('a');
-                a.href = directUrl.startsWith('http') ? directUrl : `${BASE_URL}${directUrl}`;
-                a.download = filename || 'downloaded_file';
-                a.target = '_blank';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                return { success: true };
-            }
-
-            // Fallback 2: Generate sample file for demonstration
-            const demoBlob = new Blob([`Assiut Technological University Document: ${filename}\nFile ID: ${id}`], { type: 'text/plain' });
-            const demoUrl = URL.createObjectURL(demoBlob);
+            // Direct browser download. The old code did fetch().blob(), which
+            // pulls the ENTIRE file into browser memory before the "download"
+            // even starts -- so the user waited minutes with no progress (that
+            // hidden fetch WAS the download), then saw a sudden "done", and a
+            // big file could run the tab out of memory.
+            //
+            // The download endpoint is [AllowAnonymous], so a plain link works.
+            // The browser downloads it natively: real progress bar in the
+            // downloads shelf, streamed to disk, almost no memory used.
+            const directDownloadUrl = `${BASE_URL}/api/Files/download/${id}`;
             const a = document.createElement('a');
-            a.href = demoUrl;
-            a.download = filename ? (filename.includes('.') ? filename : `${filename}.pdf`) : 'document.pdf';
+            a.href = directDownloadUrl;
+            a.download = filename || 'downloaded_file';
             document.body.appendChild(a);
             a.click();
             a.remove();
-            URL.revokeObjectURL(demoUrl);
             return { success: true };
         } catch (err) {
             console.warn("Download failed:", err);

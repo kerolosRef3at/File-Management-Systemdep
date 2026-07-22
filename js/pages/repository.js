@@ -1293,8 +1293,14 @@ if (currentProgram) {
         try {
             await fileService.downloadZip(ids);
         } catch (err) {
-            for (const f of selectedList) {
-                fileService.downloadFile(f.id, f.name, f);
+            // The zip failed. Downloading each file in a tight loop used to drop
+            // large ones (the browser cancels rapid parallel navigations, so the
+            // video died while the small PDF slipped through). Space them out so
+            // each download actually starts.
+            console.warn('Zip failed, falling back to individual downloads:', err);
+            for (let i = 0; i < selectedList.length; i++) {
+                const f = selectedList[i];
+                setTimeout(() => fileService.downloadFile(f.id, f.name, f), i * 1500);
             }
         }
     });
