@@ -26,7 +26,9 @@ function canManageContent(role) {
 // "/api/..." would resolve against the page's host. Prefix API paths with the
 // API origin; leave full URLs and local asset paths as-is.
 function resolveImg(img) {
-    if (!img) return 'assets/images/default-course.png';
+    // No image -> return '' so the card shows a coloured placeholder instead of
+    // a broken default-course.png (which isn't in assets and 404s).
+    if (!img) return '';
     if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
     if (img.startsWith('/api/')) return BASE_URL + img;
     return img;
@@ -303,7 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return `
                 <div class="course-card-public" data-course-id="${course.id}">
                     <div class="course-card-thumb">
-                        <img src="${course.img}" alt="${course.title}" loading="lazy">
+                        ${course.img
+    ? `<img src="${course.img}" alt="${course.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+    : ''}
                         <div class="course-card-badges">
                             <span class="course-badge-dept ${deptClass}">${course.dept}</span>
                             ${course.category ? `<span class="course-badge-cat">${course.category}</span>` : ''}
@@ -635,7 +639,9 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.innerHTML = filtered.map(course => `
             <div class="admin-course-card" data-id="${course.id}">
                 <div class="admin-card-thumb">
-                    <img src="${course.img}" alt="${course.title}" loading="lazy">
+                    ${course.img
+    ? `<img src="${course.img}" alt="${course.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+    : ''}
                     <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${course.dept}</span>
                 </div>
                 <div class="admin-card-body">
