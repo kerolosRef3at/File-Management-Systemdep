@@ -29,6 +29,10 @@ function resolveImg(img) {
     // No image -> return '' so the card shows a coloured placeholder instead of
     // a broken default-course.png (which isn't in assets and 404s).
     if (!img) return '';
+    // Some older records still have this stale placeholder path stored from
+    // before this fallback existed; the file was never actually added to
+    // assets/images, so treat it the same as "no image" rather than 404ing.
+    if (/(^|\/)default-course\.png$/i.test(img)) return '';
     if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
     if (img.startsWith('/api/')) return BASE_URL + img;
     return img;
@@ -306,16 +310,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="course-card-public" data-course-id="${course.id}">
                     <div class="course-card-thumb">
                         ${course.img
-    ? `<img src="${course.img}" alt="${course.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+    ? `<img src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
     : ''}
                         <div class="course-card-badges">
-                            <span class="course-badge-dept ${deptClass}">${course.dept}</span>
-                            ${course.category ? `<span class="course-badge-cat">${course.category}</span>` : ''}
+                            <span class="course-badge-dept ${deptClass}">${escapeHtml(course.dept)}</span>
+                            ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
                         </div>
                     </div>
                     <div class="course-card-body">
-                        <h3>${course.title}</h3>
-                        <p class="course-card-desc">${course.description || ''}</p>
+                        <h3>${escapeHtml(course.title)}</h3>
+                        <p class="course-card-desc">${escapeHtml(course.description || '')}</p>
                         <div class="course-card-meta">
                             <span>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
@@ -640,12 +644,12 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="admin-course-card" data-id="${course.id}">
                 <div class="admin-card-thumb">
                     ${course.img
-    ? `<img src="${course.img}" alt="${course.title}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+    ? `<img src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
     : ''}
-                    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${course.dept}</span>
+                    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${escapeHtml(course.dept)}</span>
                 </div>
                 <div class="admin-card-body">
-                    <h3>${course.title}</h3>
+                    <h3>${escapeHtml(course.title)}</h3>
                     <div class="admin-card-meta">
                         <span>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>

@@ -11,6 +11,22 @@ function resolveImg(img) {
     return img;
 }
 
+let courseData = null;
+
+function downloadResource(path, name) {
+    if (!path) { alert('This resource has no file attached.'); return; }
+    let url;
+    if (/^https?:\/\//i.test(path)) url = path;
+    else if (path.startsWith('/api/')) url = BASE_URL + path;
+    else url = BASE_URL + (path.startsWith('/') ? path : '/' + path);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name || 'resource';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
@@ -54,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let course = null;
         try { allCourses = await courseService.getCourses(); } catch(e) {}
         try { course = await courseService.getCourseDetails(courseId); } catch(e) {}
+        courseData = course;
 
         if (!course && Array.isArray(allCourses)) {
             course = allCourses.find(c => String(c.id) === String(courseId) || String(c.courseId) === String(courseId));
@@ -291,7 +308,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.rl-file-download-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                alert('Downloading individual resource file...');
+                const path = btn.getAttribute('data-file');
+                const name = btn.getAttribute('data-name') || 'resource';
+                downloadResource(path, name);
             });
         });
 
@@ -418,6 +437,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('cancelModal').addEventListener('click', hideModal);
     document.getElementById('confirmModal').addEventListener('click', () => {
         hideModal();
-        alert('Downloading complete course archive as ZIP package...');
+        // Download every lesson that has a file, spaced out so the browser
+        // doesn't cancel rapid successive downloads.
+        const files = [];
+        (courseData?.modules || []).forEach(m =>
+            (m.lessons || []).forEach(l => { if (l.file) files.push({ path: l.file, name: l.title }); }));
+        if (files.length === 0) {
+            alert('This course has no downloadable files yet.');
+            return;
+        }
+        files.forEach((f, i) => setTimeout(() => downloadResource(f.path, f.name), i * 1200));
     });
 });

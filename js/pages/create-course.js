@@ -1,5 +1,6 @@
 // js/pages/create-course.js
 import { protectPage, getCurrentUser } from '../shared/auth.js';
+import { BASE_URL } from '../shared/api.js';
 import { courseService, logService, folderService, fileService } from '../shared/services.js';
 import { showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
@@ -44,6 +45,58 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
     let bulkFiles = [];      // { id, file, name, fileName, size }
     let lessons = [];        // { id, title, files: [{ id, file, name, fileName, size }] }
     let thumbnailDataUrl = '';
+
+    // Load an existing course (Edit) or a draft into the form. Both use the same
+    // details endpoint; the only difference is the page title. Without this the
+    // Edit page opened blank -- loadCourseForEdit was called but never defined.
+    async function loadCourseForEdit(id, isDraft = false) {
+        try {
+            const c = await courseService.getCourseDetails(id);
+            if (!c) return;
+
+            const titleEl = document.getElementById('ccTitle');
+            const deptEl = document.getElementById('ccDept');
+            const catEl = document.getElementById('ccCategory');
+            const descEl = document.getElementById('ccDescription');
+
+            if (titleEl) titleEl.value = c.title || '';
+            if (descEl) descEl.value = c.description || '';
+            if (deptEl && c.dept) {
+                deptEl.value = c.dept;
+                deptEl.dispatchEvent(new Event('change'));   // build the category list
+            }
+            // category options exist only after the dept change fires
+            setTimeout(() => {
+                if (catEl && c.category) catEl.value = c.category;
+            }, 60);
+
+            // existing thumbnail
+            if (c.img) {
+                thumbnailDataUrl = c.img;
+                const content = document.getElementById('ccThumbContent');
+                if (content) {
+                    const imgSrc = /^https?:\/\//i.test(c.img)
+                        ? c.img
+                        : (c.img.startsWith('/api/') ? `${BASE_URL}${c.img}` : c.img);
+                    content.innerHTML =
+                        `<img src="${imgSrc}" style="max-height:120px;border-radius:8px;object-fit:cover;margin:0 auto;display:block;">
+                         <p style="font-size:0.8rem;color:var(--primary-blue);margin-top:6px;">Change thumbnail</p>`;
+                }
+            }
+
+            // existing lessons -> fill the lesson list (titles; files stay as-is)
+            const lessons = [];
+            (c.modules || []).forEach(m => (m.lessons || []).forEach(l => lessons.push(l)));
+            if (lessons.length && typeof renderExistingLessons === 'function') {
+                renderExistingLessons(lessons);
+            }
+
+            const pageTitle = document.querySelector('.create-course-title h1');
+            if (pageTitle) pageTitle.textContent = isDraft ? 'Continue Draft' : 'Edit Course';
+        } catch (e) {
+            console.error('Failed to load course for edit:', e);
+        }
+    }
     let dragSrcIdx = null;
 
     renderDOM();
@@ -174,6 +227,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
         bindEvents();
         if (editCourseId) loadCourseForEdit(editCourseId);
+        else if (draftCourseId) loadCourseForEdit(draftCourseId, true);
     }
 
     function bindEvents() {
@@ -588,7 +642,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 dept,
                 category,
                 description,
-                img: thumbnailDataUrl || 'assets/images/default-course.png',
+                img: thumbnailDataUrl || '',
                 visibility,
                 guestDownloads,
                 status: targetStatus,
@@ -696,4 +750,50 @@ function escapeHtml(str) {
     return String(str == null ? '' : str)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+
+// ---------------------------------------------------------------------------
+// Standalone page bootstrap (create-course.html)
+//
+// This module only EXPORTED initCourseBuilder; nothing called it. That is fine
+// when courses.html imports it and opens the builder in a modal, but opening
+// create-course.html directly (the Edit button links there) loaded the script,
+// defined the function, and stopped -- so the page rendered blank forever.
+//
+// courses.html imports this same module, so the bootstrap must not run there:
+// the pathname check keeps it to the standalone page only.
+// ---------------------------------------------------------------------------
+if (window.location.pathname.includes('create-course')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        const user = getCurrentUser();
+        if (!user || !canManageContent(user.role)) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('edit');
+        const draftId = params.get('draft');
+
+        const container = document.getElementById('app');
+        if (!container) return;
+
+        // initCourseBuilder is async: without a catch, any failure inside it
+        // becomes an unhandled rejection and the page just sits there blank with
+        // no clue why. Surface the error on screen instead.
+        initCourseBuilder(container, () => {
+            // Cancel or save both return to the course list.
+            window.location.href = 'courses.html';
+        }, editId, draftId).catch(err => {
+            console.error('Course builder failed to start:', err);
+            container.innerHTML = `
+                <div style="padding:40px;max-width:640px;margin:40px auto;background:#fff;
+                            border:1px solid #fecaca;border-radius:12px;">
+                    <h2 style="color:#dc2626;margin:0 0 8px;">Could not open the course editor</h2>
+                    <p style="color:#64748b;margin:0 0 16px;">${(err && err.message) || 'Unknown error'}</p>
+                    <a href="courses.html" style="color:#0b3b70;font-weight:600;">Back to courses</a>
+                </div>`;
+        });
+    });
 }
