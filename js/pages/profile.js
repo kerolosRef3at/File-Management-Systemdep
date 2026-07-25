@@ -256,9 +256,29 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // POST /api/Auth/change-password
                 await profileService.changePassword(oldPassword, newPassword);
-                showAlert(securityAlert, 'Password updated successfully.', 'success');
-                logService.addLog(user.username, user.role, 'Change Password', `Updated account password`);
+                
+                // Clear force password change flags
+                localStorage.removeItem('aitu_must_change_password');
+                if (user && user.username) {
+                    localStorage.removeItem('aitu_force_change_password_' + user.username.toLowerCase());
+                    
+                    const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');
+                    const target = created.find(u => String(u.username || '').toLowerCase() === String(user.username).toLowerCase());
+                    if (target) {
+                        target.mustChangePassword = false;
+                        localStorage.setItem('aitu_created_users', JSON.stringify(created));
+                    }
+                }
+
+                const isAr = getCurrentLang() === 'ar';
+                showAlert(securityAlert, isAr ? 'تم تغيير كلمة المرور بنجاح! جاري توجيهك...' : 'Password updated successfully! Redirecting...', 'success');
+                logService.addLog(user.username, user.role, 'Change Password', `Updated account password on first login`);
                 securityForm.reset();
+
+                setTimeout(() => {
+                    const isManagerOrAdmin = user.role === 'Supervisor' || /\s+Manager$/i.test(user.role || '');
+                    window.location.href = isManagerOrAdmin ? 'dashboard.html' : 'repository.html';
+                }, 1200);
             } catch (err) {
                 showAlert(securityAlert, err.message || 'Failed to update password.', 'error');
             } finally {
@@ -266,6 +286,44 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePasswordBtn.innerText = 'Update Password';
             }
         });
+    }
+
+    // Check if user came from first-login password enforcement
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMustChangePw = urlParams.get('mustChangePassword') === 'true' ||
+                           localStorage.getItem('aitu_must_change_password') === 'true' ||
+                           (user && user.username && localStorage.getItem('aitu_force_change_password_' + user.username.toLowerCase()) === 'true');
+
+    if (isMustChangePw) {
+        const isAr = getCurrentLang() === 'ar';
+        const banner = document.createElement('div');
+        banner.className = 'first-login-warning-banner';
+        banner.style.cssText = 'background:#fef2f2; border:2px solid #ef4444; border-radius:12px; padding:18px 24px; margin-bottom:25px; display:flex; align-items:center; gap:16px; box-shadow:0 4px 12px rgba(239,68,68,0.15);';
+        banner.innerHTML = `
+            <div style="width:42px; height:42px; border-radius:50%; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+                <h4 style="margin:0 0 4px 0; color:#991b1b; font-size:1.05rem; font-weight:800;">
+                    ${isAr ? 'تنبيه أمان: مطلوب تغيير كلمة المرور عند أول دخول' : 'Security Requirement: Password Change Required'}
+                </h4>
+                <p style="margin:0; color:#b91c1c; font-size:0.9rem; font-weight:600;">
+                    ${isAr ? 'حفاظاً على أمان حسابك الأكاديمي، يرجى تغيير كلمة المرور المؤقتة الآن لتتمكن من استخدام النظام.' : 'For account security, please update your temporary password to proceed with using the portal.'}
+                </p>
+            </div>
+        `;
+        const pageHeader = contentArea.querySelector('.page-header-actions');
+        if (pageHeader) {
+            pageHeader.parentNode.insertBefore(banner, pageHeader.nextSibling);
+        }
+
+        setTimeout(() => {
+            const secCard = document.getElementById('securityForm');
+            if (secCard) {
+                secCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                secCard.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.4)';
+            }
+        }, 300);
     }
 
     // Profile photo upload preview & remove

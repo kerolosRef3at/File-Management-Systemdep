@@ -723,7 +723,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         resolvedRole = `${dept.code} Manager`;
                     }
 
-                    await userService.createUser(username, email, phone, resolvedRole, deptId);
+                    const mustChangePassword = document.getElementById('addForcePassword')?.checked ?? true;
+                    await userService.createUser(username, email, phone, resolvedRole, deptId, mustChangePassword);
                     logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Add User', username);
 
                     initUsersList();

@@ -103,6 +103,9 @@ export const authService = {
         const userEmail = matchedUser ? matchedUser.email : (resolvedUsername.includes('@') ? resolvedUsername : `${resolvedUsername}@aitu.edu.eg`);
         const userName = matchedUser ? (matchedUser.name || matchedUser.username) : resolvedUsername;
 
+        const mustChangePw = (matchedUser && matchedUser.mustChangePassword) ||
+                             localStorage.getItem('aitu_force_change_password_' + resolvedUsername.toLowerCase()) === 'true';
+
         const mockToken = generateMockJWT({ 
             username: resolvedUsername, 
             role: userRole, 
@@ -113,8 +116,13 @@ export const authService = {
         const fallbackRes = {
             token: mockToken,
             role: userRole,
-            username: resolvedUsername
+            username: resolvedUsername,
+            mustChangePassword: mustChangePw
         };
+
+        if (mustChangePw) {
+            localStorage.setItem('aitu_must_change_password', 'true');
+        }
 
         localStorage.setItem('aitu_token', fallbackRes.token);
         localStorage.setItem('aitu_role', fallbackRes.role);
@@ -1387,17 +1395,22 @@ export const userService = {
         return allCombined;
     },
 
-    async createUser(username, email, phone, role, departmentId = 1) {
+    async createUser(username, email, phone, role, departmentId = 1, mustChangePassword = true) {
         const createdUser = {
             id: Date.now(),
             username,
             email,
             phone,
             role,
+            mustChangePassword,
             joined: new Date().toISOString().substring(0, 10),
             isProtected: false,
             name: username
         };
+
+        if (mustChangePassword) {
+            localStorage.setItem('aitu_force_change_password_' + String(username).toLowerCase(), 'true');
+        }
 
         const storeLocalUser = () => {
             const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');

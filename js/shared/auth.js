@@ -48,9 +48,13 @@ export function protectPage(allowedRoles = []) {
         return false;
     }
 
-    if (allowedRoles.length > 0 && !hasRole(allowedRoles)) {
+    const mustChangePw = localStorage.getItem('aitu_must_change_password') === 'true' ||
+                         (user.username && localStorage.getItem('aitu_force_change_password_' + user.username.toLowerCase()) === 'true');
+
+    const currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
+    if (mustChangePw && currentPage !== 'profile.html') {
         if (loader) loader.remove();
-        window.location.href = '403.html';
+        window.location.href = 'profile.html?mustChangePassword=true';
         return false;
     }
 
