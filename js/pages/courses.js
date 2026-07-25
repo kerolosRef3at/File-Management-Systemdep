@@ -1,6 +1,7 @@
 import { renderLayout } from '../shared/layout.js';
 import { courseService, folderService, applyCachedImage } from '../shared/services.js';
 import { BASE_URL } from '../shared/api.js';
+import { resolveCourseImg } from '../shared/assets.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderSkeleton, renderEmptyState, showAlert, showConfirmModal } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
@@ -19,23 +20,6 @@ function canManageContent(role) {
     return /\s+Manager$/i.test(r);
 }
 
-// Minimal HTML escaper for user-supplied draft text (title/description).
-// Course thumbnails are stored as an API path now ("/api/Files/thumbnail/x.jpg"),
-// not base64. The page runs on a different origin than the API, so a bare
-// "/api/..." would resolve against the page's host. Prefix API paths with the
-// API origin; leave full URLs and local asset paths as-is.
-function resolveImg(img) {
-    // No image -> return '' so the card shows a coloured placeholder instead of
-    // a broken default-course.png (which isn't in assets and 404s).
-    if (!img) return '';
-    // Some older records still have this stale placeholder path stored from
-    // before this fallback existed; the file was never actually added to
-    // assets/images, so treat it the same as "no image" rather than 404ing.
-    if (/(^|\/)default-course\.png$/i.test(img)) return '';
-    if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
-    if (img.startsWith('/api/')) return BASE_URL + img;
-    return img;
-}
 
 function escapeHtml(str) {
     return String(str == null ? '' : str)
@@ -306,16 +290,15 @@ document.addEventListener('DOMContentLoaded', () => {
         grid.innerHTML = pageCourses.map(course => {
             const deptClass = getDeptBadgeColor(course.dept);
             return `
-                <div class="course-card-public" data-course-id="${course.id}">
-                    <div class="course-card-thumb">
-                        ${course.img
-    ? `<img class="cc-card-img" src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null;this.src='assets/images/default-course.png';">`
-    : `<img class="cc-card-img" src="assets/images/default-course.png" alt="${escapeHtml(course.title)}" loading="lazy">`}
-                        <div class="course-card-badges">
-                            <span class="course-badge-dept ${deptClass}">${escapeHtml(course.dept)}</span>
-                            ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
-                        </div>
-                    </div>
+        <div class="course-card-thumb">
+    ${course.img
+        ? `<img class="cc-card-img" src="${escapeHtml(resolveCourseImg(course.img))}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+        : ''}
+    <div class="course-card-badges">
+        <span class="course-badge-dept ${deptClass}">${escapeHtml(course.dept)}</span>
+        ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
+    </div>
+</div>
                     <div class="course-card-body">
                         <h3>${escapeHtml(course.title)}</h3>
                         <p class="course-card-desc">${escapeHtml(course.description || '')}</p>
@@ -655,18 +638,33 @@ document.addEventListener('DOMContentLoaded', () => {
         const isAr = getCurrentLang() === 'ar';
 
         grid.innerHTML = filtered.map(course => `
-            <div class="admin-course-card" data-id="${course.id}" style="position:relative;">
-                <div class="admin-card-thumb" style="position:relative;">
-                    ${course.img
-    ? `<img class="cc-card-img" src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null;this.src='assets/images/default-course.png';">`
-    : `<img class="cc-card-img" src="assets/images/default-course.png" alt="${escapeHtml(course.title)}" loading="lazy">`}
-                    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${escapeHtml(course.dept)}</span>
-                    ${canManageCourses ? `
-                        <button type="button" class="admin-card-delete-btn" data-id="${course.id}" data-title="${escapeHtml(course.title)}" title="${isAr ? 'حذف الكورس' : 'Delete Course'}" style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
-                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        </button>
-                    ` : ''}
-                </div>
+<div class="admin-card-thumb" style="position:relative;">
+    ${course.img
+        ? `<img class="cc-card-img"
+                src="${escapeHtml(resolveCourseImg(course.img))}"
+                alt="${escapeHtml(course.title)}"
+                loading="lazy"
+                onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+        : ''}
+    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">
+        ${escapeHtml(course.dept)}
+    </span>
+
+    ${canManageCourses ? `
+        <button
+            type="button"
+            class="admin-card-delete-btn"
+            data-id="${course.id}"
+            data-title="${escapeHtml(course.title)}"
+            title="${isAr ? 'حذف الكورس' : 'Delete Course'}"
+            style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+        </button>
+    ` : ''}
+</div>
                 <div class="admin-card-body">
                     <h3>${escapeHtml(course.title)}</h3>
                     <div class="admin-card-meta">
@@ -794,7 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
             category: c.category || c.program || c.subCategory || '',
             lessons: Number(c.lessons || c.lessonCount || c.totalLessons || 0),
             size: c.size || c.fileSize || '100 MB',
-            img: resolveImg(c.img || c.image || c.thumbnail)
+            img: resolveCourseImg(c.img || c.image || c.thumbnail)
         }));
     }
 });

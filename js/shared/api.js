@@ -4,74 +4,332 @@
 
 // لو عايز كل حاجة على السيرفر
 export const BASE_URL = 'https://filesystemapi.runasp.net';
+
+
 export async function fetchAPI(endpoint, options = {}) {
-    // تجهيز الـ Headers
-    const headers = {
-        'Content-Type': 'application/json',
-        ...options.headers
-    };
-
-    // Remove Content-Type if sending FormData (browser sets boundary automatically)
-    if (options.body instanceof FormData) {
-        delete headers['Content-Type'];
-    }
-
-    // إرفاق الـ Bearer Token لو المستخدم مسجل دخول
     const token = localStorage.getItem('aitu_token');
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // Attach automatic 3.5s timeout if no custom signal provided
-    let controller = null;
-    let timeoutId = null;
-    let signal = options.signal;
-
-    if (!signal) {
-        controller = new AbortController();
-        signal = controller.signal;
-        timeoutId = setTimeout(() => controller.abort(), 3500);
-    }
-
-    const config = {
-        ...options,
-        headers,
-        signal
+    
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+            // 🔥 منع الـ Cache على جميع الطلبات
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        }
     };
+
+    // إضافة Authorization إذا وجد
+    if (token) {
+        defaultOptions.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    // دمج الخيارات
+    const mergedOptions = {
+        ...defaultOptions,
+        ...options,
+        headers: {
+            ...defaultOptions.headers,
+            ...(options.headers || {})
+        }
+    };
+
+    // إزالة Content-Type إذا كان body من نوع FormData (لرفع الملفات)
+    if (options.body && options.body instanceof FormData) {
+        delete mergedOptions.headers['Content-Type'];
+    }
+
+    // إضافة timeout إذا لم يكن موجوداً
+    const timeout = options.timeout || 30000; // 30 ثانية افتراضياً
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    mergedOptions.signal = controller.signal;
 
     try {
-        const response = await fetch(`${BASE_URL}${endpoint}`, config);
-        if (timeoutId) clearTimeout(timeoutId);
+        console.log(`🌐 ${mergedOptions.method || 'GET'} ${endpoint}`);
         
-        // Handle 401 Unauthorized errors gracefully
-        if (response.status === 401) {
-            if (options.forceLogoutOn401) {
-                localStorage.removeItem('aitu_token');
-                window.location.href = 'login.html';
-                throw new Error('Session expired. Please login again.');
-            }
-            if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
-                throw new Error('Invalid credentials');
-            }
-            throw new Error('Unauthorized (401)');
+const response = await fetch(`${BASE_URL}${endpoint}`, mergedOptions);
+clearTimeout(timeoutId);
+
+console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+// Handle 401 Unauthorized errors gracefully
+if (response.status === 401) {
+    if (options.forceLogoutOn401) {
+        localStorage.removeItem('aitu_token');
+        localStorage.removeItem('aitu_refresh_token');
+        localStorage.removeItem('aitu_role');
+        localStorage.removeItem('aitu_username');
+
+        window.location.href = 'login.html';
+        throw new Error('Session expired. Please login again.');
+    }
+
+    if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
+        throw new Error('Invalid credentials');
+    }
+
+    throw new Error('Unauthorized (401)');
+
         }
 
-        // لو الرد مش 200/201
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'An error occurred while fetching data.');
+        // معالجة 403 Forbidden
+        if (response.status === 403) {
+            console.error('⛔ Access forbidden');
+            throw new Error('You do not have permission to perform this action.');
         }
 
-        return await response.json().catch(() => ({})); // قد يكون الرد فارغاً في بعض الـ Endpoints
+        // معالجة 404 Not Found
+        if (response.status === 404) {
+            console.warn('🔍 Resource not found');
+            return null;
+        }
+
+        // معالجة 204 No Content
+        if (response.status === 204) {
+            console.log('📭 No content returned');
+            return [];
+        }
+
+        // التحقق من وجود محتوى
+        const contentLength = response.headers.get('content-length');
+        if (contentLength === '0') {
+            return [];
+        }
+
+        // محاولة قراءة الـ Response كـ JSON
+        try {
+            const data = await response.json();
+            return data;
+        } catch (jsonError) {
+            // إذا لم يكن JSON، حاول قراءة النص
+            const text = await response.text();
+            console.warn('⚠️ Response is not JSON:', text.substring(0, 100));
+            return text;
+        }
+
     } catch (error) {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.error('API Error:', error);
+        clearTimeout(timeoutId);
+        
+        // معالجة أخطاء الـ Abort (Timeout)
         if (error.name === 'AbortError') {
-            throw new Error('Request timed out');
+            console.error(`⏱️ Request timeout after ${timeout}ms: ${endpoint}`);
+            throw new Error(`Request timeout. Server took too long to respond (${timeout/1000}s).`);
         }
-        if (error.message === 'Failed to fetch' || error.name === 'TypeError') {
-            throw new Error(`<div style="font-weight: 700; margin-bottom: 6px; font-size: 1rem;">تعذر الاتصال بالسيرفر المحلي</div><div style="font-size: 0.88rem; font-weight: 500; opacity: 0.95;">تأكد من اتصال هاتفك بنفس شبكة الـ <strong>Wi-Fi</strong> وأن السيرفر يعمل على:<br><span style="direction: ltr; display: inline-block; background: rgba(0,0,0,0.06); padding: 3px 10px; border-radius: 6px; font-family: monospace; font-weight: 700; margin-top: 6px; border: 1px solid rgba(0,0,0,0.1); color: inherit;">${BASE_URL}</span></div>`);
+
+        // معالجة أخطاء الشبكة
+        if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+            console.error('🌐 Network error:', error);
+            throw new Error('Network error. Please check your internet connection and try again.');
         }
+
+        console.error('❌ API Error:', error);
         throw error;
     }
 }
+
+// ============================================
+// Helper Functions
+// ============================================
+
+/**
+ * Execute multiple API calls in parallel with error handling
+ */
+export async function fetchAll(requests) {
+    try {
+        const results = await Promise.allSettled(
+            requests.map(([endpoint, options = {}]) => 
+                fetchAPI(endpoint, options)
+            )
+        );
+        
+        return results.map((result, index) => {
+            if (result.status === 'fulfilled') {
+                return result.value;
+            } else {
+                console.error(`Request ${index} failed:`, result.reason);
+                return null;
+            }
+        });
+    } catch (error) {
+        console.error('fetchAll error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Retry a failed API call with exponential backoff
+ */
+export async function fetchWithRetry(endpoint, options = {}, maxRetries = 3) {
+    let lastError;
+    let delay = 1000; // 1 second initial delay
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await fetchAPI(endpoint, options);
+        } catch (error) {
+            lastError = error;
+            console.warn(`Attempt ${attempt}/${maxRetries} failed:`, error.message);
+            
+            if (attempt < maxRetries) {
+                // Wait with exponential backoff
+                await new Promise(resolve => setTimeout(resolve, delay));
+                delay *= 2; // Double the delay for next attempt
+            }
+        }
+    }
+    
+    throw new Error(`All ${maxRetries} attempts failed. Last error: ${lastError.message}`);
+}
+
+/**
+ * Upload a file with progress tracking
+ */
+export function uploadFileWithProgress(endpoint, formData, onProgress = () => {}, options = {}) {
+    return new Promise((resolve, reject) => {
+        const token = localStorage.getItem('aitu_token');
+        const xhr = new XMLHttpRequest();
+        
+        xhr.open('POST', `${BASE_URL}${endpoint}`, true);
+        
+        if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        }
+        
+        // Add custom headers from options
+        if (options.headers) {
+            Object.keys(options.headers).forEach(key => {
+                xhr.setRequestHeader(key, options.headers[key]);
+            });
+        }
+        
+        // Progress tracking
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                onProgress(percentComplete);
+            }
+        });
+        
+        // Response handling
+        xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response);
+                } catch {
+                    resolve(xhr.responseText);
+                }
+            } else if (xhr.status === 401) {
+                localStorage.removeItem('aitu_token');
+                localStorage.removeItem('aitu_refresh_token');
+                localStorage.removeItem('aitu_role');
+                localStorage.removeItem('aitu_username');
+                window.location.href = '/login.html';
+                reject(new Error('Session expired'));
+            } else {
+                reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error during upload'));
+        });
+        
+        xhr.addEventListener('abort', () => {
+            reject(new Error('Upload aborted by user'));
+        });
+        
+        // Set timeout
+        const timeout = options.timeout || 300000; // 5 minutes default for uploads
+        xhr.timeout = timeout;
+        xhr.ontimeout = () => {
+            reject(new Error(`Upload timeout after ${timeout/1000} seconds`));
+        };
+        
+        xhr.send(formData);
+    });
+}
+
+/**
+ * Download a file as blob
+ */
+export async function downloadFile(endpoint, options = {}) {
+    const token = localStorage.getItem('aitu_token');
+    
+    const headers = {
+        ...(options.headers || {}),
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+    };
+    
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+        method: options.method || 'GET',
+        headers,
+        signal: options.signal || null
+    });
+    
+    if (!response.ok) {
+        if (response.status === 401 && !options.skip401Redirect) {
+            localStorage.removeItem('aitu_token');
+            window.location.href = '/login.html';
+            throw new Error('Session expired');
+        }
+        throw new Error(`Download failed with status ${response.status}`);
+    }
+    
+    return await response.blob();
+}
+
+/**
+ * Extract error message from API response
+ */
+export function getErrorMessage(error) {
+    if (typeof error === 'string') return error;
+    if (error.message) return error.message;
+    if (error.errors) {
+        const messages = Object.values(error.errors).flat();
+        return messages.join(', ');
+    }
+    return 'An unknown error occurred. Please try again.';
+}
+
+/**
+ * Check if API is reachable
+ */
+export async function pingAPI(timeout = 5000) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        
+        const response = await fetch(`${BASE_URL}/api/health`, {
+            method: 'GET',
+            signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        return response.ok;
+    } catch (error) {
+        console.warn('API health check failed:', error.message);
+        return false;
+    }
+}
+
+// ============================================
+// Default export for backward compatibility
+// ============================================
+
+export default {
+    BASE_URL,
+    fetchAPI,
+    fetchAll,
+    fetchWithRetry,
+    uploadFileWithProgress,
+    downloadFile,
+    getErrorMessage,
+    pingAPI
+};

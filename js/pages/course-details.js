@@ -1,6 +1,13 @@
 // js/pages/course-details.js
-import { courseService, fileService, logService, showProgressWidget, applyCachedImage } from '../shared/services.js';
+import {
+    courseService,
+    fileService,
+    logService,
+    showProgressWidget,
+    applyCachedImage
+} from '../shared/services.js';
 import { BASE_URL } from '../shared/api.js';
+import { resolveCourseImg } from '../shared/assets.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
 import { getCurrentLang } from '../shared/jssharedi18n.js';
@@ -14,13 +21,6 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
-}
-
-function resolveImg(img) {
-    if (!img) return 'assets/images/default-course.png';
-    if (/^https?:\/\//i.test(img) || img.startsWith('data:')) return img;
-    if (img.startsWith('/api/')) return BASE_URL + img;
-    return img;
 }
 
 let courseData = null;
@@ -202,7 +202,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Hero Banner -->
             <div class="course-detail-hero">
-                <img id="courseDetailHeroImg" src="${resolveImg(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/default-course.png';">
+<img
+    id="courseDetailHeroImg"
+    src="${resolveCourseImg(course.img)}"
+    alt="${escapeHtml(course.title)}"
+    loading="lazy"
+    onerror="this.onerror=null; this.src='assets/images/default-course.png';">
                 <div class="course-detail-hero-overlay">
                     <div class="hero-package-info">
                         <div class="hero-package-label">
@@ -297,7 +302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             return `
                                 <div class="related-bundle-item" data-id="${rel.id}">
                                     <div class="related-bundle-thumb">
-                                        <img src="${resolveImg(rel.img)}" alt="${rel.title}">
+                                        ${resolveCourseImg(rel.img) ? `<img src="${resolveCourseImg(rel.img)}" alt="${escapeHtml(rel.title)}" onerror="this.style.display='none'">` : ''}
                                     </div>
                                     <div>
                                         <div class="related-bundle-name">${rel.title}</div>
@@ -351,7 +356,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                                 ` : ''}
-                                <button class="rl-file-download-btn" data-id="${lesson.id || ''}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" title="Download">
+                                <button class="rl-file-download-btn" data-id="${lesson.fileId != null ? lesson.fileId : (lesson.id || '')}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" title="Download">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                                 </button>
                             </div>
@@ -378,17 +383,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fileUrl = btn.dataset.file || btn.getAttribute('data-file');
                 const fileName = btn.dataset.title || btn.getAttribute('data-name') || 'course_file';
 
-                const numericId = parseInt(fileId);
-                if (!isNaN(numericId)) {
-                    try {
-                        await fileService.downloadFile(numericId, fileName);
-                        return;
-                    } catch (err) {
-                        console.warn("downloadFile by ID failed, falling back to direct link/blob", err);
-                    }
+                // Pass BOTH the id and the stored path. downloadFile uses the
+                // numeric-id endpoint for repository files and the by-path
+                // endpoint for course lessons (whose id is a non-numeric string
+                // and whose real locator is the file path).
+                try {
+                    const r = await fileService.downloadFile(fileId, fileName, { file: fileUrl });
+                    if (r && r.success) return;
+                } catch (err) {
+                    console.warn("downloadFile failed:", err);
                 }
 
-                if (fileUrl) {
+                if (false && fileUrl) {
                     const downloadUrl = fileUrl.startsWith('http') || fileUrl.startsWith('data:') ? fileUrl : `${BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
                     const a = document.createElement('a');
                     a.href = downloadUrl;
@@ -398,17 +404,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     a.click();
                     a.remove();
                 } else {
-                    // Generate downloadable file
-                    const content = `AITU Academic Resource: ${fileName}\nDownloaded from AITU File Management System.`;
-                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${fileName.replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+// No id and no url -> nothing real to download. The old code
+// wrote a fake "<name>.txt" placeholder here.
+// Just tell the user.
+const isAr = getCurrentLang() === 'ar';
+alert(
+    isAr
+        ? 'هذا الملف غير متاح للتحميل حاليًا.'
+        : 'This file is not available for download.'
+);
                 }
             });
         });
@@ -450,33 +454,36 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
             if (deleteCourseBtn) {
-                deleteCourseBtn.addEventListener('click', () => {
-                    const title = isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion';
-                    const message = isAr 
-                        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف جميع المحاضرات والملفات المتعلقة به.` 
-                        : `Are you sure you want to permanently delete course "${course.title}"? This action cannot be undone.`;
+deleteCourseBtn.addEventListener('click', () => {
+    const title = isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion';
+    const message = isAr
+        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف جميع المحاضرات والملفات المتعلقة به.`
+        : `Are you sure you want to permanently delete course "${course.title}"? This action cannot be undone.`;
 
-                    showConfirmModal({
-                        title,
-                        message,
-                        confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
-                        cancelText: isAr ? 'إلغاء' : 'Cancel',
-                        type: 'danger',
-                        onConfirm: async () => {
-                            try {
-                                await courseService.deleteCourse(course.id);
-                                logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', course.title);
-                                alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
-                                window.location.href = 'courses.html';
-                            } catch (err) {
-                                alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
-                            }
-                        }
-                    });
-                });
+    showConfirmModal({
+        title,
+        message,
+        confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
+        cancelText: isAr ? 'إلغاء' : 'Cancel',
+        type: 'danger',
+        onConfirm: async () => {
+            deleteCourseBtn.disabled = true;
+            deleteCourseBtn.innerText = isAr ? 'جاري الحذف...' : 'Deleting...';
+
+            try {
+                await courseService.deleteCourse(course.id);
+                alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
+                window.location.href = 'courses.html';
+            } catch (err) {
+                alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
+                deleteCourseBtn.disabled = false;
+                deleteCourseBtn.innerText = isAr ? 'حذف' : 'Delete';
             }
         }
-
+    });
+});
+        
+            }}
         // Download All → Show Confirmation Modal FIRST
         document.getElementById('downloadAllBtn')?.addEventListener('click', () => {
             showDownloadModal(course);
@@ -517,7 +524,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (Array.isArray(m.lessons)) {
                         m.lessons.forEach(l => {
                             filesToDownload.push({
-                                id: l.id,
+                                id: (l.fileId != null ? l.fileId : l.id),
                                 name: l.title || l.name || 'Lesson Resource',
                                 file: l.file,
                                 type: l.type || 'PDF'
@@ -543,93 +550,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             showProgressWidget(widgetItems, 'download');
 
-            if (filesToDownload.length > 0) {
-                for (let i = 0; i < filesToDownload.length; i++) {
-                    const f = filesToDownload[i];
-                    let downloaded = false;
+// Try server zip download first
+const numericIds = filesToDownload
+    .map(f => parseInt(f.id))
+    .filter(id => !isNaN(id) && id > 0);
 
-                    const numericId = parseInt(f.id);
-                    if (!isNaN(numericId) && numericId > 100) {
-                        try {
-                            const res = await fileService.downloadFile(numericId, f.name);
-                            if (res) downloaded = true;
-                        } catch (e) {}
-                    }
+const allNumeric = numericIds.length === filesToDownload.length;
 
-                    if (!downloaded && f.file) {
-                        try {
-                            const downloadUrl = f.file.startsWith('http') || f.file.startsWith('data:') 
-                                ? f.file 
-                                : `${BASE_URL}${f.file.startsWith('/') ? '' : '/'}${f.file}`;
-                            const a = document.createElement('a');
-                            a.href = downloadUrl;
-                            a.download = f.name;
-                            a.target = '_blank';
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            downloaded = true;
-                        } catch (e) {}
-                    }
+if (allNumeric && numericIds.length > 0) {
+    try {
+        const res = await fileService.downloadZip(numericIds);
+        if (res && res.success) return;
+    } catch (err) {
+        console.warn('Server ZIP unavailable, downloading individually:', err);
+    }
+}
 
-                    if (!downloaded) {
-                        const safeName = (f.name || 'Resource').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF\s]/g, '_');
-                        const ext = (f.type || 'PDF').toLowerCase();
-                        const content = `====================================================
-AITU ACADEMIC RESOURCE PACKAGE
-Assiut International Technological University
-====================================================
+const isAr = getCurrentLang() === 'ar';
 
-Course Title : ${currentCourse.title || 'Course'}
-Resource Name: ${f.name}
-Type         : ${f.type || 'PDF'}
-Date         : ${new Date().toLocaleDateString()}
+if (filesToDownload.length === 0) {
+    alert(
+        isAr
+            ? 'لا توجد ملفات لتحميلها في هذا الكورس.'
+            : 'This course has no files to download.'
+    );
+    return;
+}
 
-Content Summary:
-All syllabus materials, datasets, and technical documentation
-included for ${currentCourse.title || 'this course'}.
+let ok = 0,
+    failed = 0;
 
-For official academic support, visit the AITU File Management System.
-====================================================`;
-                        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${safeName}.${ext === 'pdf' ? 'txt' : ext}`;
-                        a.target = '_blank';
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        setTimeout(() => URL.revokeObjectURL(url), 2000);
-                    }
+for (const f of filesToDownload) {
+    try {
+        const r = await fileService.downloadFile(f.id, f.name, { file: f.file });
+        if (r && r.success) ok++;
+        else failed++;
+    } catch (e) {
+        failed++;
+    }
 
-                    await new Promise(r => setTimeout(r, 450));
-                }
-            } else {
-                const safeCourseTitle = (currentCourse.title || 'Course').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF\s]/g, '_');
-                const content = `====================================================
-AITU ACADEMIC COURSE BUNDLE
-Assiut International Technological University
-====================================================
+    await new Promise(res => setTimeout(res, 400));
+}
 
-Course Title : ${currentCourse.title || 'Course'}
-Description  : ${currentCourse.description || 'Full course resource bundle.'}
-Date         : ${new Date().toLocaleDateString()}
+if (ok === 0) {
+    alert(
+        isAr
+            ? 'تعذّر تحميل ملفات هذا الكورس. قد تكون غير متاحة على الخادم.'
+            : "Could not download this course's files. They may be unavailable on the server."
+    );
+} else if (failed > 0) {
+    alert(
+        isAr
+            ? `تم تحميل ${ok} ملف، وتعذّر تحميل ${failed}.`
+            : `Downloaded ${ok} file(s); ${failed} could not be downloaded.`
+    );
 
-Included Resources:
-- Course Syllabus & Curriculum Guidelines
-- Academic Lecture Notes & Lab Exercises
-====================================================`;
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${safeCourseTitle}_Bundle.txt`;
-                a.target = '_blank';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 2000);
             }
         } catch (err) {
             console.warn('Error in executeBundleDownload:', err);
@@ -670,7 +645,7 @@ Included Resources:
                 if (Array.isArray(m.lessons)) {
                     m.lessons.forEach(l => {
                         resourcesList.push({
-                            id: l.id,
+                            id: (l.fileId != null ? l.fileId : l.id),
                             name: l.title || l.name || 'Lesson Resource',
                             type: (l.type || 'PDF').toUpperCase(),
                             size: l.size || '10 MB',
@@ -737,15 +712,13 @@ Included Resources:
             `;
 
             try {
-                await executeBundleDownload(course);
-                try {
-                    await logService.addLog(
-                        user?.username || 'Guest',
-                        user?.role || 'Public User',
-                        'Download Course',
-                        `Downloaded course bundle "${course?.title || ''}"`
-                    );
-                } catch (e) {}
+                // Use courseData (the module-scoped variable set at load), NOT
+                // `course` -- that local only exists inside the render function,
+                // so referencing it here threw "course is not defined" and the
+                // bundle download never ran.
+                // The server logs the download itself (guest or authenticated)
+                // inside /api/Files/zip and /api/Files/download, so no client log.
+                await executeBundleDownload(courseData);
             } catch (err) {
                 console.warn('Confirm modal download notice:', err);
             } finally {

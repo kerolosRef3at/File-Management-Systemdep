@@ -910,33 +910,55 @@ export const fileService = {
     async downloadFile(id, filename, fileObj = null) {
         try {
             showProgressWidget([filename || 'Academic Resource']);
+
+            // Two kinds of "file" exist in this app:
+            //  - repository files: a numeric id -> /api/Files/download/{id}
+            //  - course lessons:   a string id ("0olacye1k") + a stored path
+            //    ("assets/uploads/x.mp4") -> /api/Files/download-by-path?path=
+            // Pick the endpoint based on what we actually have.
             const numericId = parseInt(id);
-            if (!isNaN(numericId) && numericId > 0) {
-                const directDownloadUrl = `${BASE_URL}/api/Files/download/${numericId}`;
-                let iframe = document.getElementById('aitu-download-iframe');
-                if (!iframe) {
-                    iframe = document.createElement('iframe');
-                    iframe.id = 'aitu-download-iframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-                }
-                iframe.src = directDownloadUrl;
+            const path = fileObj && (fileObj.file || fileObj.path);
+
+            let url;
+            if (!isNaN(numericId) && numericId > 0 && String(numericId) === String(id)) {
+                url = `${BASE_URL}/api/Files/download/${numericId}`;
+            } else if (path) {
+                url = `${BASE_URL}/api/Files/download-by-path?path=${encodeURIComponent(path)}`;
+            } else {
+                // Nothing usable to fetch.
+                return { success: false };
             }
 
-            // Always create clean downloadable file so even mock files download cleanly to disk
-            const fileContent = fileObj?.content || `AITU Academic Resource: ${filename || 'Resource'}\nFile ID: ${id}\nDownloaded from AITU File Management System.`;
-            const blob = new Blob([fileContent], { type: 'text/plain;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
+            // Fetch the real bytes and save them via a blob (reliable, gives a
+            // real success/failure signal -- unlike a hidden iframe).
+            const token = localStorage.getItem('aitu_token');
+            const res = await fetch(url, {
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+            });
+            if (!res.ok) throw new Error('Download failed: ' + res.status);
+
+            const blob = await res.blob();
+            if (!blob || blob.size === 0) throw new Error('Empty file');
+
+            // Use the server's filename from Content-Disposition when present,
+            // otherwise fall back to the passed name.
+            let name = filename || 'download';
+            const cd = res.headers.get('content-disposition') || '';
+            const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+            if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch { name = m[1]; } }
+
+            const blobUrl = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `${(filename || 'downloaded_resource').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}.txt`;
+            a.href = blobUrl;
+            a.download = name;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
             return { success: true };
         } catch (err) {
-            console.warn("Download error:", err);
+            console.warn("Download error:", err.message);
             return { success: false };
         }
     },
@@ -945,7 +967,7 @@ export const fileService = {
         try {
             const token = localStorage.getItem('aitu_token');
             const response = await fetch(
-            `${BASE_URL}/api/Files/zip`,
+                `${BASE_URL}/api/Files/zip`,
                 {
                     method: 'POST',
                     headers: {
@@ -955,17 +977,28 @@ export const fileService = {
                     body: JSON.stringify(fileIds)
                 }
             );
-            if (!response.ok) throw new Error('ZIP download failed');
+            if (!response.ok) throw new Error('ZIP download failed: ' + response.status);
+
             const blob = await response.blob();
+            // Guard against an error body sneaking through as a "zip". A real zip
+            // is never a few bytes of JSON.
+            if (!blob || blob.size < 100) {
+                throw new Error('ZIP response was empty or invalid');
+            }
+
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `files_${Date.now()}.zip`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
+            a.remove();
+            // Revoke LATER, not immediately. Revoking right after click() can
+            // cancel the save of a large (tens of MB) archive mid-write.
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
             return { success: true };
         } catch (err) {
-            console.warn("ZIP download failed.");
+            console.warn("ZIP download failed:", err.message);
             throw err;
         }
     }
@@ -1325,23 +1358,40 @@ export const userService = {
 // ==========================================
 // 5. System Logs Service
 // ==========================================
+// js/shared/services.js - الجزء الخاص بـ logService فقط
+
+// js/shared/services.js - logService فقط
+
 export const logService = {
-    async getLogs(filters = {}) {
+    async getLogs(filters = {}, cacheBuster = '') {
         try {
             let url = '/api/Admin/logs';
             const params = [];
+
             if (filters.action) params.push(`action=${filters.action}`);
             if (filters.username) params.push(`username=${filters.username}`);
             if (filters.from) params.push(`from=${filters.from}`);
             if (filters.to) params.push(`to=${filters.to}`);
+
+            // Cache-busting goes in the URL, NOT in a Cache-Control header. Custom
+            // request headers (Cache-Control / Pragma / Expires) are non-simple,
+            // so they force a CORS preflight (OPTIONS) on every call -- and on the
+            // free host that preflight took minutes, which is what made the page
+            // hang and show 0. A query param busts the cache with no preflight.
+            if (cacheBuster) params.push(cacheBuster);
+
             if (params.length > 0) url += '?' + params.join('&');
-            const res = await fetchAPI(url);
+
+            // Generous timeout: the first preflight (Authorization header still
+            // triggers one) can be slow until the server sets SetPreflightMaxAge.
+            const res = await fetchAPI(url, { timeout: 180000 });
+
             if (Array.isArray(res)) return res;
             if (res && Array.isArray(res.logs)) return res.logs;
             if (res && Array.isArray(res.data)) return res.data;
             return [];
         } catch (err) {
-            console.warn("API failed to get logs:", err);
+            console.warn('API failed to get logs:', err);
             return [];
         }
     },
@@ -1359,6 +1409,7 @@ export const logService = {
         try {
             await fetchAPI('/api/Admin/logs', {
                 method: 'POST',
+                skip401Redirect: true,
                 body: JSON.stringify({
                     admin: admin || 'admin',
                     role: role || 'Supervisor',

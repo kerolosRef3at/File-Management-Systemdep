@@ -1,7 +1,8 @@
 // js/pages/create-course.js
 import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { BASE_URL } from '../shared/api.js';
-import { courseService, logService, folderService, fileService } from '../shared/services.js';
+import { resolveAssetUrl } from '../shared/assets.js';
+import { courseService, folderService, fileService } from '../shared/services.js';
 import { showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
@@ -36,6 +37,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
     let bulkFiles = [];      // { id, file, name, fileName, size }
     let lessons = [];        // { id, title, files: [{ id, file, name, fileName, size }] }
     let thumbnailDataUrl = '';
+
 
     let dragSrcIdx = null;
 
@@ -793,6 +795,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 } catch (e) { }
 
                 let fileUrl = item.fileItem.existingFileUrl || `assets/uploads/${item.fileItem.fileName}`;
+                // The numeric file id is what download/{id} and zip need. Storing
+                // only the path (the old behaviour) left lessons pointing at a
+                // string the download endpoints reject, so course downloads broke.
+                let uploadedFileId = item.fileItem.fileId || null;
 
                 if (item.fileItem.file) {
                     const formData = new FormData();
@@ -806,7 +812,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                                 updateFloatingProgressBar(i + 1, totalFiles, item.customName, percent);
                             }
                         );
-                        fileUrl = uploadRes.filePath || uploadRes.url || fileUrl;
+                        // Prefer the real file id; keep path as a human-readable
+                        // fallback only.
+                        if (uploadRes.fileId != null) uploadedFileId = uploadRes.fileId;
+                        fileUrl = uploadRes.path || uploadRes.filePath || uploadRes.url || fileUrl;
                     } catch (uploadErr) {
                         console.warn(`File upload failed for ${item.customName}:`, uploadErr);
                     }
@@ -819,7 +828,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                     uploadedModules.push(mod);
                 }
                 mod.lessons.push({
-                    id: item.fileItem.id,
+                    // Numeric file id when we have it -> downloads work by id.
+                    // Falls back to the local item id only if the upload gave none.
+                    id: uploadedFileId != null ? String(uploadedFileId) : item.fileItem.id,
+                    fileId: uploadedFileId,
                     title: item.lessonTitle,
                     file: fileUrl,
                     type: (item.fileItem.file ? item.fileItem.file.type.includes('pdf') : (item.fileItem.type || '').includes('pdf')) ? 'document' : 'video',
@@ -857,13 +869,12 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 ? await courseService.updateCourse(editCourseId, coursePayload)
                 : await courseService.createCourse(coursePayload);
 
-            // Log activity
-            try {
-                await logService.addLog(
-                    targetStatus === 'published' ? (editCourseId ? 'Update Course' : 'Create Course') : 'Save Course Draft',
-                    `Course "${title}" (${dept}) ${targetStatus}`
-                );
-            } catch (e) { }
+            // No client-side log here. CoursesController.Create/Update already
+            // write "CreateCourse"/"UpdateCourse"/"SaveDraft" server-side; this
+            // call produced a second, differently-named duplicate row -- and it
+            // passed only 2 args to addLog(admin, role, action, target), so the
+            // action landed in the `admin` field. Server logging is the source
+            // of truth.
 
             try {
                 localStorage.setItem('aitu_background_upload_job', JSON.stringify({
@@ -898,11 +909,14 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
     // ============================
     // LOAD COURSE FOR EDIT MODE
     // ============================
-    async function loadCourseForEdit(courseId) {
+    async function loadCourseForEdit(courseId, isDraft = false) {
         const alertsEl = document.getElementById('ccAlerts');
         try {
             const course = await courseService.getCourseDetails(courseId);
             if (!course) return;
+
+            const pageTitle = document.querySelector('.create-course-title h1');
+            if (pageTitle) pageTitle.textContent = isDraft ? 'Continue Draft' : 'Edit Course';
 
             // Fill text fields
             const titleInput = document.getElementById('ccTitle');
@@ -912,10 +926,17 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             }
 
             const deptSelect = document.getElementById('ccDept');
-            if (deptSelect) deptSelect.value = course.dept || '';
+            if (deptSelect && course.dept) {
+                deptSelect.value = course.dept;
+                // Rebuild the category list before selecting one; assigning to a
+                // <select> whose <option>s do not exist yet silently does nothing.
+                deptSelect.dispatchEvent(new Event('change'));
+            }
 
             const catSelect = document.getElementById('ccCategory');
-            if (catSelect) catSelect.value = course.category || '';
+            if (catSelect && course.category) {
+                setTimeout(() => { catSelect.value = course.category; }, 60);
+            }
 
             const descInput = document.getElementById('ccDescription');
             if (descInput) {
@@ -940,7 +961,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 if (thumbDrop) {
                     thumbDrop.innerHTML = `
                         <div style="position:relative;width:100%;height:140px;border-radius:8px;overflow:hidden;">
-                            <img src="${imgSrc}" onerror="this.onerror=null; this.src='assets/images/default-course.png';" style="width:100%;height:100%;object-fit:cover;">
+<img
+    src="${resolveAssetUrl(course.img)}"
+    onerror="this.onerror=null; this.src='assets/images/default-course.png';"
+    style="width:100%;height:100%;object-fit:cover;">
                             <button type="button" id="ccRemoveThumbBtn" style="position:absolute;top:6px;right:6px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">&times;</button>
                         </div>
                     `;
@@ -1148,7 +1172,7 @@ if (window.location.pathname.includes('create-course')) {
             return;
         }
 
-        // Import and render the admin sidebar layout
+
         try {
             const { renderLayout } = await import('../shared/layout.js');
             renderLayout('courses');
@@ -1156,25 +1180,39 @@ if (window.location.pathname.includes('create-course')) {
             console.warn('Could not render layout:', e);
         }
 
-        // Hide global loader
+
         const loader = document.getElementById('global-page-loader');
         if (loader) {
             loader.classList.add('hide-loader');
             setTimeout(() => loader.remove(), 300);
         }
 
-        const contentArea = document.getElementById('page-content') || document.getElementById('app');
-        if (!contentArea) return;
+const params = new URLSearchParams(window.location.search);
+const editId = params.get('edit') || null;
+const draftId = params.get('draft') || null;
 
-        // Check for draft or edit query params
-        const params = new URLSearchParams(window.location.search);
-        const draftId = params.get('draft') || null;
-        const editId = params.get('edit') || null;
+const contentArea = document.getElementById('page-content') || document.getElementById('app');
+if (!contentArea) return;
 
-        initCourseBuilder(contentArea, (saved) => {
-            if (saved) {
-                window.location.href = 'courses.html';
-            }
-        }, editId, draftId);
+initCourseBuilder(
+    contentArea,
+    (saved) => {
+        if (saved) {
+            window.location.href = 'courses.html';
+        }
+    },
+    editId,
+    draftId
+).catch(err => {
+    console.error('Course builder failed to start:', err);
+
+    contentArea.innerHTML = `
+        <div style="padding:40px;max-width:640px;margin:40px auto;background:#fff;
+                    border:1px solid #fecaca;border-radius:12px;">
+            <h2 style="color:#dc2626;margin:0 0 8px;">Could not open the course editor</h2>
+            <p style="color:#64748b;margin:0 0 16px;">${(err && err.message) || 'Unknown error'}</p>
+            <a href="courses.html" style="color:#0b3b70;font-weight:600;">Back to courses</a>
+        </div>`;
+});
     });
 }
