@@ -269,6 +269,12 @@
     display: none;
 }
 
+html[dir="rtl"] .dash-chart-dropdown,
+html[dir="rtl"] .dash-year-picker {
+    right: auto;
+    left: 0;
+}
+
 .dash-chart-dropdown.open {
     display: block;
 }
@@ -283,6 +289,11 @@
     color: #1A1F36;
     cursor: pointer;
     transition: background 0.15s;
+}
+
+html[dir="rtl"] .dash-chart-dropdown button,
+html[dir="rtl"] .dash-year-picker button {
+    text-align: right;
 }
 
 .dash-chart-dropdown button:hover {

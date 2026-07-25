@@ -1627,7 +1627,7 @@ export const profileService = {
     }
 };
 
-async function getLiveAggregates() {
+async function getLiveAggregates(targetYear = null) {
     let files = [];
     let courses = [];
     let folders = [];
@@ -1643,12 +1643,6 @@ async function getLiveAggregates() {
     if (!Array.isArray(logs)) logs = [];
 
     // Keyed by department CODE, built from whatever departments actually exist.
-    //
-    // These were fixed objects { it, el, me } filled by substring tests:
-    //     if (dept.includes('el')) ... else if (dept.includes('me')) ... else it++
-    // so a DESIGN file fell through to the else and was counted as IT, and a
-    // MEDIA file matched 'me' and was counted as Mechanical. The dashboard
-    // could only ever describe three departments, and described them wrong.
     const resourceMix = {};
     const programDownloads = {};
     let totalMB = 0;
@@ -1693,15 +1687,19 @@ async function getLiveAggregates() {
     }));
 
     const monthsList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentMonthIdx = new Date().getMonth();
+    const nowYear = new Date().getFullYear();
+    const selYear = Number(targetYear) || nowYear;
+    const isCurrentYear = selYear === nowYear;
+    const maxMonthIdx = isCurrentYear ? new Date().getMonth() : 11;
+
     const downloadVelocityMap = {};
-    monthsList.slice(0, Math.max(6, currentMonthIdx + 1)).forEach(m => downloadVelocityMap[m] = 0);
+    monthsList.slice(0, Math.max(6, maxMonthIdx + 1)).forEach(m => downloadVelocityMap[m] = 0);
 
     logs.forEach(l => {
         const dt = l.datetime || l.timestamp;
         if (dt) {
             const d = new Date(dt);
-            if (!isNaN(d.getTime())) {
+            if (!isNaN(d.getTime()) && (targetYear == null || d.getFullYear() === selYear)) {
                 const mName = monthsList[d.getMonth()];
                 if (downloadVelocityMap[mName] !== undefined) {
                     downloadVelocityMap[mName] += 1;
@@ -1715,7 +1713,7 @@ async function getLiveAggregates() {
         const dt = f.uploadDate || f.createdAt || f.created_at;
         if (dt) {
             const d = new Date(dt);
-            if (!isNaN(d.getTime())) {
+            if (!isNaN(d.getTime()) && (targetYear == null || d.getFullYear() === selYear)) {
                 const mName = monthsList[d.getMonth()];
                 if (downloadVelocityMap[mName] !== undefined) {
                     downloadVelocityMap[mName] += dl;
@@ -1809,16 +1807,16 @@ export const dashboardService = {
     },
 
     async getDownloads(year) {
+        const selectedYear = Number(year) || new Date().getFullYear();
         try {
-            const data = await fetchAPI('/api/Dashboard/metrics');
+            const data = await fetchAPI(`/api/Dashboard/metrics?year=${selectedYear}`);
             if (Array.isArray(data.downloadVelocity) && data.downloadVelocity.length > 0) {
                 return data.downloadVelocity;
             }
         } catch (err) {}
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const isCurrentYear = year === new Date().getFullYear();
-        const monthLimit = isCurrentYear ? (new Date().getMonth() + 1) : 12;
-        return months.slice(0, monthLimit).map(m => ({ month: m, count: 0 }));
+
+        const live = await getLiveAggregates(selectedYear);
+        return live.downloadVelocity;
     },
 
     async getResourceMix() {

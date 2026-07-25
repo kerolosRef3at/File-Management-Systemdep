@@ -165,15 +165,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="dash-chart-header">
                         <h3 class="dash-chart-title">${t('dash_download_velocity')}</h3>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <span id="chartYearLabel" style="font-size:13px;font-weight:600;color:#6B7A99;">${currentYear}</span>
+                            <select id="chartYearSelect" class="dash-year-select" style="font-size:13px; font-weight:700; color:#1a3caa; background:#f4f6fb; border:1px solid #e8ecf4; border-radius:8px; padding:4px 10px; cursor:pointer; outline:none; transition:all 0.2s;">
+                                <option value="2026" ${currentYear === 2026 ? 'selected' : ''}>2026</option>
+                                <option value="2025" ${currentYear === 2025 ? 'selected' : ''}>2025</option>
+                                <option value="2024" ${currentYear === 2024 ? 'selected' : ''}>2024</option>
+                                <option value="2023" ${currentYear === 2023 ? 'selected' : ''}>2023</option>
+                                <option value="2022" ${currentYear === 2022 ? 'selected' : ''}>2022</option>
+                                <option value="2021" ${currentYear === 2021 ? 'selected' : ''}>2021</option>
+                            </select>
                             <div style="position:relative;">
-                                <button class="dash-chart-menu-btn" id="chartMenuBtn">
+                                <button class="dash-chart-menu-btn" id="chartMenuBtn" title="${isAr ? 'خيارات السنة' : 'Year Options'}">
                                     <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
                                 </button>
                                 <div class="dash-chart-dropdown" id="chartDropdown">
-                                    <button data-action="prev">← Previous Year</button>
-                                    <button data-action="next">Next Year →</button>
-                                    <button data-action="pick">Select Year...</button>
+                                    <button data-action="prev">${isAr ? '← السنة السابقة' : '← Previous Year'}</button>
+                                    <button data-action="next">${isAr ? 'السنة التالية →' : 'Next Year →'}</button>
+                                    <button data-action="pick">${isAr ? 'اختر سنة محددة...' : 'Select Year...'}</button>
                                 </div>
                                 <div class="dash-year-picker" id="yearPicker"></div>
                             </div>
@@ -606,6 +613,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
+        // Chart Year Select Dropdown
+        const yearSelect = document.getElementById('chartYearSelect');
+        if (yearSelect) {
+            yearSelect.addEventListener('change', async (e) => {
+                currentYear = parseInt(e.target.value, 10);
+                await reloadChart();
+            });
+        }
+
         // Chart three-dot menu
         const menuBtn = document.getElementById('chartMenuBtn');
         const dropdown = document.getElementById('chartDropdown');
@@ -660,7 +676,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const now = new Date().getFullYear();
         let html = '';
-        for (let y = now - 3; y <= now + 1; y++) {
+        for (let y = now - 4; y <= now; y++) {
             html += '<button data-year="' + y + '"' + (y === currentYear ? ' class="active"' : '') + '>' + y + '</button>';
         }
         yearPicker.innerHTML = html;
@@ -680,8 +696,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     async function reloadChart() {
         const container = document.getElementById('velocityChartContainer');
-        const label = document.getElementById('chartYearLabel');
-        if (label) label.textContent = currentYear;
+        const yearSelect = document.getElementById('chartYearSelect');
+        if (yearSelect) {
+            let optionExists = Array.from(yearSelect.options).some(opt => Number(opt.value) === currentYear);
+            if (!optionExists) {
+                const newOpt = new Option(currentYear, currentYear);
+                yearSelect.add(newOpt);
+            }
+            yearSelect.value = currentYear;
+        }
         if (container) {
             container.innerHTML = '<div class="dash-skeleton" style="height:240px;border-radius:8px;"></div>';
             try {
