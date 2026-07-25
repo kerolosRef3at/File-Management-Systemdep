@@ -549,17 +549,19 @@ export function showProgressWidget(items = [], type = 'download') {
         let overallProg = 0;
         if (total > 0) {
             const sum = queue.reduce((acc, f) => acc + (f.progress || 0), 0);
-            overallProg = Math.round(sum / total);
+        overallProg = Math.round(sum / total);
         }
 
         const titleText = isDone 
             ? (isAr ? `تم اكتمال تنزيل ${completed} ملف(ات)` : `${completed} downloads complete`)
             : (isAr ? `جاري تنزيل ${total - completed} ملف(ات)...` : `Downloading ${total - completed} file(s)...`);
+        const isCollapsed = widget.dataset.collapsed === 'true';
+        const isMaximized = widget.dataset.maximized === 'true';
 
         let filesHtml = '';
         if (!isCollapsed) {
             filesHtml = `
-                <div style="max-height: 180px; overflow-y: auto; padding: 10px 14px; background: #ffffff;">
+                <div style="max-height: ${isMaximized ? '320px' : '180px'}; overflow-y: auto; padding: 10px 14px; background: #ffffff;">
                     ${queue.map(f => {
                         const isFileDone = f.status === 'complete' || f.progress >= 100;
                         const icon = isFileDone
@@ -581,20 +583,39 @@ export function showProgressWidget(items = [], type = 'download') {
         }
 
         widget.className = 'google-drive-upload-widget';
-        widget.style.cssText = `
-            position: fixed;
-            bottom: 24px;
-            ${isAr ? 'left: 24px;' : 'right: 24px;'}
-            z-index: 999999;
-            width: 340px;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
-            direction: ${isAr ? 'rtl' : 'ltr'};
-            font-family: inherit;
-            border: 1px solid #cbd5e1;
-        `;
+        if (isMaximized) {
+            widget.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 999999;
+                width: 480px;
+                max-width: 92vw;
+                background: #ffffff;
+                border-radius: 14px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+                overflow: hidden;
+                direction: ${isAr ? 'rtl' : 'ltr'};
+                font-family: inherit;
+                border: 1px solid #cbd5e1;
+            `;
+        } else {
+            widget.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                ${isAr ? 'left: 24px;' : 'right: 24px;'}
+                z-index: 999999;
+                width: 340px;
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+                overflow: hidden;
+                direction: ${isAr ? 'rtl' : 'ltr'};
+                font-family: inherit;
+                border: 1px solid #cbd5e1;
+            `;
+        }
 
         widget.innerHTML = `
             <style>
@@ -614,6 +635,9 @@ export function showProgressWidget(items = [], type = 'download') {
                     <span style="font-weight: 700; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${titleText}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
+                    <button type="button" id="globalWidgetExpandBtn" title="${isAr ? 'تكبير / تصغير' : 'Maximize'}" style="background:none; border:none; color:#94a3b8; cursor:pointer; padding:3px; display:flex; align-items:center;">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+                    </button>
                     <button type="button" id="globalWidgetCollapseBtn" title="${isAr ? 'طي / توسيع' : 'Toggle'}" style="background:none; border:none; color:#94a3b8; cursor:pointer; padding:3px; display:flex; align-items:center;">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">${isCollapsed ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="6 9 12 15 18 9"/>'}</svg>
                     </button>
@@ -630,12 +654,27 @@ export function showProgressWidget(items = [], type = 'download') {
             ${filesHtml}
         `;
 
-        widget.querySelector('#globalWidgetCollapseBtn')?.addEventListener('click', () => {
-            widget.dataset.collapsed = widget.dataset.collapsed === 'true' ? 'false' : 'true';
+        widget.querySelector('#globalWidgetExpandBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            widget.dataset.maximized = widget.dataset.maximized === 'true' ? 'false' : 'true';
+            widget.dataset.collapsed = 'false';
             render();
         });
-        widget.querySelector('#globalWidgetCloseBtn')?.addEventListener('click', () => {
+        widget.querySelector('#globalWidgetCollapseBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            widget.dataset.collapsed = widget.dataset.collapsed === 'true' ? 'false' : 'true';
+            widget.dataset.maximized = 'false';
+            render();
+        });
+        widget.querySelector('#globalWidgetCloseBtn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!isDone) {
+                if (!confirm(isAr ? 'عملية الرفع جارية حالياً، هل أنت متأكد من الإغلاق؟' : 'Upload in progress, are you sure you want to close?')) {
+                    return;
+                }
+            }
             widget.style.display = 'none';
+            widget.remove();
         });
     }
 

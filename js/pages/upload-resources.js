@@ -738,52 +738,42 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
         }
 
         const isCollapsed = widget.dataset.collapsed === 'true';
-
-        const titleText = isDone 
-            ? (isAr ? `تم اكتمال رفع ${completedFiles} ملف(ات)` : `${completedFiles} uploads complete`)
-            : (isAr ? `جاري رفع ${uploadingFiles || (totalFiles - completedFiles)} ملف(ات)...` : `Uploading ${totalFiles - completedFiles} item(s)...`);
-
-        let filesListHtml = '';
-        if (!isCollapsed) {
-            filesListHtml = `
-                <div style="max-height: 180px; overflow-y: auto; padding: 10px 14px; background: #ffffff;">
-                    ${fileQueue.map(f => {
-                        const isFileDone = f.status === 'complete' || (f.progress >= 100 && f.status !== 'failed');
-                        const icon = isFileDone 
-                            ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
-                            : f.status === 'failed'
-                            ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ef4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
-                            : `<div style="width:14px; height:14px; border:2px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:widgetSpin 0.8s linear infinite;"></div>`;
-                        
-                        return `
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; font-size:0.83rem;">
-                                <div style="display:flex; align-items:center; gap:8px; overflow:hidden; flex:1;">
-                                    ${icon}
-                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--primary-dark); font-weight:600;" title="${f.name}">${f.name}</span>
-                                </div>
-                                <span style="font-size:0.78rem; color:${isFileDone ? '#22c55e' : '#64748b'}; font-weight:600; flex-shrink:0;">${isFileDone ? '100%' : (f.progress || 0) + '%'}</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
+        const isMaximized = widget.dataset.maximized === 'true';
 
         widget.className = 'google-drive-upload-widget';
-        widget.style.cssText = `
-            position: fixed;
-            bottom: 24px;
-            ${isAr ? 'left: 24px;' : 'right: 24px;'}
-            z-index: 999999;
-            width: 340px;
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
-            direction: ${isAr ? 'rtl' : 'ltr'};
-            font-family: inherit;
-            border: 1px solid #cbd5e1;
-        `;
+        if (isMaximized) {
+            widget.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 999999;
+                width: 480px;
+                max-width: 92vw;
+                background: #ffffff;
+                border-radius: 14px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+                overflow: hidden;
+                direction: ${isAr ? 'rtl' : 'ltr'};
+                font-family: inherit;
+                border: 1px solid #cbd5e1;
+            `;
+        } else {
+            widget.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                ${isAr ? 'left: 24px;' : 'right: 24px;'}
+                z-index: 999999;
+                width: 340px;
+                background: #ffffff;
+                border-radius: 12px;
+                box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+                overflow: hidden;
+                direction: ${isAr ? 'rtl' : 'ltr'};
+                font-family: inherit;
+                border: 1px solid #cbd5e1;
+            `;
+        }
 
         widget.innerHTML = `
             <style>
@@ -803,7 +793,7 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
                     <span style="font-weight: 700; font-size: 0.86rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${titleText}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                    <button type="button" id="widgetToggleExpandBtn" title="${isAr ? 'تكبير النافذة' : 'Maximize'}" style="background:none; border:none; color:#94a3b8; cursor:pointer; padding:3px; display:flex; align-items:center;">
+                    <button type="button" id="widgetToggleExpandBtn" title="${isAr ? 'تكبير / تصغير' : 'Maximize'}" style="background:none; border:none; color:#94a3b8; cursor:pointer; padding:3px; display:flex; align-items:center;">
                         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
                     </button>
                     <button type="button" id="widgetToggleCollapseBtn" title="${isAr ? 'طي / توسيع' : 'Toggle'}" style="background:none; border:none; color:#94a3b8; cursor:pointer; padding:3px; display:flex; align-items:center;">
@@ -828,32 +818,42 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
         const closeBtn = widget.querySelector('#widgetCloseBtn');
 
         const restoreModal = () => {
-            widget.style.display = 'none';
-            overlay.style.display = 'flex';
-            overlay.classList.add('visible');
+            if (overlay && overlay.parentNode) {
+                widget.style.display = 'none';
+                overlay.style.display = 'flex';
+                overlay.classList.add('visible');
+            } else {
+                widget.dataset.maximized = widget.dataset.maximized === 'true' ? 'false' : 'true';
+                widget.dataset.collapsed = 'false';
+                renderFloatingWidget();
+            }
         };
 
         if (headerTitle) headerTitle.addEventListener('click', restoreModal);
         if (expandBtn) expandBtn.addEventListener('click', restoreModal);
 
         if (collapseBtn) {
-            collapseBtn.addEventListener('click', () => {
-                const nextState = widget.dataset.collapsed === 'true' ? 'false' : 'true';
-                widget.dataset.collapsed = nextState;
+            collapseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                widget.dataset.collapsed = widget.dataset.collapsed === 'true' ? 'false' : 'true';
+                widget.dataset.maximized = 'false';
                 renderFloatingWidget();
             });
         }
 
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 if (!isDone && (isUploading || fileQueue.some(f => f.status === 'uploading'))) {
                     if (confirm(isAr ? 'عملية الرفع جارية حالياً، هل أنت متأكد من الإلغاء؟' : 'Upload is in progress. Are you sure you want to cancel?')) {
                         widget.style.display = 'none';
+                        widget.remove();
                         localStorage.removeItem('aitu_upload_state');
-                        closeModal();
+                        if (typeof closeModal === 'function') closeModal();
                     }
                 } else {
                     widget.style.display = 'none';
+                    widget.remove();
                     localStorage.removeItem('aitu_upload_state');
                 }
             });
