@@ -43,14 +43,17 @@ export async function fetchAPI(endpoint, options = {}) {
         const response = await fetch(`${BASE_URL}${endpoint}`, config);
         if (timeoutId) clearTimeout(timeoutId);
         
-        // معالجة حالة انتهاء الجلسة (Unauthorized)
+        // Handle 401 Unauthorized errors gracefully
         if (response.status === 401) {
+            if (options.forceLogoutOn401) {
+                localStorage.removeItem('aitu_token');
+                window.location.href = 'login.html';
+                throw new Error('Session expired. Please login again.');
+            }
             if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
                 throw new Error('Invalid credentials');
             }
-            localStorage.removeItem('aitu_token');
-            window.location.href = 'login.html';
-            throw new Error('Session expired. Please login again.');
+            throw new Error('Unauthorized (401)');
         }
 
         // لو الرد مش 200/201

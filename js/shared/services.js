@@ -9,31 +9,44 @@ const USE_MOCK = false;
 const delay = (ms = 0) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper to construct a mock JWT token
+// Helper to construct a mock JWT token
 function generateMockJWT(user) {
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const payload = btoa(JSON.stringify({
-        sub: user.username,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        joined: user.joined,
-        name: user.name || user.username,
-        exp: Math.floor(Date.now() / 1000) + 3600 // 1 hour expiry
-    }));
-    const signature = "mock_signature";
-    return `${header}.${payload}.${signature}`;
+    try {
+        const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+        const payloadStr = JSON.stringify({
+            sub: user.username,
+            email: user.email,
+            role: user.role,
+            phone: user.phone,
+            joined: user.joined,
+            name: user.name || user.username,
+            exp: Math.floor(Date.now() / 1000) + 86400 // 24 hours expiry
+        });
+        const payload = btoa(unescape(encodeURIComponent(payloadStr)));
+        const signature = "mock_signature";
+        return `${header}.${payload}.${signature}`;
+    } catch (e) {
+        return "mock.token.signature";
+    }
 }
 
 // Helper to decode a JWT token
 export function decodeJWT(token) {
     try {
+        if (!token) return null;
         const parts = token.split('.');
         if (parts.length !== 3) return null;
-        const decodedPayload = atob(parts[1]);
+        const decodedPayload = decodeURIComponent(escape(atob(parts[1])));
         return JSON.parse(decodedPayload);
     } catch (e) {
-        console.error("JWT decoding failed:", e);
-        return null;
+        try {
+            const parts = token.split('.');
+            if (parts.length !== 3) return null;
+            return JSON.parse(atob(parts[1]));
+        } catch (err) {
+            console.error("JWT decoding failed:", err);
+            return null;
+        }
     }
 }
 
