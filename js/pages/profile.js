@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const lang = getCurrentLang();
     const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
+    let currentAvatarDataUrl = user ? (user.avatar || '') : '';
+    const defaultAvatarUrl = user ? `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=072247&color=fff` : '';
+    const initialAvatarSrc = (user && user.avatar) ? user.avatar : defaultAvatarUrl;
+
     // Standardize role presentation label
     function getRoleDisplay(role) {
         if (role === 'Mechanic Manager') return 'Mechanical Manager';
@@ -47,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="profile-card-body" style="padding:25px;">
                     
                     <div class="photo-upload-section" style="display:flex; align-items:center; gap:20px; margin-bottom:30px;">
-                        <img src="https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff" alt="Profile avatar" class="profile-img-preview" id="profileImagePreview" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color);">
+                        <img src="${initialAvatarSrc}" alt="Profile avatar" class="profile-img-preview" id="profileImagePreview" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color);">
                         <div>
                             <div class="photo-upload-actions" style="display:flex; gap:15px; margin-bottom:5px;">
                                 <button type="button" class="btn-text-primary" id="changePhotoBtn" style="background:none; border:none; color:var(--primary-blue); font-weight:600; cursor:pointer;">${t('profile_change_photo')}</button>
@@ -187,10 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
             profileAlert.style.display = 'none';
 
             try {
-                // TODO: PUT /api/Admin/profile
-                await profileService.updateProfile(email, mobile, fullName);
+                // PUT /api/Admin/profile
+                await profileService.updateProfile(email, mobile, fullName, currentAvatarDataUrl);
                 
-                showAlert(profileAlert, 'Profile information updated successfully.', 'success');
+                showAlert(profileAlert, isAr ? 'تم تحديث معلومات الحساب والصورة الشخصية بنجاح.' : 'Profile information updated successfully.', 'success');
                 logService.addLog(user.username, user.role, 'Update Profile', `Updated contact info`);
                 
                 // Update header displays in-place instead of reloading layout (which clears forms)
@@ -218,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 showAlert(profileAlert, err.message || 'Failed to update profile.', 'error');
             } finally {
                 saveProfileBtn.disabled = false;
-                saveProfileBtn.innerText = 'Save Changes';
+                saveProfileBtn.innerText = isAr ? 'حفظ التغييرات' : 'Save Changes';
             }
         });
     }
@@ -250,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             securityAlert.style.display = 'none';
 
             try {
-                // TODO: POST /api/Auth/change-password
+                // POST /api/Auth/change-password
                 await profileService.changePassword(oldPassword, newPassword);
                 showAlert(securityAlert, 'Password updated successfully.', 'success');
                 logService.addLog(user.username, user.role, 'Change Password', `Updated account password`);
@@ -278,10 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
         profileFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
+                const isAr = getCurrentLang() === 'ar';
+                if (file.size > 4 * 1024 * 1024) {
+                    showAlert(profileAlert, isAr ? 'حجم الصورة يتجاوز الحد الأقصى (4 ميجابايت).' : 'Image size exceeds maximum limit (4 MB).', 'error');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = (evt) => {
+                    currentAvatarDataUrl = evt.target.result;
                     if (preview) {
-                        preview.src = evt.target.result;
+                        preview.src = currentAvatarDataUrl;
                     }
                 };
                 reader.readAsDataURL(file);
@@ -292,8 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (removePhotoBtn) {
         removePhotoBtn.addEventListener('click', () => {
             if (profileFileInput) profileFileInput.value = '';
+            currentAvatarDataUrl = '';
             if (preview) {
-                preview.src = `https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff`;
+                preview.src = defaultAvatarUrl;
             }
         });
     }

@@ -45,7 +45,6 @@
                     <span class="lang-btn-text" data-i18n="lang_btn">عربي</span>
                 </button>
                 <button class="repo-login-btn" data-i18n="nav_login" onclick="window.location.href='login.html'">Login</button>
-                <button class="repo-login-btn" data-i18n="nav_join" style="background:var(--primary-blue);" onclick="window.location.href='login.html'">Join AITU</button>
             </div>
             <button class="repo-mobile-menu-btn" id="detailMobileMenu">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -59,7 +58,25 @@
         <div style="text-align:center; padding:80px 20px; color:var(--text-gray);" data-i18n="cd_loading">Loading course details...</div>
     </div>
 
-    <!-- Download Confirmation Modal -->
+    <!-- Footer -->
+    <footer class="repo-footer">
+        <div class="repo-footer-inner">
+            <div class="repo-footer-brand">
+                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="44" height="44" style="border-radius:50%; object-fit:cover;" onerror="this.src='logos/logo_AITU.jpg'">
+                <div>
+                    <strong data-i18n="footer_brand">AITU File Sharing System</strong>
+                    <span data-i18n="footer_desc">Centralizing academic intelligence with precision.</span>
+                </div>
+            </div>
+            <div class="repo-footer-copy" data-i18n="footer_copy">&copy; 2026 Assiut International Technological University. All rights reserved.</div>
+        </div>
+    </footer>
+    </div>
+
+    <!-- Admin layout shell -->
+    <div id="app" style="display:none;"></div>
+
+    <!-- Download Confirmation Modal (Accessible for all roles) -->
     <div class="course-download-modal-overlay" id="courseDownloadModal">
         <div class="course-download-modal">
             <div class="cdm-header">
@@ -103,24 +120,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Footer -->
-    <footer class="repo-footer">
-        <div class="repo-footer-inner">
-            <div class="repo-footer-brand">
-                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="44" height="44" style="border-radius:50%; object-fit:cover;" onerror="this.src='logos/logo_AITU.jpg'">
-                <div>
-                    <strong data-i18n="footer_brand">AITU File Sharing System</strong>
-                    <span data-i18n="footer_desc">Centralizing academic intelligence with precision.</span>
-                </div>
-            </div>
-            <div class="repo-footer-copy" data-i18n="footer_copy">&copy; 2026 Assiut International Technological University. All rights reserved.</div>
-        </div>
-    </footer>
-    </div>
-
-    <!-- Admin layout shell -->
-    <div id="app" style="display:none;"></div>
 
     <script type="module" src="js/pages/course-details.js"></script>
     <script type="module">

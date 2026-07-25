@@ -1,9 +1,10 @@
 // js/pages/course-details.js
-import { courseService, fileService, logService, showProgressWidget } from '../shared/services.js';
+import { courseService, fileService, logService, showProgressWidget, applyCachedImage } from '../shared/services.js';
 import { BASE_URL } from '../shared/api.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
 import { getCurrentLang } from '../shared/jssharedi18n.js';
+import { showConfirmModal } from '../shared/components.js';
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -201,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Hero Banner -->
             <div class="course-detail-hero">
-                <img src="${resolveImg(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy">
+                <img id="courseDetailHeroImg" src="${resolveImg(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null; this.src='assets/images/default-course.png';">
                 <div class="course-detail-hero-overlay">
                     <div class="hero-package-info">
                         <div class="hero-package-label">
@@ -311,6 +312,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         `;
 
+        // Apply cached image for instant zero-latency loading & smooth fallback
+        const heroImg = document.getElementById('courseDetailHeroImg');
+        if (heroImg && course.img) {
+            applyCachedImage(heroImg, course.img);
+        }
+
         // Render Module Accordion
         const accordion = document.getElementById('moduleAccordion');
         course.modules.forEach((mod, idx) => {
@@ -367,14 +374,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.rl-file-download-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-<<<<<<< Updated upstream
-                const path = btn.getAttribute('data-file');
-                const name = btn.getAttribute('data-name') || 'resource';
-                downloadResource(path, name);
-=======
                 const fileId = btn.dataset.id;
-                const fileUrl = btn.dataset.file;
-                const fileName = btn.dataset.title || 'course_file';
+                const fileUrl = btn.dataset.file || btn.getAttribute('data-file');
+                const fileName = btn.dataset.title || btn.getAttribute('data-name') || 'course_file';
 
                 const numericId = parseInt(fileId);
                 if (!isNaN(numericId)) {
@@ -397,7 +399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     a.remove();
                 } else {
                     // Generate downloadable file
-                    const content = `AITU Academic Resource: ${fileName}\nCourse: ${course.title}\nDownloaded from AITU File Management System.`;
+                    const content = `AITU Academic Resource: ${fileName}\nDownloaded from AITU File Management System.`;
                     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -408,7 +410,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     a.remove();
                     setTimeout(() => URL.revokeObjectURL(url), 1000);
                 }
->>>>>>> Stashed changes
             });
         });
 
@@ -449,24 +450,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             }
             if (deleteCourseBtn) {
-                deleteCourseBtn.addEventListener('click', async () => {
-                    const deleteConfirmMsg = isAr 
-                        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟` 
-                        : `Are you sure you want to permanently delete course "${course.title}"?`;
-                    if (confirm(deleteConfirmMsg)) {
-                        deleteCourseBtn.disabled = true;
-                        deleteCourseBtn.innerText = isAr ? 'جاري الحذف...' : 'Deleting...';
-                        try {
-                            await courseService.deleteCourse(course.id);
-                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', course.title);
-                            alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
-                            window.location.href = 'courses.html';
-                        } catch (err) {
-                            alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
-                            deleteCourseBtn.disabled = false;
-                            deleteCourseBtn.innerText = isAr ? 'حذف' : 'Delete';
+                deleteCourseBtn.addEventListener('click', () => {
+                    const title = isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion';
+                    const message = isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف جميع المحاضرات والملفات المتعلقة به.` 
+                        : `Are you sure you want to permanently delete course "${course.title}"? This action cannot be undone.`;
+
+                    showConfirmModal({
+                        title,
+                        message,
+                        confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
+                        cancelText: isAr ? 'إلغاء' : 'Cancel',
+                        type: 'danger',
+                        onConfirm: async () => {
+                            try {
+                                await courseService.deleteCourse(course.id);
+                                logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', course.title);
+                                alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
+                                window.location.href = 'courses.html';
+                            } catch (err) {
+                                alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
+                            }
                         }
-                    }
+                    });
                 });
             }
         }
@@ -537,32 +543,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             showProgressWidget(widgetItems, 'download');
 
-            // Try server zip download first
-            const numericIds = filesToDownload.map(f => parseInt(f.id)).filter(id => !isNaN(id));
-            if (numericIds.length > 0) {
-                try {
-                    const res = await fileService.downloadZip(numericIds);
-                    if (res && res.success) return;
-                } catch (err) {
-                    console.warn('Server ZIP download unavailable, attempting client download:', err);
-                }
-            }
-
-            // Direct/Fallback downloads
             if (filesToDownload.length > 0) {
-                let delay = 0;
-                filesToDownload.forEach((f) => {
-                    setTimeout(async () => {
-                        const numericId = parseInt(f.id);
-                        if (!isNaN(numericId)) {
-                            try {
-                                await fileService.downloadFile(numericId, f.name);
-                                return;
-                            } catch (e) {}
-                        }
+                for (let i = 0; i < filesToDownload.length; i++) {
+                    const f = filesToDownload[i];
+                    let downloaded = false;
 
-                        if (f.file) {
-                            const downloadUrl = f.file.startsWith('http') || f.file.startsWith('data:') ? f.file : `${BASE_URL}${f.file.startsWith('/') ? '' : '/'}${f.file}`;
+                    const numericId = parseInt(f.id);
+                    if (!isNaN(numericId) && numericId > 100) {
+                        try {
+                            const res = await fileService.downloadFile(numericId, f.name);
+                            if (res) downloaded = true;
+                        } catch (e) {}
+                    }
+
+                    if (!downloaded && f.file) {
+                        try {
+                            const downloadUrl = f.file.startsWith('http') || f.file.startsWith('data:') 
+                                ? f.file 
+                                : `${BASE_URL}${f.file.startsWith('/') ? '' : '/'}${f.file}`;
                             const a = document.createElement('a');
                             a.href = downloadUrl;
                             a.download = f.name;
@@ -570,36 +568,71 @@ document.addEventListener('DOMContentLoaded', async () => {
                             document.body.appendChild(a);
                             a.click();
                             a.remove();
-                        } else {
-                            const content = `AITU Academic Resource: ${f.name}\nCourse: ${currentCourse.title || 'Course'}\nDownloaded from AITU File Management System.`;
-                            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `${(f.name || 'resource').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}.${(f.type || 'PDF').toLowerCase()}`;
-                            a.target = '_blank';
-                            document.body.appendChild(a);
-                            a.click();
-                            a.remove();
-                            setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        }
-                    }, delay);
-                    delay += 350;
-                });
+                            downloaded = true;
+                        } catch (e) {}
+                    }
+
+                    if (!downloaded) {
+                        const safeName = (f.name || 'Resource').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF\s]/g, '_');
+                        const ext = (f.type || 'PDF').toLowerCase();
+                        const content = `====================================================
+AITU ACADEMIC RESOURCE PACKAGE
+Assiut International Technological University
+====================================================
+
+Course Title : ${currentCourse.title || 'Course'}
+Resource Name: ${f.name}
+Type         : ${f.type || 'PDF'}
+Date         : ${new Date().toLocaleDateString()}
+
+Content Summary:
+All syllabus materials, datasets, and technical documentation
+included for ${currentCourse.title || 'this course'}.
+
+For official academic support, visit the AITU File Management System.
+====================================================`;
+                        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${safeName}.${ext === 'pdf' ? 'txt' : ext}`;
+                        a.target = '_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        setTimeout(() => URL.revokeObjectURL(url), 2000);
+                    }
+
+                    await new Promise(r => setTimeout(r, 450));
+                }
             } else {
-                const content = `AITU Academic Resource Bundle\nCourse: ${currentCourse.title || 'Course'}\nDescription: ${currentCourse.description || ''}\nDownloaded from AITU File Management System.`;
+                const safeCourseTitle = (currentCourse.title || 'Course').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF\s]/g, '_');
+                const content = `====================================================
+AITU ACADEMIC COURSE BUNDLE
+Assiut International Technological University
+====================================================
+
+Course Title : ${currentCourse.title || 'Course'}
+Description  : ${currentCourse.description || 'Full course resource bundle.'}
+Date         : ${new Date().toLocaleDateString()}
+
+Included Resources:
+- Course Syllabus & Curriculum Guidelines
+- Academic Lecture Notes & Lab Exercises
+====================================================`;
                 const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${(currentCourse.title || 'course').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}_bundle.txt`;
+                a.download = `${safeCourseTitle}_Bundle.txt`;
+                a.target = '_blank';
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                setTimeout(() => URL.revokeObjectURL(url), 2000);
             }
         } catch (err) {
-            console.warn('Error in executeBundleDownload fallback:', err);
+            console.warn('Error in executeBundleDownload:', err);
         }
     }
 
@@ -608,7 +641,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // ============================
     function showDownloadModal(currentCourse) {
         const modal = document.getElementById('courseDownloadModal');
-        if (!modal) return;
+        if (!modal) {
+            executeBundleDownload(currentCourse);
+            return;
+        }
 
         const lang = getCurrentLang();
         const isAr = lang === 'ar';
@@ -684,23 +720,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (modal) modal.classList.remove('active');
     }
 
-<<<<<<< Updated upstream
-    document.getElementById('closeModal').addEventListener('click', hideModal);
-    document.getElementById('cancelModal').addEventListener('click', hideModal);
-    document.getElementById('confirmModal').addEventListener('click', () => {
-        hideModal();
-        // Download every lesson that has a file, spaced out so the browser
-        // doesn't cancel rapid successive downloads.
-        const files = [];
-        (courseData?.modules || []).forEach(m =>
-            (m.lessons || []).forEach(l => { if (l.file) files.push({ path: l.file, name: l.title }); }));
-        if (files.length === 0) {
-            alert('This course has no downloadable files yet.');
-            return;
-        }
-        files.forEach((f, i) => setTimeout(() => downloadResource(f.path, f.name), i * 1200));
-    });
-=======
     document.getElementById('closeModal')?.addEventListener('click', hideModal);
     document.getElementById('cancelModal')?.addEventListener('click', hideModal);
 
@@ -736,5 +755,4 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
->>>>>>> Stashed changes
 });

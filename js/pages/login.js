@@ -3,6 +3,29 @@ import { authService, logService } from '../shared/services.js';
 import { showAlert } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Hide global loader if present
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
+    }
+
+    // Auto-redirect if already logged in
+    try {
+        const user = authService.getCurrentUser();
+        if (user && user.username && user.role && user.role !== 'Public User') {
+            if (user.role === 'Supervisor' || user.role.endsWith('Manager')) {
+                window.location.href = 'dashboard.html';
+                return;
+            } else {
+                window.location.href = 'repository.html';
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Login auto-redirect check failed:', e);
+    }
+
     const loginForm = document.getElementById('loginForm');
     const togglePasswordBtn = document.getElementById('togglePasswordBtn');
     const passwordInput = document.getElementById('password');
@@ -68,10 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Log login event
                     logService.addLog(response.username, response.role, 'Login', 'Admin Portal');
 
-                    if (response.role === 'Supervisor' ||
-                        response.role === 'IT Manager' ||
-                        response.role === 'EL Manager' ||
-                        response.role === 'Mechanic Manager') {
+                    const isManagerOrAdmin = response.role === 'Supervisor' || /\s+Manager$/i.test(response.role || '');
+                    if (isManagerOrAdmin) {
                         window.location.href = 'dashboard.html';
                     } else {
                         window.location.href = 'repository.html';

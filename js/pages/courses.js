@@ -1,9 +1,8 @@
-// js/pages/courses.js
 import { renderLayout } from '../shared/layout.js';
-import { courseService, folderService } from '../shared/services.js';
+import { courseService, folderService, applyCachedImage } from '../shared/services.js';
 import { BASE_URL } from '../shared/api.js';
 import { getCurrentUser } from '../shared/auth.js';
-import { renderSkeleton, renderEmptyState, showAlert } from '../shared/components.js';
+import { renderSkeleton, renderEmptyState, showAlert, showConfirmModal } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { getDeptDisplayName, getCurrentLang } from '../shared/jssharedi18n.js';
 import { initCourseBuilder } from './create-course.js';
@@ -310,8 +309,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="course-card-public" data-course-id="${course.id}">
                     <div class="course-card-thumb">
                         ${course.img
-    ? `<img src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
-    : ''}
+    ? `<img class="cc-card-img" src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null;this.src='assets/images/default-course.png';">`
+    : `<img class="cc-card-img" src="assets/images/default-course.png" alt="${escapeHtml(course.title)}" loading="lazy">`}
                         <div class="course-card-badges">
                             <span class="course-badge-dept ${deptClass}">${escapeHtml(course.dept)}</span>
                             ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
@@ -335,8 +334,14 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }).join('');
 
-        // Card click → course details
+        // Apply cached images for zero-latency load & smooth fallback
         grid.querySelectorAll('.course-card-public').forEach(card => {
+            const courseId = card.dataset.courseId;
+            const course = pageCourses.find(c => String(c.id) === String(courseId));
+            const imgEl = card.querySelector('.cc-card-img');
+            if (imgEl && course) {
+                applyCachedImage(imgEl, course.img);
+            }
             card.addEventListener('click', () => {
                 window.location.href = `course-details.html?id=${card.dataset.courseId}`;
             });
@@ -577,17 +582,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Delete -> remove the draft (with confirmation).
         grid.querySelectorAll('.draft-delete').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (!confirm(`Delete draft "${btn.dataset.title}"? This cannot be undone.`)) return;
-                btn.disabled = true;
-                try {
-                    await courseService.deleteCourse(btn.dataset.id);
-                    await renderDrafts();
-                    refreshDraftsCount();
-                } catch (e) {
-                    alert('Could not delete the draft.');
-                    btn.disabled = false;
-                }
+            btn.addEventListener('click', () => {
+                const isAr = getCurrentLang() === 'ar';
+                showConfirmModal({
+                    title: isAr ? 'تأكيد حذف المسودة' : 'Confirm Delete Draft',
+                    message: isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف مسودة "${btn.dataset.title}"؟ لا يمكن التراجع عن هذا الإجراء.` 
+                        : `Delete draft "${btn.dataset.title}"? This cannot be undone.`,
+                    confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
+                    cancelText: isAr ? 'إلغاء' : 'Cancel',
+                    type: 'danger',
+                    onConfirm: async () => {
+                        try {
+                            await courseService.deleteCourse(btn.dataset.id);
+                            await renderDrafts();
+                            refreshDraftsCount();
+                        } catch (e) {
+                            alert(isAr ? 'تعذر حذف المسودة.' : 'Could not delete the draft.');
+                        }
+                    }
+                });
             });
         });
     }
@@ -641,12 +655,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const isAr = getCurrentLang() === 'ar';
 
         grid.innerHTML = filtered.map(course => `
-            <div class="admin-course-card" data-id="${course.id}">
-                <div class="admin-card-thumb">
+            <div class="admin-course-card" data-id="${course.id}" style="position:relative;">
+                <div class="admin-card-thumb" style="position:relative;">
                     ${course.img
-    ? `<img src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
-    : ''}
+    ? `<img class="cc-card-img" src="${escapeHtml(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.onerror=null;this.src='assets/images/default-course.png';">`
+    : `<img class="cc-card-img" src="assets/images/default-course.png" alt="${escapeHtml(course.title)}" loading="lazy">`}
                     <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">${escapeHtml(course.dept)}</span>
+                    ${canManageCourses ? `
+                        <button type="button" class="admin-card-delete-btn" data-id="${course.id}" data-title="${escapeHtml(course.title)}" title="${isAr ? 'حذف الكورس' : 'Delete Course'}" style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
+                    ` : ''}
                 </div>
                 <div class="admin-card-body">
                     <h3>${escapeHtml(course.title)}</h3>
@@ -679,6 +698,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 openCreateCourseModal();
             });
         }
+
+        // Card delete button handler
+        grid.querySelectorAll('.admin-card-delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                const title = btn.dataset.title;
+                showConfirmModal({
+                    title: isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion',
+                    message: isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف كورس "${title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.` 
+                        : `Are you sure you want to delete course "${title}"? This cannot be undone.`,
+                    confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
+                    cancelText: isAr ? 'إلغاء' : 'Cancel',
+                    type: 'danger',
+                    onConfirm: async () => {
+                        try {
+                            await courseService.deleteCourse(id);
+                            const user = getCurrentUser();
+                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', title);
+                            await loadAndRenderAdmin();
+                        } catch (e) {
+                            alert(isAr ? 'تعذر حذف الكورس.' : 'Could not delete the course.');
+                        }
+                    }
+                });
+            });
+        });
 
         // Card clicks → course details
         grid.querySelectorAll('.admin-course-card').forEach(card => {

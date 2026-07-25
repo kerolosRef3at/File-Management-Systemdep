@@ -49,6 +49,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <button class="chip-btn" data-action="Delete User"><span class="action-dot dot-red"></span> ${t('logs_delete_user')}</button>
                 <button class="chip-btn" data-action="Change Password"><span class="action-dot dot-orange"></span> ${t('logs_change_pw')}</button>
                 <button class="chip-btn" data-action="Update Profile"><span class="action-dot dot-blue"></span> ${t('logs_update_profile')}</button>
+                <button class="chip-btn" data-action="Create Course"><span class="action-dot dot-purple"></span> ${t('logs_create_course')}</button>
+                <button class="chip-btn" data-action="Update Course"><span class="action-dot dot-orange"></span> ${t('logs_update_course')}</button>
+                <button class="chip-btn" data-action="Delete Course"><span class="action-dot dot-red"></span> ${t('logs_delete_course')}</button>
             </div>
 
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
@@ -60,15 +63,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
         </div>
 
-        <div class="dashboard-panel" style="padding: 0; overflow-x: auto; background:white; border: 1px solid var(--border-color); border-radius:10px;">
-            <table class="data-table" style="width: 100%; min-width: 800px;">
+        <div class="dashboard-panel" style="padding: 0; overflow-x: auto; background:white; border: 1px solid var(--border-color); border-radius:10px; width: 100%;">
+            <table class="data-table" style="width: 100%; table-layout: fixed;">
                 <thead style="background: #f8fafc;">
                     <tr>
-                        <th style="padding: 15px 20px;">${t('logs_col_admin')}</th>
-                        <th>${t('logs_col_role')}</th>
-                        <th>${t('logs_col_action')}</th>
-                        <th>${t('logs_col_target')}</th>
-                        <th>${t('logs_col_datetime')}</th>
+                        <th style="padding: 15px 20px; width: 20%;">${t('logs_col_admin')}</th>
+                        <th style="width: 15%;">${t('logs_col_role')}</th>
+                        <th style="width: 15%;">${t('logs_col_action')}</th>
+                        <th style="width: 35%;">${t('logs_col_target')}</th>
+                        <th style="width: 15%;">${t('logs_col_datetime')}</th>
                     </tr>
                 </thead>
                 <tbody id="logsTableBody">
@@ -136,9 +139,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lowerAction = String(action).toLowerCase().replace(/\s+/g, '');
         if (lowerAction.includes('login') || lowerAction.includes('logout') || lowerAction.includes('updateprofile')) return 'dot-blue';
         if (lowerAction.includes('addfile') || lowerAction.includes('createcourse') || lowerAction.includes('createfolder')) return 'dot-green';
+        if (lowerAction.includes('updatecourse') || lowerAction.includes('editcourse')) return 'dot-orange';
         if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'dot-red';
         if (lowerAction.includes('password')) return 'dot-orange';
-        if (lowerAction.includes('upload')) return 'dot-purple';
+        if (lowerAction.includes('upload') || lowerAction.includes('course')) return 'dot-purple';
         if (lowerAction.includes('add') || lowerAction.includes('createuser')) return 'dot-cyan';
         return 'dot-blue'; // Default
     }
@@ -162,21 +166,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             tr.innerHTML = `
                 <td style="padding: 15px 20px;">
-                    <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; overflow:hidden;">
                         <div class="user-avatar" style="
-                            width:30px; height:30px; border-radius: 50%; background-color: var(--primary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
+                            flex-shrink:0; width:30px; height:30px; border-radius: 50%; background-color: var(--primary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem;
                         ">${initial}</div>
-                        <span style="font-weight:600; color:var(--primary-dark);">${log.admin}</span>
+                        <span style="font-weight:600; color:var(--primary-dark); word-break:break-word; overflow-wrap:anywhere;">${log.admin}</span>
                     </div>
                 </td>
                 <td><span class="role-badge ${getRoleBadgeClass(log.role)}" style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block;">${log.role === 'Mechanic Manager' ? 'Mechanical Manager' : log.role}</span></td>
-                <td style="font-weight:600; color:var(--primary-dark); white-space: nowrap;">
+                <td style="font-weight:600; color:var(--primary-dark); word-break:break-word; overflow-wrap:anywhere;">
                     <span class="action-dot ${getActionDotColor(log.action)}" style="
-                        width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px;
+                        width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; flex-shrink:0;
                     "></span>${log.action}
                 </td>
-                <td style="color: var(--text-gray);">${log.target}</td>
-                <td style="font-size:0.85rem; font-weight:600; color:var(--primary-dark); line-height:1.2;">${formattedTime}</td>
+                <td style="color: var(--text-gray); word-break: break-word; overflow-wrap: anywhere;">${log.target}</td>
+                <td style="font-size:0.85rem; font-weight:600; color:var(--primary-dark); line-height:1.2; word-break:break-word;">${formattedTime}</td>
             `;
             logsTableBody.appendChild(tr);
         });

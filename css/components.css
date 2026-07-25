@@ -544,12 +544,16 @@
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: uppercase;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .data-table td {
     padding: 12px 0;
     border-bottom: 1px solid #f1f5f9;
     font-size: 0.95rem;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .event-list {

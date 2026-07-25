@@ -5,6 +5,7 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
+import { showConfirmModal } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
@@ -12,42 +13,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // If the user is logged in as admin, redirect to admin layout version dynamically
     if (user && user.role !== 'Public User') {
-        // Hide the public navbar
         const repoNavbar = document.getElementById('repoNavbar');
         if (repoNavbar) repoNavbar.style.display = 'none';
+        const repoFooter = document.querySelector('.repo-footer');
+        if (repoFooter) repoFooter.style.display = 'none';
 
-        // Detach the repo body and download modal
-        const repoBody = document.querySelector('.repo-body');
-        const downloadModalEl = document.getElementById('downloadModal');
-        if (repoBody) {
-            repoBody.parentNode.removeChild(repoBody);
-            if (downloadModalEl) downloadModalEl.parentNode.removeChild(downloadModalEl);
-            
-            // Render admin layout
-            const loader = document.getElementById('global-page-loader');
-            document.body.innerHTML = '<div id="app"></div>';
-            if (loader) document.body.appendChild(loader);
+        const app = document.getElementById('app');
+        if (app) {
+            app.style.display = 'block';
             renderLayout('repository');
-            
-            // Hide the academic departments sidebar for admins
-            const deptSidebarEl = repoBody.querySelector('#deptSidebar');
-            if (deptSidebarEl) deptSidebarEl.style.display = 'none';
-            
-            // Move repo body into the layout's content area
+
+            const repoBody = document.querySelector('.repo-body');
             const pageContent = document.getElementById('page-content');
-            if (pageContent) {
+            if (repoBody && pageContent) {
+                const deptSidebarEl = repoBody.querySelector('#deptSidebar');
+                if (deptSidebarEl) deptSidebarEl.style.display = 'none';
+
                 pageContent.appendChild(repoBody);
+
+                repoBody.style.padding = '0';
+                repoBody.style.maxWidth = '100%';
+                repoBody.style.minHeight = 'auto';
             }
-            
-            // Re-append the download modal to the body
-            if (downloadModalEl) {
-                document.body.appendChild(downloadModalEl);
-            }
-            
-            // Adjust styles so it fits well inside the admin layout
-            repoBody.style.padding = '0';
-            repoBody.style.maxWidth = '100%';
-            repoBody.style.minHeight = 'auto';
             document.body.classList.add('admin-mode');
         }
     } else {
@@ -1055,8 +1042,16 @@ if (currentProgram) {
                 const file = allFiles.find(f => f.id.toString() === fileId.toString());
                 if (!file) return;
 
-                showPasswordConfirmModal({
-                    itemName: file.name,
+                const isAr = getCurrentLang() === 'ar';
+                showConfirmModal({
+                    title: isAr ? 'تأكيد حذف الملف' : 'Confirm File Deletion',
+                    message: isAr
+                        ? `هل أنت متأكد من رغبتك في حذف ملف "${file.name}" نهائياً من المستودع؟`
+                        : `Are you sure you want to delete file "${file.name}"? This action cannot be undone.`,
+                    confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
+                    cancelText: isAr ? 'إلغاء' : 'Cancel',
+                    type: 'danger',
+                    requirePassword: true,
                     onConfirm: async () => {
                         try {
                             await fileService.deleteFile(fileId);
@@ -1066,7 +1061,6 @@ if (currentProgram) {
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', file.name);
                         allFiles = allFiles.filter(f => f.id.toString() !== fileId.toString());
                         renderFiles(getFilteredFiles());
-                        const isAr = getCurrentLang() === 'ar';
                         alert(isAr ? 'تم حذف الملف بنجاح.' : 'File deleted successfully.');
                     }
                 });
@@ -1227,45 +1221,49 @@ if (currentProgram) {
     // Delete Selected
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', async () => {
+        deleteSelectedBtn.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
-            
             const count = selectedFiles.size;
-            if (confirm(`Are you sure you want to permanently delete the ${count} selected file(s)?`)) {
-                const ids = Array.from(selectedFiles).map(id => parseInt(id));
-                
-                // Get file names before delete for logging
-                const filesToDelete = allFiles.filter(f => selectedFiles.has(f.id.toString()));
-                
-                try {
-                    await fileService.deleteFiles(ids);
-                    
-                    // Log each deleted file
-                    filesToDelete.forEach(f => {
-                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
-                    });
-                    
-                    // Refetch files
+            const isAr = getCurrentLang() === 'ar';
+
+            showConfirmModal({
+                title: isAr ? 'تأكيد حذف الملفات المحددة' : 'Confirm Batch File Deletion',
+                message: isAr
+                    ? `هل أنت متأكد من رغبتك في حذف ${count} ملف محدد نهائياً من المستودع؟`
+                    : `Are you sure you want to permanently delete the ${count} selected file(s)?`,
+                confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
+                cancelText: isAr ? 'إلغاء' : 'Cancel',
+                type: 'danger',
+                requirePassword: true,
+                onConfirm: async () => {
+                    const ids = Array.from(selectedFiles).map(id => parseInt(id));
+                    const filesToDelete = allFiles.filter(f => selectedFiles.has(f.id.toString()));
                     try {
-                        allFiles = await fileService.getFiles();
-                    } catch(e) {
+                        await fileService.deleteFiles(ids);
+                        filesToDelete.forEach(f => {
+                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                        });
+                        try {
+                            allFiles = await fileService.getFiles();
+                        } catch(e) {
+                            allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
+                        }
+                        selectedFiles.clear();
+                        updateSelectionBar();
+                        renderFiles(getFilteredFiles());
+                        alert(isAr ? `تم حذف ${count} ملف بنجاح.` : `Successfully deleted ${count} file(s).`);
+                    } catch (err) {
+                        filesToDelete.forEach(f => {
+                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                        });
                         allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
                     }
-                    
-                    alert(`Successfully deleted ${count} file(s).`);
-                } catch (err) {
-                    // Even if API fails, delete locally from allFiles in-memory for demo
-                    filesToDelete.forEach(f => {
-                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
-                    });
-                    allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
-                    alert(`Successfully deleted ${count} file(s).`);
+
+                    selectedFiles.clear();
+                    updateSelectionBar();
+                    applyFilters();
                 }
-                
-                selectedFiles.clear();
-                updateSelectionBar();
-                applyFilters();
-            }
+            });
         });
     }
 
@@ -1436,40 +1434,48 @@ if (currentProgram) {
             const grid = document.getElementById('iconPickerGrid');
             const hiddenInput = document.getElementById('newCatIcon');
 
-            iconLibrary.forEach((icon, index) => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'icon-picker-btn' + (index === 0 ? ' active' : '');
-                btn.title = icon.title;
-                btn.style.cssText = 'padding:12px; border:1px solid ' + (index === 0 ? 'var(--primary-blue)' : 'var(--border-color)') + '; border-radius:8px; background:' + (index === 0 ? 'rgba(26,60,170,0.05)' : 'white') + '; cursor:pointer; color:' + (index === 0 ? 'var(--primary-blue)' : 'var(--text-gray)') + '; transition:all 0.2s; display:flex; align-items:center; justify-content:center;';
-                btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon.svg}</svg>`;
-                
-                btn.addEventListener('click', () => {
-                    // Remove active from all
-                    document.querySelectorAll('.icon-picker-btn').forEach(b => {
-                        b.classList.remove('active');
-                        b.style.borderColor = 'var(--border-color)';
-                        b.style.background = 'white';
-                        b.style.color = 'var(--text-gray)';
+            if (grid && hiddenInput) {
+                grid.innerHTML = '';
+                iconLibrary.forEach((icon, index) => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'icon-picker-btn' + (index === 0 ? ' active' : '');
+                    btn.title = icon.title;
+                    btn.style.cssText = 'padding:12px; border:1px solid ' + (index === 0 ? 'var(--primary-blue)' : 'var(--border-color)') + '; border-radius:8px; background:' + (index === 0 ? 'rgba(26,60,170,0.05)' : 'white') + '; cursor:pointer; color:' + (index === 0 ? 'var(--primary-blue)' : 'var(--text-gray)') + '; transition:all 0.2s; display:flex; align-items:center; justify-content:center;';
+                    btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon.svg}</svg>`;
+                    
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.icon-picker-btn').forEach(b => {
+                            b.classList.remove('active');
+                            b.style.borderColor = 'var(--border-color)';
+                            b.style.background = 'white';
+                            b.style.color = 'var(--text-gray)';
+                        });
+                        btn.classList.add('active');
+                        btn.style.borderColor = 'var(--primary-blue)';
+                        btn.style.background = 'rgba(26,60,170,0.05)';
+                        btn.style.color = 'var(--primary-blue)';
+                        if (hiddenInput) hiddenInput.value = icon.id;
                     });
-                    // Add active to clicked
-                    btn.classList.add('active');
-                    btn.style.borderColor = 'var(--primary-blue)';
-                    btn.style.background = 'rgba(26,60,170,0.05)';
-                    btn.style.color = 'var(--primary-blue)';
-                    hiddenInput.value = icon.id;
+                    grid.appendChild(btn);
                 });
-                grid.appendChild(btn);
-            });
+            }
+        }
 
-            const closeModal = () => modal.classList.remove('active');
-            document.getElementById('closeAddCategoryModalBtn').addEventListener('click', closeModal);
-            document.getElementById('cancelAddCategoryBtn').addEventListener('click', closeModal);
+        if (!modal.dataset.bound) {
+            modal.dataset.bound = 'true';
+            const closeModal = () => modal?.classList.remove('active');
+            document.getElementById('closeAddCategoryModalBtn')?.addEventListener('click', closeModal);
+            document.getElementById('cancelAddCategoryBtn')?.addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddCategory').addEventListener('click', async () => {
-                const name = document.getElementById('newCatName').value.trim();
-                const id = document.getElementById('newCatId').value.trim().toUpperCase();
-                const icon = document.getElementById('newCatIcon').value;
+            document.getElementById('confirmAddCategory')?.addEventListener('click', async () => {
+                const nameEl = document.getElementById('newCatName');
+                const idEl = document.getElementById('newCatId');
+                const iconEl = document.getElementById('newCatIcon');
+
+                const name = nameEl ? nameEl.value.trim() : '';
+                const id = idEl ? idEl.value.trim().toUpperCase() : '';
+                const icon = iconEl ? iconEl.value : 'monitor';
                 if (!name || !id) {
                     alert('Please fill out all fields.');
                     return;
@@ -1479,11 +1485,6 @@ if (currentProgram) {
                     return;
                 }
                 
-                // The server call is what creates the real folder on the QNAP
-                // drive and makes the category selectable on the Upload page.
-                // If it fails we must NOT add the category locally: it would show
-                // in this sidebar while being invisible to everyone else and
-                // absent from the drive.
                 let apiResult;
                 try {
                     apiResult = await folderService.createFolder(name, 0, {
@@ -1498,10 +1499,9 @@ if (currentProgram) {
                         ', and cannot be blank, a plain number, or a GUID.' +
                         '\n\nNothing was changed. Fix the name and try again.'
                     );
-                    return;   // keep the modal open so the name can be corrected
+                    return;
                 }
 
-                // Saved in the database, but the drive folder could not be made.
                 if (apiResult && apiResult.warning) {
                     alert(
                         'The category was created, but the folder on the drive was not:\n\n' +
@@ -1521,7 +1521,6 @@ if (currentProgram) {
                 };
                 mockDepartments.push(newCat);
                 
-                // Log action
                 logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Category: ${name} (${id})`);
                 
                 closeModal();
@@ -1533,9 +1532,13 @@ if (currentProgram) {
             });
         }
         
-        document.getElementById('newCatName').value = '';
-        document.getElementById('newCatId').value = '';
-        document.getElementById('newCatIcon').value = 'monitor';
+        const catNameEl = document.getElementById('newCatName');
+        const catIdEl = document.getElementById('newCatId');
+        const catIconEl = document.getElementById('newCatIcon');
+        if (catNameEl) catNameEl.value = '';
+        if (catIdEl) catIdEl.value = '';
+        if (catIconEl) catIconEl.value = 'monitor';
+        
         document.querySelectorAll('.icon-picker-btn').forEach((b, idx) => {
             if (idx === 0) {
                 b.classList.add('active');
@@ -1594,13 +1597,17 @@ if (currentProgram) {
                 </div>
             `;
             document.body.appendChild(modal);
+        }
 
-            const closeModal = () => modal.classList.remove('active');
-            document.getElementById('closeAddProgramModalBtn').addEventListener('click', closeModal);
-            document.getElementById('cancelAddProgramBtn').addEventListener('click', closeModal);
+        if (!modal.dataset.bound) {
+            modal.dataset.bound = 'true';
+            const closeModal = () => modal?.classList.remove('active');
+            document.getElementById('closeAddProgramModalBtn')?.addEventListener('click', closeModal);
+            document.getElementById('cancelAddProgramBtn')?.addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddProgram').addEventListener('click', async () => {
-                const name = document.getElementById('newProgName').value.trim();
+            document.getElementById('confirmAddProgram')?.addEventListener('click', async () => {
+                const progNameEl = document.getElementById('newProgName');
+                const name = progNameEl ? progNameEl.value.trim() : '';
                 if (!name) {
                     alert('Please enter a program name.');
                     return;
@@ -1609,12 +1616,10 @@ if (currentProgram) {
                 
                 const activeDept = mockDepartments.find(d => d.id === currentDept);
                 if (activeDept) {
-                    if (activeDept.programs.some(p => p.id === progId)) {
+                    if (activeDept.programs && activeDept.programs.some(p => p.id === progId)) {
                         alert('A program with this ID already exists in this department.');
                         return;
                     }
-                    // Creates the real subfolder on the QNAP drive. Same rule as
-                    // above: if the server rejects it, do not add it locally.
                     let progResult;
                     try {
                         progResult = await folderService.createFolder(name, null, activeDept.id);
@@ -1637,13 +1642,13 @@ if (currentProgram) {
                         );
                     }
 
+                    if (!Array.isArray(activeDept.programs)) activeDept.programs = [];
                     activeDept.programs.push({
                         id: progId,
                         name: name
                     });
                     activeDept.categories = activeDept.programs.length;
                     
-                    // Log action
                     logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Program: ${activeDept.name} > ${name} (${progId})`);
                 }
                 
@@ -1656,8 +1661,10 @@ if (currentProgram) {
             });
         }
         
-        document.getElementById('parentDeptName').value = dept.name;
-        document.getElementById('newProgName').value = '';
+        const parentDeptNameEl = document.getElementById('parentDeptName');
+        const newProgNameEl = document.getElementById('newProgName');
+        if (parentDeptNameEl) parentDeptNameEl.value = dept.name;
+        if (newProgNameEl) newProgNameEl.value = '';
         
         modal.classList.add('active');
     }
@@ -2021,35 +2028,39 @@ if (currentProgram) {
     }
 
     try {
-        allFiles = await fileService.getFiles();
-    } catch (e) {
-        allFiles = [];
-    }
+        try {
+            allFiles = await fileService.getFiles();
+        } catch (e) {
+            allFiles = [];
+        }
 
-    // Departments + programs, filtered and de-duplicated (see mockData.js).
-    try {
-        hydrateDepartments(await folderService.getFolders(), allFiles);
-    } catch (e) {
-        console.warn('Could not load folders:', e);
-    }
+        // Departments + programs, filtered and de-duplicated (see mockData.js).
+        try {
+            hydrateDepartments(await folderService.getFolders(), allFiles);
+        } catch (e) {
+            console.warn('Could not load folders:', e);
+        }
 
-    // Only now can ?dept=CODE be resolved against a real department list.
-    handleUrlParams();
+        // Only now can ?dept=CODE be resolved against a real department list.
+        handleUrlParams();
 
-    renderDeptSidebar();
-    renderDeptSummaryCards();
-    renderBreadcrumb();
-    renderTitle();
-    renderControls();
-    renderFilterChips();
-    renderCategoriesView();
-    updateViewMode();
-    applyFilters();
-
-    // Hide Global Loader
-    const loader = document.getElementById('global-page-loader');
-    if (loader) {
-        loader.classList.add('hide-loader');
-        setTimeout(() => loader.remove(), 400);
+        renderDeptSidebar();
+        renderDeptSummaryCards();
+        renderBreadcrumb();
+        renderTitle();
+        renderControls();
+        renderFilterChips();
+        renderCategoriesView();
+        updateViewMode();
+        applyFilters();
+    } catch (err) {
+        console.error('Repository init error:', err);
+    } finally {
+        // Hide Global Loader
+        const loader = document.getElementById('global-page-loader');
+        if (loader) {
+            loader.classList.add('hide-loader');
+            setTimeout(() => loader.remove(), 400);
+        }
     }
 });

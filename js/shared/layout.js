@@ -87,6 +87,14 @@ export function renderLayout(activePage = 'repository') {
     const userEmail = user ? user.email : '';
     const userInitial = userDisplayName.charAt(0).toUpperCase();
 
+    const userAvatarHtml = (user && user.avatar) 
+        ? `<img src="${user.avatar}" alt="Avatar" style="width:42px; height:42px; border-radius:50%; object-fit:cover;">`
+        : `<span class="avatar-circle">${userInitial}</span>`;
+
+    const userDropdownAvatarHtml = (user && user.avatar)
+        ? `<img src="${user.avatar}" alt="Avatar" style="width:50px; height:50px; border-radius:50%; object-fit:cover; flex-shrink:0;">`
+        : `<div class="avatar-lg">${userInitial}</div>`;
+
     const layoutHTML = `
         <style>
             /* 1. جعل القائمة الجانبية Flexbox لحل مشكلة الزووم وتداخل العناصر */
@@ -221,7 +229,7 @@ export function renderLayout(activePage = 'repository') {
                         </button>
                         <div class="dash-user-menu">
                             <button class="dash-user-avatar-btn" id="userAvatarBtn">
-                                <span class="avatar-circle">${userInitial}</span>
+                                ${userAvatarHtml}
                                 <div class="user-meta">
                                     <span class="user-name">${userDisplayName}</span>
                                     <span class="user-role">${user ? user.role : 'Guest'}</span>
@@ -231,7 +239,7 @@ export function renderLayout(activePage = 'repository') {
 
                             <div class="dash-user-dropdown" id="userDropdown">
                                 <div class="dash-user-dropdown-header">
-                                    <div class="avatar-lg">${userInitial}</div>
+                                    ${userDropdownAvatarHtml}
                                     <div class="user-info">
                                         <div class="name">${userDisplayName}</div>
                                         ${userEmail ? `<div class="email">${userEmail}</div>` : ''}

@@ -2,7 +2,7 @@
 import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { userService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
-import { renderSkeleton, showAlert } from '../shared/components.js';
+import { renderSkeleton, showAlert, showConfirmModal } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -317,21 +317,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
+            btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.getAttribute('data-id');
                 const targetUser = allUsers.find(u => u.id == id);
                 if (!targetUser) return;
+                const isAr = getCurrentLang() === 'ar';
 
-                if (confirm(t('users_confirm_delete'))) {
-                    try {
-                        await userService.deleteUser(id);
-                        logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Delete User', targetUser.username);
-                        showAlert(alertsContainer, `User account "${targetUser.username}" successfully deleted.`, 'success');
-                        await loadUsers();
-                    } catch (err) {
-                        showAlert(alertsContainer, err.message || 'Failed to delete user account.', 'error');
+                showConfirmModal({
+                    title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
+                    message: isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف حساب المستخدم "${targetUser.username}" نهائياً من النظام؟` 
+                        : `Are you sure you want to delete user account "${targetUser.username}"?`,
+                    confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
+                    cancelText: isAr ? 'إلغاء' : 'Cancel',
+                    type: 'danger',
+                    requirePassword: true,
+                    onConfirm: async () => {
+                        try {
+                            await userService.deleteUser(id);
+                            logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Delete User', targetUser.username);
+                            showAlert(alertsContainer, `User account "${targetUser.username}" successfully deleted.`, 'success');
+                            await loadUsers();
+                        } catch (err) {
+                            showAlert(alertsContainer, err.message || 'Failed to delete user account.', 'error');
+                        }
                     }
-                }
+                });
             });
         });
     }

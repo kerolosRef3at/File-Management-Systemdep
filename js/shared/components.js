@@ -1,4 +1,4 @@
-// js/shared/components.js
+import { authService } from './services.js';
 
 /**
  * Generates and inserts skeleton loaders into the DOM.
@@ -221,5 +221,183 @@ export function renderPagination(container, totalItems, itemsPerPage, currentPag
             const page = parseInt(e.target.getAttribute('data-page'));
             onPageChange(page);
         });
+    });
+}
+
+/**
+ * Shows a custom 2-step password-protected confirmation modal.
+ * Step 1: Confirm action ("Are you sure?")
+ * Step 2: Request Password verification before deletion.
+ */
+export function showConfirmModal({ title, message, confirmText, cancelText, type = 'danger', requirePassword = true, onConfirm }) {
+    let overlay = document.getElementById('aituConfirmModalOverlay');
+    if (overlay) overlay.remove();
+
+    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
+    confirmText = confirmText || (isAr ? 'متابعة الحذف' : 'Proceed to Delete');
+    cancelText = cancelText || (isAr ? 'إلغاء' : 'Cancel');
+
+    overlay = document.createElement('div');
+    overlay.id = 'aituConfirmModalOverlay';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+        z-index: 999999; display: flex; align-items: center; justify-content: center;
+        padding: 20px; animation: fadeInModal 0.2s ease forwards;
+    `;
+
+    const isDanger = type === 'danger';
+    const btnColor = isDanger ? '#ef4444' : '#1e40af';
+
+    function renderStep1() {
+        overlay.innerHTML = `
+            <style>
+                @keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes popInModal { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+            </style>
+            <div style="
+                background: #ffffff; border-radius: 16px; max-width: 440px; width: 100%;
+                padding: 28px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: inherit;
+            ">
+                <div style="
+                    width: 56px; height: 56px; border-radius: 50%;
+                    background: ${isDanger ? '#fef2f2' : '#eff6ff'};
+                    color: ${isDanger ? '#ef4444' : '#2563eb'};
+                    display: flex; align-items: center; justify-content: center;
+                    margin: 0 auto 18px; font-size: 28px;
+                ">
+                    ${isDanger ? '⚠️' : 'ℹ️'}
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0 0 10px; line-height: 1.3;">
+                    ${title}
+                </h3>
+                <p style="font-size: 0.95rem; color: #475569; margin: 0 0 24px; line-height: 1.6;">
+                    ${message}
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="aituConfirmCancelBtn" style="
+                        flex: 1; padding: 11px 18px; border: 1px solid #cbd5e1; background: #ffffff;
+                        color: #475569; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+                        cursor: pointer; transition: background 0.2s;
+                    ">${cancelText}</button>
+                    <button id="aituConfirmActionBtn" style="
+                        flex: 1; padding: 11px 18px; border: none; background: ${btnColor};
+                        color: #ffffff; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+                        cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 12px ${isDanger ? 'rgba(239, 68, 68, 0.25)' : 'rgba(37, 99, 235, 0.25)'};
+                    ">${confirmText}</button>
+                </div>
+            </div>
+        `;
+
+        overlay.querySelector('#aituConfirmCancelBtn').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('#aituConfirmActionBtn').addEventListener('click', () => {
+            if (requirePassword) {
+                renderStep2();
+            } else {
+                executeAction();
+            }
+        });
+    }
+
+    function renderStep2() {
+        overlay.innerHTML = `
+            <div style="
+                background: #ffffff; border-radius: 16px; max-width: 440px; width: 100%;
+                padding: 28px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: inherit;
+            ">
+                <div style="
+                    width: 56px; height: 56px; border-radius: 50%; background: #fef2f2;
+                    color: #dc2626; display: flex; align-items: center; justify-content: center;
+                    margin: 0 auto 18px; font-size: 26px;
+                ">
+                    🔒
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0 0 8px; line-height: 1.3;">
+                    ${isAr ? 'تأكيد الأمان بكلمة المرور' : 'Security Password Verification'}
+                </h3>
+                <p style="font-size: 0.9rem; color: #475569; margin: 0 0 18px; line-height: 1.5;">
+                    ${isAr ? 'الرجاء إدخال كلمة المرور الخاصة بحسابك لتأكيد إتمام الحذف.' : 'Please enter your account password to confirm permanent deletion.'}
+                </p>
+                <div style="text-align: right; margin-bottom: 6px;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #334155; ${isAr ? 'text-align: right;' : 'text-align: left;'} display: block;">${isAr ? 'كلمة المرور:' : 'Password:'}</label>
+                    <input type="password" id="aituConfirmPasswordInput" placeholder="${isAr ? 'أدخل كلمة المرور الحالية' : 'Enter your password'}" style="
+                        width: 100%; padding: 11px 14px; border: 1px solid #cbd5e1; border-radius: 8px;
+                        margin-top: 4px; font-size: 0.95rem; outline: none; box-sizing: border-box;
+                    " autocomplete="current-password">
+                </div>
+                <div id="aituConfirmPasswordError" style="color: #ef4444; font-size: 0.85rem; text-align: ${isAr ? 'right' : 'left'}; margin-bottom: 16px; display: none;"></div>
+
+                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
+                    <button id="aituConfirmCancelBtn2" style="
+                        flex: 1; padding: 11px 18px; border: 1px solid #cbd5e1; background: #ffffff;
+                        color: #475569; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+                        cursor: pointer;
+                    ">${cancelText}</button>
+                    <button id="aituConfirmFinalBtn" style="
+                        flex: 1; padding: 11px 18px; border: none; background: #dc2626;
+                        color: #ffffff; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
+                        cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+                    ">${isAr ? 'تأكيد وإتمام الحذف' : 'Confirm & Delete'}</button>
+                </div>
+            </div>
+        `;
+
+        const pwInput = overlay.querySelector('#aituConfirmPasswordInput');
+        const errDiv = overlay.querySelector('#aituConfirmPasswordError');
+        const finalBtn = overlay.querySelector('#aituConfirmFinalBtn');
+        const cancelBtn2 = overlay.querySelector('#aituConfirmCancelBtn2');
+
+        setTimeout(() => pwInput?.focus(), 100);
+
+        cancelBtn2.addEventListener('click', () => overlay.remove());
+
+        async function submitVerification() {
+            const password = pwInput.value.trim();
+            if (!password) {
+                errDiv.textContent = isAr ? 'يرجى إدخال كلمة المرور لتأكيد الحذف.' : 'Please enter your password.';
+                errDiv.style.display = 'block';
+                pwInput.focus();
+                return;
+            }
+
+            finalBtn.disabled = true;
+            finalBtn.innerText = isAr ? 'جاري التحقق...' : 'Verifying...';
+
+            const isValid = await authService.verifyPassword(password);
+            if (!isValid) {
+                errDiv.textContent = isAr ? 'كلمة المرور غير صحيحة، يرجى المحاولة مرة أخرى.' : 'Incorrect password. Please try again.';
+                errDiv.style.display = 'block';
+                finalBtn.disabled = false;
+                finalBtn.innerText = isAr ? 'تأكيد وإتمام الحذف' : 'Confirm & Delete';
+                pwInput.focus();
+                return;
+            }
+
+            executeAction(password);
+        }
+
+        finalBtn.addEventListener('click', submitVerification);
+        pwInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitVerification();
+        });
+    }
+
+    async function executeAction(password) {
+        try {
+            if (onConfirm) await onConfirm(password);
+        } catch (e) {
+            console.error('Confirm action error:', e);
+        } finally {
+            if (overlay && overlay.parentNode) overlay.remove();
+        }
+    }
+
+    renderStep1();
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
     });
 }

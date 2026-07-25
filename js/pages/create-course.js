@@ -37,57 +37,6 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
     let lessons = [];        // { id, title, files: [{ id, file, name, fileName, size }] }
     let thumbnailDataUrl = '';
 
-    // Load an existing course (Edit) or a draft into the form. Both use the same
-    // details endpoint; the only difference is the page title. Without this the
-    // Edit page opened blank -- loadCourseForEdit was called but never defined.
-    async function loadCourseForEdit(id, isDraft = false) {
-        try {
-            const c = await courseService.getCourseDetails(id);
-            if (!c) return;
-
-            const titleEl = document.getElementById('ccTitle');
-            const deptEl = document.getElementById('ccDept');
-            const catEl = document.getElementById('ccCategory');
-            const descEl = document.getElementById('ccDescription');
-
-            if (titleEl) titleEl.value = c.title || '';
-            if (descEl) descEl.value = c.description || '';
-            if (deptEl && c.dept) {
-                deptEl.value = c.dept;
-                deptEl.dispatchEvent(new Event('change'));   // build the category list
-            }
-            // category options exist only after the dept change fires
-            setTimeout(() => {
-                if (catEl && c.category) catEl.value = c.category;
-            }, 60);
-
-            // existing thumbnail
-            if (c.img) {
-                thumbnailDataUrl = c.img;
-                const content = document.getElementById('ccThumbContent');
-                if (content) {
-                    const imgSrc = /^https?:\/\//i.test(c.img)
-                        ? c.img
-                        : (c.img.startsWith('/api/') ? `${BASE_URL}${c.img}` : c.img);
-                    content.innerHTML =
-                        `<img src="${imgSrc}" style="max-height:120px;border-radius:8px;object-fit:cover;margin:0 auto;display:block;">
-                         <p style="font-size:0.8rem;color:var(--primary-blue);margin-top:6px;">Change thumbnail</p>`;
-                }
-            }
-
-            // existing lessons -> fill the lesson list (titles; files stay as-is)
-            const lessons = [];
-            (c.modules || []).forEach(m => (m.lessons || []).forEach(l => lessons.push(l)));
-            if (lessons.length && typeof renderExistingLessons === 'function') {
-                renderExistingLessons(lessons);
-            }
-
-            const pageTitle = document.querySelector('.create-course-title h1');
-            if (pageTitle) pageTitle.textContent = isDraft ? 'Continue Draft' : 'Edit Course';
-        } catch (e) {
-            console.error('Failed to load course for edit:', e);
-        }
-    }
     let dragSrcIdx = null;
 
     renderDOM();
@@ -983,11 +932,15 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             // Image Preview
             if (course.img) {
                 thumbnailDataUrl = course.img;
+                let imgSrc = course.img;
+                if (!imgSrc.startsWith('data:') && !imgSrc.startsWith('http')) {
+                    imgSrc = imgSrc.startsWith('/') ? `${BASE_URL}${imgSrc}` : `${BASE_URL}/${imgSrc}`;
+                }
                 const thumbDrop = document.getElementById('ccThumbDrop');
                 if (thumbDrop) {
                     thumbDrop.innerHTML = `
                         <div style="position:relative;width:100%;height:140px;border-radius:8px;overflow:hidden;">
-                            <img src="${course.img}" style="width:100%;height:100%;object-fit:cover;">
+                            <img src="${imgSrc}" onerror="this.onerror=null; this.src='assets/images/default-course.png';" style="width:100%;height:100%;object-fit:cover;">
                             <button type="button" id="ccRemoveThumbBtn" style="position:absolute;top:6px;right:6px;background:rgba(239,68,68,0.9);color:white;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">&times;</button>
                         </div>
                     `;
@@ -1175,7 +1128,6 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-<<<<<<< Updated upstream
 
 // ---------------------------------------------------------------------------
 // Standalone page bootstrap (create-course.html)
@@ -1189,45 +1141,13 @@ function escapeHtml(str) {
 // the pathname check keeps it to the standalone page only.
 // ---------------------------------------------------------------------------
 if (window.location.pathname.includes('create-course')) {
-    document.addEventListener('DOMContentLoaded', () => {
-=======
-// ===== Standalone Page Initialization =====
-// When create-course.html is loaded directly (not via the modal inside courses.html),
-// we need to render the admin layout and initialize the course builder into #page-content.
-if (document.querySelector('script[src*="create-course.js"]')) {
     document.addEventListener('DOMContentLoaded', async () => {
->>>>>>> Stashed changes
         const user = getCurrentUser();
         if (!user || !canManageContent(user.role)) {
             window.location.href = 'login.html';
             return;
         }
 
-<<<<<<< Updated upstream
-        const params = new URLSearchParams(window.location.search);
-        const editId = params.get('edit');
-        const draftId = params.get('draft');
-
-        const container = document.getElementById('app');
-        if (!container) return;
-
-        // initCourseBuilder is async: without a catch, any failure inside it
-        // becomes an unhandled rejection and the page just sits there blank with
-        // no clue why. Surface the error on screen instead.
-        initCourseBuilder(container, () => {
-            // Cancel or save both return to the course list.
-            window.location.href = 'courses.html';
-        }, editId, draftId).catch(err => {
-            console.error('Course builder failed to start:', err);
-            container.innerHTML = `
-                <div style="padding:40px;max-width:640px;margin:40px auto;background:#fff;
-                            border:1px solid #fecaca;border-radius:12px;">
-                    <h2 style="color:#dc2626;margin:0 0 8px;">Could not open the course editor</h2>
-                    <p style="color:#64748b;margin:0 0 16px;">${(err && err.message) || 'Unknown error'}</p>
-                    <a href="courses.html" style="color:#0b3b70;font-weight:600;">Back to courses</a>
-                </div>`;
-        });
-=======
         // Import and render the admin sidebar layout
         try {
             const { renderLayout } = await import('../shared/layout.js');
@@ -1256,6 +1176,5 @@ if (document.querySelector('script[src*="create-course.js"]')) {
                 window.location.href = 'courses.html';
             }
         }, editId, draftId);
->>>>>>> Stashed changes
     });
 }

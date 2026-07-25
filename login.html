@@ -13,6 +13,24 @@
 
 <body class="login-page-bg">
 
+    <!-- Floating Logo Loader -->
+    <div id="global-page-loader">
+        <div class="loader-logo-container">
+            <img src="logos/logo_AITU.jpg" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
+            <div class="loader-ring"></div>
+        </div>
+        <div class="loader-text" data-i18n="loader_text">Loading...</div>
+    </div>
+    <script>
+        setTimeout(function() {
+            var loader = document.getElementById('global-page-loader');
+            if (loader) {
+                loader.classList.add('hide-loader');
+                setTimeout(function() { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 300);
+            }
+        }, 300);
+    </script>
+
     <!-- Floating Lang Toggle -->
     <div class="auth-lang-float">
         <button class="lang-toggle-btn" id="langToggleBtn">
