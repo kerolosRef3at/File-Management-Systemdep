@@ -248,6 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // FIXED: Public Courses render function with proper wrapper div
     function renderPublicCourses() {
         const grid = document.getElementById('publicCourseGrid');
         if (!grid) return;
@@ -287,35 +288,35 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        grid.innerHTML = pageCourses.map(course => {
-            const deptClass = getDeptBadgeColor(course.dept);
-            return `
-        <div class="course-card-thumb">
-    ${course.img
-        ? `<img class="cc-card-img" src="${escapeHtml(resolveCourseImg(course.img))}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
-        : ''}
-    <div class="course-card-badges">
-        <span class="course-badge-dept ${deptClass}">${escapeHtml(course.dept)}</span>
-        ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
-    </div>
-</div>
-                    <div class="course-card-body">
-                        <h3>${escapeHtml(course.title)}</h3>
-                        <p class="course-card-desc">${escapeHtml(course.description || '')}</p>
-                        <div class="course-card-meta">
-                            <span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                ${course.lessons} ${isAr ? 'درس' : 'Lessons'}
-                            </span>
-                            <span>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                                ${course.size}
-                            </span>
-                        </div>
+        // FIXED: Added proper wrapper div with course-card-public class
+        grid.innerHTML = pageCourses.map(course => `
+            <div class="course-card-public" data-course-id="${course.id}" style="position:relative;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.2s,box-shadow 0.2s;cursor:pointer;">
+                <div class="course-card-thumb">
+                    ${course.img
+                        ? `<img class="cc-card-img" src="${escapeHtml(resolveCourseImg(course.img))}" alt="${escapeHtml(course.title)}" loading="lazy" onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+                        : ''
+                    }
+                    <div class="course-card-badges">
+                        <span class="course-badge-dept ${getDeptBadgeColor(course.dept)}">${escapeHtml(course.dept)}</span>
+                        ${course.category ? `<span class="course-badge-cat">${escapeHtml(course.category)}</span>` : ''}
                     </div>
                 </div>
-            `;
-        }).join('');
+                <div class="course-card-body">
+                    <h3>${escapeHtml(course.title)}</h3>
+                    <p class="course-card-desc">${escapeHtml(course.description || '')}</p>
+                    <div class="course-card-meta">
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                            ${course.lessons} ${isAr ? 'درس' : 'Lessons'}
+                        </span>
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            ${course.size}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
 
         // Apply cached images for zero-latency load & smooth fallback
         grid.querySelectorAll('.course-card-public').forEach(card => {
@@ -615,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshDraftsCount();
     }
 
+    // FIXED: Admin Courses render function with proper wrapper div
     function renderAdminCourses() {
         const grid = document.getElementById('adminCourseGrid');
         if (!grid) return;
@@ -637,34 +639,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isAr = getCurrentLang() === 'ar';
 
+        // FIXED: Added proper wrapper div with admin-course-card class
         grid.innerHTML = filtered.map(course => `
-<div class="admin-card-thumb" style="position:relative;">
-    ${course.img
-        ? `<img class="cc-card-img"
-                src="${escapeHtml(resolveCourseImg(course.img))}"
-                alt="${escapeHtml(course.title)}"
-                loading="lazy"
-                onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
-        : ''}
-    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">
-        ${escapeHtml(course.dept)}
-    </span>
+            <div class="admin-course-card" data-id="${course.id}" style="position:relative;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.2s,box-shadow 0.2s;cursor:pointer;">
+                <div class="admin-card-thumb" style="position:relative;">
+                    ${course.img
+                        ? `<img class="cc-card-img"
+                                src="${escapeHtml(resolveCourseImg(course.img))}"
+                                alt="${escapeHtml(course.title)}"
+                                loading="lazy"
+                                onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
+                        : ''}
+                    <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">
+                        ${escapeHtml(course.dept)}
+                    </span>
 
-    ${canManageCourses ? `
-        <button
-            type="button"
-            class="admin-card-delete-btn"
-            data-id="${course.id}"
-            data-title="${escapeHtml(course.title)}"
-            title="${isAr ? 'حذف الكورس' : 'Delete Course'}"
-            style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-            </svg>
-        </button>
-    ` : ''}
-</div>
+                    ${canManageCourses ? `
+                        <button
+                            type="button"
+                            class="admin-card-delete-btn"
+                            data-id="${course.id}"
+                            data-title="${escapeHtml(course.title)}"
+                            title="${isAr ? 'حذف الكورس' : 'Delete Course'}"
+                            style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
                 <div class="admin-card-body">
                     <h3>${escapeHtml(course.title)}</h3>
                     <div class="admin-card-meta">
