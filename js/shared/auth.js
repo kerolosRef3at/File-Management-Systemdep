@@ -52,9 +52,9 @@ export function protectPage(allowedRoles = []) {
                          (user.username && localStorage.getItem('aitu_force_change_password_' + user.username.toLowerCase()) === 'true');
 
     const currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
-    if (mustChangePw && currentPage !== 'profile.html') {
+    if (mustChangePw && currentPage !== 'reset-password.html') {
         if (loader) loader.remove();
-        window.location.href = 'profile.html?mustChangePassword=true';
+        window.location.href = `reset-password.html?firstLogin=true&username=${encodeURIComponent(user.username || '')}`;
         return false;
     }
 

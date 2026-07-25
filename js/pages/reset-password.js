@@ -78,6 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    const isFirstLogin = urlParams.get('firstLogin') === 'true' || 
+                         localStorage.getItem('aitu_must_change_password') === 'true';
+
+    if (isFirstLogin) {
+        const titleEl = document.querySelector('[data-i18n="reset_title"]');
+        const descEl = document.querySelector('[data-i18n="reset_desc"]');
+        const isAr = localStorage.getItem('aitu_lang') === 'ar' || document.documentElement.getAttribute('dir') === 'rtl';
+        if (titleEl) {
+            titleEl.textContent = isAr ? 'إنشاء كلمة مرور جديدة' : 'Create New Password';
+        }
+        if (descEl) {
+            descEl.textContent = isAr ? 'أدخل كلمة مرور جديدة لحسابك بعد أول تسجيل دخول. تأكد أنها آمنة وسهلة التذكر.' : 'Enter a new password for your account upon your first login. Make sure it is secure and easy to remember.';
+        }
+    }
+
     // 3. Form submission
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -98,15 +113,47 @@ document.addEventListener('DOMContentLoaded', () => {
             alertBox.style.display = 'none';
 
             try {
-                // TODO: POST /api/Auth/reset-password
-                await authService.resetPassword(userEmail, resetCode, newPwdInput.value);
-                
-                showAlert(alertBox, 'Password updated successfully! Redirecting to login...', 'success');
+                if (isFirstLogin) {
+                    const currentUser = authService.getCurrentUser();
+                    const targetUsername = urlParams.get('username') || 
+                                           localStorage.getItem('aitu_first_login_username') || 
+                                           currentUser?.username || '';
 
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
+                    // Clear force password flags
+                    localStorage.removeItem('aitu_must_change_password');
+                    localStorage.removeItem('aitu_first_login_username');
+                    if (targetUsername) {
+                        localStorage.removeItem('aitu_force_change_password_' + targetUsername.toLowerCase());
 
+                        const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');
+                        const target = created.find(u => String(u.username || '').toLowerCase() === String(targetUsername).toLowerCase());
+                        if (target) {
+                            target.mustChangePassword = false;
+                            localStorage.setItem('aitu_created_users', JSON.stringify(created));
+                        }
+                    }
+
+                    const isAr = localStorage.getItem('aitu_lang') === 'ar' || document.documentElement.getAttribute('dir') === 'rtl';
+                    showAlert(alertBox, isAr ? 'تم إنشاء كلمة المرور الجديدة بنجاح! جاري التوجيه...' : 'New password created successfully! Redirecting...', 'success');
+
+                    setTimeout(() => {
+                        const role = currentUser?.role || localStorage.getItem('aitu_role') || '';
+                        const isManagerOrAdmin = role === 'Supervisor' || /\s+Manager$/i.test(role);
+                        if (currentUser && currentUser.username) {
+                            window.location.href = isManagerOrAdmin ? 'dashboard.html' : 'repository.html';
+                        } else {
+                            window.location.href = 'login.html';
+                        }
+                    }, 1400);
+                } else {
+                    await authService.resetPassword(userEmail, resetCode, newPwdInput.value);
+                    
+                    showAlert(alertBox, 'Password updated successfully! Redirecting to login...', 'success');
+
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
             } catch (error) {
                 showAlert(alertBox, error.message || 'Failed to update password.', 'error');
                 submitBtn.disabled = false;

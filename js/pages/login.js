@@ -91,6 +91,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Log login event
                     logService.addLog(response.username, response.role, 'Login', 'Admin Portal');
 
+                    const forcePw = response.mustChangePassword || 
+                                    localStorage.getItem('aitu_force_change_password_' + response.username.toLowerCase()) === 'true';
+
+                    if (forcePw) {
+                        localStorage.setItem('aitu_must_change_password', 'true');
+                        localStorage.setItem('aitu_first_login_username', response.username);
+                        window.location.href = `reset-password.html?firstLogin=true&username=${encodeURIComponent(response.username)}`;
+                        return;
+                    }
+
                     const isManagerOrAdmin = response.role === 'Supervisor' || /\s+Manager$/i.test(response.role || '');
                     if (isManagerOrAdmin) {
                         window.location.href = 'dashboard.html';
