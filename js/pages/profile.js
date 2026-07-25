@@ -6,8 +6,10 @@ import { showAlert } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Guards access: requires authenticated active admin session
-    if (!protectPage(['Supervisor', 'IT Manager', 'EL Manager', 'Mechanical Manager', 'Mechanic Manager'])) {
+    // Guards access: requires authenticated active session
+    if (!protectPage()) {
+        const loader = document.getElementById('global-page-loader');
+        if (loader) loader.remove();
         return;
     }
 
@@ -48,10 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <img src="https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff" alt="Profile avatar" class="profile-img-preview" id="profileImagePreview" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--border-color);">
                         <div>
                             <div class="photo-upload-actions" style="display:flex; gap:15px; margin-bottom:5px;">
-                                <button type="button" class="btn-text-primary" id="changePhotoBtn" style="background:none; border:none; color:var(--primary-blue); font-weight:600; cursor:pointer;">Change Photo</button>
-                                <button type="button" class="btn-text-danger" id="removePhotoBtn" style="background:none; border:none; color:#ef4444; font-weight:600; cursor:pointer;">Remove</button>
+                                <button type="button" class="btn-text-primary" id="changePhotoBtn" style="background:none; border:none; color:var(--primary-blue); font-weight:600; cursor:pointer;">${t('profile_change_photo')}</button>
+                                <button type="button" class="btn-text-danger" id="removePhotoBtn" style="background:none; border:none; color:#ef4444; font-weight:600; cursor:pointer;">${t('profile_remove_photo')}</button>
+                                <input type="file" id="profileFileInput" style="display:none;" accept="image/*">
                             </div>
-                            <p style="font-size: 0.8rem; color: var(--text-gray); margin:0;">JPG, GIF or PNG. Max size of 800K</p>
+                            <p style="font-size: 0.8rem; color: var(--text-gray); margin:0;">${t('profile_photo_help')}</p>
                         </div>
                     </div>
 
@@ -62,8 +65,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <input type="text" class="form-control" value="${user.username}" style="background-color: #f1f5f9; color: var(--text-gray); cursor: not-allowed;" readonly>
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
-                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">Full Name</label>
-                                <input type="text" id="fullName" class="form-control" value="${user.name || user.username}" required>
+                                <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_full_name')}</label>
+                                <input type="text" id="fullName" class="form-control" placeholder="${t('profile_full_name_ph')}" value="${user.name || user.username}" required>
                             </div>
                         </div>
 
@@ -82,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_email')}</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                <input type="email" id="email" class="form-control" value="${user.email || (user.username ? user.username + '@aitu.edu.eg' : '')}" style="padding-left: 40px;" required>
+                                <input type="email" id="email" class="form-control" value="${user.email || (user.username ? user.username + '@aitu.edu.eg' : '')}" style="padding-left: 40px;" placeholder="${t('profile_email_ph')}" required>
                             </div>
                         </div>
 
@@ -90,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_phone')}</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                                <input type="text" id="mobile" class="form-control" placeholder="+20 (1__) ___-____" value="${user.phone || ''}" style="padding-left: 40px;" required>
+                                <input type="tel" id="mobile" class="form-control" placeholder="01xxxxxxxxx" value="${user.phone || ''}" style="padding-left: 40px;" maxlength="11" pattern="01[0-9]{9}" required>
                             </div>
                         </div>
 
@@ -116,11 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                             <div class="form-group" style="margin-bottom:15px;">
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_new_pw')}</label>
-                                <input type="password" id="newPassword" class="form-control" placeholder="Create new password" required>
+                                <input type="password" id="newPassword" class="form-control" placeholder="${t('profile_new_pw_ph')}" required>
                             </div>
                             <div class="form-group" style="margin-bottom:15px;">
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_confirm_pw')}</label>
-                                <input type="password" id="repeatPassword" class="form-control" placeholder="Confirm new password" required>
+                                <input type="password" id="repeatPassword" class="form-control" placeholder="${t('profile_confirm_pw_ph')}" required>
                             </div>
                             <button type="submit" class="btn-outline" style="width: 100%; border-color: var(--primary-blue); color: var(--primary-blue);" id="updatePasswordBtn">${t('profile_update_pw')}</button>
                             <div class="form-alert" id="securityAlert" style="margin-top:15px; display:none;"></div>
@@ -131,6 +134,22 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
 
+    // Real-time Input Sanitization & Formatting
+    const mobileInput = document.getElementById('mobile');
+    if (mobileInput) {
+        mobileInput.addEventListener('input', (e) => {
+            // Instantly strip any non-digit character and cap at 11 digits
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 11);
+        });
+    }
+
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        emailInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/\s/g, '');
+        });
+    }
+
     // 1. Submit Profile Settings form
     const profileForm = document.getElementById('profileForm');
     const profileAlert = document.getElementById('profileAlert');
@@ -139,12 +158,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileForm) {
         profileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const isAr = getCurrentLang() === 'ar';
             const email = document.getElementById('email').value.trim();
             const mobile = document.getElementById('mobile').value.trim();
             const fullName = document.getElementById('fullName').value.trim();
 
+            // Strict Validation
+            const nameRegex = /^[a-zA-Z\u0600-\u06FF\s.'-]{2,60}$/;
+            if (!fullName || !nameRegex.test(fullName)) {
+                showAlert(profileAlert, isAr ? 'يرجى إدخال اسم كامل صحيح (حروف فقط بدون أرقام أو رموز غريبة).' : 'Please enter a valid full name (letters only).', 'error');
+                return;
+            }
+
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!email || !emailRegex.test(email)) {
+                showAlert(profileAlert, isAr ? 'يرجى إدخال بريد إلكتروني صحيح يحتوي على نطاق كامل (مثال: name@domain.com).' : 'Please enter a valid email address with a complete domain (e.g. name@domain.com).', 'error');
+                return;
+            }
+
+            const phoneRegex = /^01[0-9]{9}$/;
+            if (!mobile || !phoneRegex.test(mobile)) {
+                showAlert(profileAlert, isAr ? 'يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقم يبدأ بـ 01 (مثال: 01012345678).' : 'Please enter a valid 11-digit Egyptian phone number starting with 01 (e.g., 01012345678).', 'error');
+                return;
+            }
+
             saveProfileBtn.disabled = true;
-            saveProfileBtn.innerText = 'Saving...';
+            saveProfileBtn.innerText = isAr ? 'جاري الحفظ...' : 'Saving...';
             profileAlert.style.display = 'none';
 
             try {
@@ -225,16 +264,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Mock buttons triggers
-    document.getElementById('changePhotoBtn').addEventListener('click', () => {
-        alert('Selecting profile photo from local files...');
-    });
-    document.getElementById('removePhotoBtn').addEventListener('click', () => {
-        const preview = document.getElementById('profileImagePreview');
-        if (preview) {
-            preview.src = `https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff`;
-        }
-    });
+    // Profile photo upload preview & remove
+    const changePhotoBtn = document.getElementById('changePhotoBtn');
+    const profileFileInput = document.getElementById('profileFileInput');
+    const preview = document.getElementById('profileImagePreview');
+    const removePhotoBtn = document.getElementById('removePhotoBtn');
+
+    if (changePhotoBtn && profileFileInput) {
+        changePhotoBtn.addEventListener('click', () => {
+            profileFileInput.click();
+        });
+
+        profileFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    if (preview) {
+                        preview.src = evt.target.result;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    if (removePhotoBtn) {
+        removePhotoBtn.addEventListener('click', () => {
+            if (profileFileInput) profileFileInput.value = '';
+            if (preview) {
+                preview.src = `https://ui-avatars.com/api/?name=${user.username}&background=072247&color=fff`;
+            }
+        });
+    }
 
     // Hide Global Loader
     const loader = document.getElementById('global-page-loader');

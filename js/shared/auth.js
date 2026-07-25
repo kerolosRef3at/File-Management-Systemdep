@@ -17,10 +17,13 @@ export function hasRole(allowedRoles = []) {
     if (!user) return false;
     if (allowedRoles.length === 0) return true;
     
-    // Support casing differences
+    // Support casing differences and dynamic department manager roles
     const standardRoles = allowedRoles.map(r => r.toLowerCase().trim());
-    return standardRoles.includes(user.role.toLowerCase().trim()) || 
-           (user.role.toLowerCase() === 'mechanic manager' && standardRoles.includes('mechanical manager'));
+    const userRole = (user.role || '').toLowerCase().trim();
+
+    return standardRoles.includes(userRole) || 
+           (userRole === 'mechanic manager' && standardRoles.includes('mechanical manager')) ||
+           (userRole.endsWith('manager') && standardRoles.some(r => r.includes('manager')));
 }
 
 /**
@@ -28,8 +31,11 @@ export function hasRole(allowedRoles = []) {
  * Redirects to login.html if not logged in, or 403.html if roles don't match.
  */
 export function protectPage(allowedRoles = []) {
+    const loader = document.getElementById('global-page-loader');
+
     const token = localStorage.getItem('aitu_token');
     if (!token) {
+        if (loader) loader.remove();
         window.location.href = 'login.html';
         return false;
     }
@@ -37,11 +43,13 @@ export function protectPage(allowedRoles = []) {
     const user = getCurrentUser();
     if (!user) {
         localStorage.removeItem('aitu_token');
+        if (loader) loader.remove();
         window.location.href = 'login.html';
         return false;
     }
 
     if (allowedRoles.length > 0 && !hasRole(allowedRoles)) {
+        if (loader) loader.remove();
         window.location.href = '403.html';
         return false;
     }

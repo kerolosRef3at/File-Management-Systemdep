@@ -163,13 +163,13 @@ export function renderLayout(activePage = 'repository') {
             <div class="sidebar-overlay" id="sidebarOverlay"></div>
             
             <aside class="sidebar" id="adminSidebar">
-               <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 85px; box-sizing: border-box;" onclick="window.location.href='index.html'">
-            <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/logo_AITU.jpg'">
-                <div style="display:flex; flex-direction:column; justify-content:center; overflow:hidden; text-align:left;">
-                    <span style="font-size:0.82rem; font-weight:700; color:#ffffff; line-height:1.3; display:block;">Assiut International Technological University</span>
-                    <span style="font-size:0.7rem; font-weight:500; color:#8B9CC8; margin-top:3px; display:block; letter-spacing:0.3px;">File Management System</span>
+                <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 85px; box-sizing: border-box;" onclick="window.location.href='index.html'">
+                    <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/logo_AITU.jpg'">
+                    <div style="display:flex; flex-direction:column; justify-content:center; overflow:hidden; text-align:${lang === 'ar' ? 'right' : 'left'};">
+                        <span style="font-size:0.82rem; font-weight:700; color:#ffffff; line-height:1.3; display:block;" data-i18n="sidebar_uni_name">${t('sidebar_uni_name')}</span>
+                        <span style="font-size:0.7rem; font-weight:500; color:#8B9CC8; margin-top:3px; display:block; letter-spacing:0.3px;" data-i18n="sidebar_uni_sub">${t('sidebar_uni_sub')}</span>
+                    </div>
                 </div>
-            </div>
                 
                 <ul class="sidebar-menu">
                     ${menuHTML}
@@ -498,4 +498,13 @@ export function renderLayout(activePage = 'repository') {
             mod.initPersistentUploadWidget();
         }
     }).catch(() => {});
+
+    // Safety fallback: Ensure global loader hides even if network requests hang or fail
+    setTimeout(() => {
+        const loader = document.getElementById('global-page-loader');
+        if (loader) {
+            loader.classList.add('hide-loader');
+            setTimeout(() => loader.remove(), 400);
+        }
+    }, 600);
 }

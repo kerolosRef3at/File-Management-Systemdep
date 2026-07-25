@@ -280,6 +280,9 @@
     font-weight: 900;
     color: var(--primary-dark);
     line-height: 1;
+    direction: ltr;
+    display: inline-block;
+    unicode-bidi: embed;
 }
 
 .upload-progress-bar {

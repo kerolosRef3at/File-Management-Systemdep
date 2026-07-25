@@ -1,8 +1,19 @@
 // js/pages/course-details.js
-import { courseService, logService } from '../shared/services.js';
+import { courseService, fileService, logService, showProgressWidget } from '../shared/services.js';
 import { BASE_URL } from '../shared/api.js';
 import { getCurrentUser } from '../shared/auth.js';
 import { renderLayout } from '../shared/layout.js';
+import { getCurrentLang } from '../shared/jssharedi18n.js';
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 function resolveImg(img) {
     if (!img) return 'assets/images/default-course.png';
@@ -86,8 +97,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     name: course.title || 'Course Modules',
                     desc: course.description || 'Main course content and lessons.',
                     lessons: [
-                        { name: 'Introduction & Overview', duration: '15 mins', size: '12 MB', type: 'PDF' },
-                        { name: 'Core Lecture Materials', duration: '45 mins', size: '48 MB', type: 'PPTX' }
+                        { id: '1', title: 'Introduction & Overview', duration: '15 mins', size: '12 MB', type: 'PDF' },
+                        { id: '2', title: 'Core Lecture Materials', duration: '45 mins', size: '48 MB', type: 'PPTX' }
                     ]
                 }
             ];
@@ -102,39 +113,87 @@ document.addEventListener('DOMContentLoaded', async () => {
         const totalLessons = course.modules.reduce((sum, m) => sum + (Array.isArray(m.lessons) ? m.lessons.length : 0), 0);
         const totalCategories = course.modules.length;
 
+        const lang = getCurrentLang();
+        const isAr = lang === 'ar';
+
+        // Calculate dynamic Content Types based on actual files/lessons
+        const typesSet = new Set();
+        if (Array.isArray(course.modules)) {
+            course.modules.forEach(m => {
+                if (Array.isArray(m.lessons)) {
+                    m.lessons.forEach(l => {
+                        if (l.type) typesSet.add(String(l.type).toUpperCase());
+                        else if (l.file) {
+                            const ext = l.file.split('.').pop()?.toUpperCase();
+                            if (ext && ext.length <= 5) typesSet.add(ext);
+                        }
+                    });
+                }
+            });
+        }
+        if (Array.isArray(course.resources)) {
+            course.resources.forEach(r => {
+                if (r.type) typesSet.add(String(r.type).toUpperCase());
+            });
+        }
+        if (typesSet.size === 0) {
+            typesSet.add('PDF');
+        }
+
+        const formatTypeLabel = (t) => {
+            switch (t) {
+                case 'PDF': return isAr ? 'أدلة PDF' : 'PDF Guides';
+                case 'PPTX':
+                case 'PPT': return isAr ? 'عروض تقديمية PPTX' : 'PPTX Presentations';
+                case 'DOC':
+                case 'DOCX': return isAr ? 'مستندات Word' : 'Word Documents';
+                case 'XLS':
+                case 'XLSX': return isAr ? 'جداول Excel' : 'Excel Spreadsheets';
+                case 'ZIP':
+                case 'RAR': return isAr ? 'ملفات مضغوطة ZIP' : 'ZIP Archives';
+                case 'MP4':
+                case 'VIDEO': return isAr ? 'محاضرات فيديو' : 'Video Lectures';
+                case 'PY':
+                case 'IPYNB': return isAr ? 'أكواد Jupyter Notebooks' : 'Jupyter Notebooks';
+                default: return t;
+            }
+        };
+
+        const dynamicTypesString = Array.from(typesSet).map(formatTypeLabel).join(isAr ? '، ' : ', ');
+
         body.innerHTML = `
             <!-- Breadcrumb -->
             <div class="course-detail-breadcrumb">
-                <a href="index.html">Home</a>
+                <a href="index.html">${isAr ? 'الرئيسية' : 'Home'}</a>
                 <span class="bc-separator">&rsaquo;</span>
-                <a href="courses.html">Courses</a>
+                <a href="courses.html">${isAr ? 'الكورسات' : 'Courses'}</a>
                 <span class="bc-separator">&rsaquo;</span>
-                <span class="bc-current">${course.title}</span>
+                <span class="bc-current">${escapeHtml(course.title)}</span>
             </div>
 
             <!-- Title -->
             <div class="course-detail-title" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
                 <div>
-                    <h1>${course.title}</h1>
+                    <h1>${escapeHtml(course.title)}</h1>
                     <div class="course-detail-badges">
                         <span class="cd-badge-certified">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            AITU Certified Materials
+                            ${isAr ? 'مناهج AITU المعتمدة' : 'AITU Certified Materials'}
                         </span>
-                        <span class="cd-meta-text">Archived Resource</span>
+                        <span class="cd-meta-text">${isAr ? 'مصدر مؤرشف' : 'Archived Resource'}</span>
                         <span class="cd-meta-dot"></span>
-                        <span class="cd-meta-text">Last updated ${course.lastUpdated || 'N/A'}</span>
+                        <span class="cd-meta-text">${isAr ? 'آخر تحديث' : 'Last updated'} ${course.lastUpdated || 'N/A'}</span>
                     </div>
                 </div>
                 ${isAdmin ? `
                 <div class="admin-course-actions" style="display: flex; gap: 10px;">
                     <button id="btnAdminEditCourse" class="btn-upload" style="background: white; color: var(--primary-dark); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Edit Course
+                        ${isAr ? 'تعديل الكورس' : 'Edit Course'}
                     </button>
                     <button id="btnAdminDeleteCourse" class="btn-upload" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        Delete
+                        ${isAr ? 'حذف' : 'Delete'}
                     </button>
                 </div>
                 ` : ''}
@@ -142,19 +201,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Hero Banner -->
             <div class="course-detail-hero">
-                <img src="${resolveImg(course.img)}" alt="${course.title}" loading="lazy">
+                <img src="${resolveImg(course.img)}" alt="${escapeHtml(course.title)}" loading="lazy">
                 <div class="course-detail-hero-overlay">
                     <div class="hero-package-info">
                         <div class="hero-package-label">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                            Complete Resource Package
+                            ${isAr ? 'حزمة الموارد الأكاديمية الكاملة' : 'Complete Resource Package'}
                         </div>
-                        <div class="hero-package-title">${course.title}</div>
-                        <div class="hero-package-desc">All syllabus materials, datasets, and technical documentation included in one download.</div>
+                        <div class="hero-package-title">${escapeHtml(course.title)}</div>
+                        <div class="hero-package-desc">${isAr ? 'جميع مواد المنهج، البيانات والدلائل الفنية متوفرة للتنزيل.' : 'All syllabus materials, datasets, and technical documentation included in one download.'}</div>
                     </div>
                     <div class="hero-size-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                        ${course.size} Total Size
+                        <span dir="ltr">${course.size}</span> ${isAr ? 'الحجم الإجمالي' : 'Total Size'}
                     </div>
                 </div>
             </div>
@@ -164,16 +223,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div>
                     <!-- Package Overview -->
                     <div class="package-overview">
-                        <h2>Package Overview</h2>
-                        <p>${course.description || 'No description available.'}</p>
+                        <h2>${isAr ? 'نظرة عامة على الكورس' : 'Package Overview'}</h2>
+                        <p>${course.description || (isAr ? 'لا يوجد وصف متاح لهذا الكورس.' : 'No description available.')}</p>
                         <div class="package-overview-stats">
                             <div class="po-stat">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                <strong>Content Type</strong> PDF Guides, Jupyter Notebooks, Datasets.
+                                <strong>${isAr ? 'نوع المحتوى' : 'Content Type'}</strong> ${dynamicTypesString}.
                             </div>
                             <div class="po-stat">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <strong>Archived Content</strong> ${totalCategories} Modules • ${totalLessons} Technical Resources.
+                                <strong>${isAr ? 'المحتوى المؤرشف' : 'Archived Content'}</strong> ${totalCategories} ${isAr ? 'وحدات دراسية' : 'Modules'} • ${totalLessons} ${isAr ? 'موارد فنية' : 'Technical Resources'}.
                             </div>
                         </div>
                     </div>
@@ -181,8 +240,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <!-- Resource List -->
                     <div class="resource-list-section">
                         <div class="resource-list-header">
-                            <h2>Resource List</h2>
-                            <span class="resource-list-count">${totalCategories} Categories • ${totalLessons} Files</span>
+                            <h2>${isAr ? 'قائمة الموارد والدروس' : 'Resource List'}</h2>
+                            <span class="resource-list-count">${totalCategories} ${isAr ? 'أقسام' : 'Categories'} • ${totalLessons} ${isAr ? 'ملفات' : 'Files'}</span>
                         </div>
                         <div id="moduleAccordion"></div>
                     </div>
@@ -192,21 +251,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div class="course-detail-sidebar">
                     <!-- Download Bundle -->
                     <div class="download-bundle-card">
-                        <h3>Download Bundle</h3>
+                        <h3>${isAr ? 'تحميل حزمة الكورس' : 'Download Bundle'}</h3>
                         <div class="db-size-badge">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                            ${course.size} Archive Available
+                            <span dir="ltr">${course.size}</span> ${isAr ? 'الأرشيف المتاح' : 'Archive Available'}
                         </div>
                         <div class="db-feature">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            Official AITU Study Guides
+                            ${isAr ? 'أدلة الدراسة الرسمية بجامعة AITU' : 'Official AITU Study Guides'}
                         </div>
                         <div class="db-feature">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            Complete historical syllabus
+                            ${isAr ? 'المقررات الأكاديمية الشاملة' : 'Complete historical syllabus'}
                         </div>
                         <button class="db-download-all-btn" id="downloadAllBtn">
-                            Download All Resources
+                            ${isAr ? 'تحميل جميع الموارد' : 'Download All Resources'}
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                         </button>
                     </div>
@@ -214,23 +273,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <!-- Author Card -->
                     ${course.author ? `
                     <div class="author-card">
-                        <div class="author-card-label">Curriculum Author</div>
+                        <div class="author-card-label">${isAr ? 'معد المنهج' : 'Curriculum Author'}</div>
                         <div class="author-info">
-                            <div class="author-avatar">${course.author.name.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+                            <div class="author-avatar">${course.author.name ? course.author.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'A'}</div>
                             <div>
-                                <div class="author-name">${course.author.name}</div>
-                                <div class="author-title">${course.author.title}</div>
+                                <div class="author-name">${course.author.name || (isAr ? 'محاضر بـ AITU' : 'AITU Instructor')}</div>
+                                <div class="author-title">${course.author.title || (isAr ? 'عضو هيئة التدريس' : 'Faculty Member')}</div>
                             </div>
                         </div>
-                        <p class="author-bio">${course.author.bio}</p>
-                        <a href="#" class="author-profile-link">View Faculty Profile</a>
+                        <p class="author-bio">${course.author.bio || ''}</p>
+                        <a href="#" class="author-profile-link">${isAr ? 'عرض الملف الشخصي للمحاضر' : 'View Faculty Profile'}</a>
                     </div>
                     ` : ''}
 
                     <!-- Related Bundles -->
                     ${course.relatedCourses && course.relatedCourses.length > 0 ? `
                     <div class="related-bundles-card">
-                        <h4>Related Resource Bundles</h4>
+                        <h4>${isAr ? 'حزم ذات صلة' : 'Related Resource Bundles'}</h4>
                         ${course.relatedCourses.map(relId => {
                             const rel = allCourses.find(c => c.id === relId);
                             if (!rel) return '';
@@ -241,7 +300,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     </div>
                                     <div>
                                         <div class="related-bundle-name">${rel.title}</div>
-                                        <div class="related-bundle-meta">Resource Archive • ${rel.size}</div>
+                                        <div class="related-bundle-meta">${isAr ? 'أرشيف الموارد' : 'Resource Archive'} • <span dir="ltr">${rel.size}</span></div>
                                     </div>
                                 </div>
                             `;
@@ -273,10 +332,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <svg viewBox="0 0 24 24" fill="none" stroke="${lesson.type === 'video' ? '#9333ea' : '#2563eb'}" stroke-width="2">
                                     ${lesson.type === 'video' ? '<polygon points="5 3 19 12 5 21 5 3"/>' : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}
                                 </svg>
-                                ${lesson.title}
+                                ${lesson.title || lesson.name || 'Lesson Resource'}
                             </div>
                             <div class="rl-file-actions">
-                                <span class="rl-file-size">${lesson.size || ''}</span>
+                                <span class="rl-file-size" dir="ltr">${lesson.size || ''}</span>
                                 ${isAdmin ? `
                                 <button class="rl-file-admin-edit-btn" title="Edit File" style="background:transparent; border:none; cursor:pointer; color: var(--primary-blue);">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -285,7 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                                 ` : ''}
-                                <button class="rl-file-download-btn" title="Download">
+                                <button class="rl-file-download-btn" data-id="${lesson.id || ''}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" title="Download">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                                 </button>
                             </div>
@@ -306,11 +365,50 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Download individual file buttons
         document.querySelectorAll('.rl-file-download-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
+<<<<<<< Updated upstream
                 const path = btn.getAttribute('data-file');
                 const name = btn.getAttribute('data-name') || 'resource';
                 downloadResource(path, name);
+=======
+                const fileId = btn.dataset.id;
+                const fileUrl = btn.dataset.file;
+                const fileName = btn.dataset.title || 'course_file';
+
+                const numericId = parseInt(fileId);
+                if (!isNaN(numericId)) {
+                    try {
+                        await fileService.downloadFile(numericId, fileName);
+                        return;
+                    } catch (err) {
+                        console.warn("downloadFile by ID failed, falling back to direct link/blob", err);
+                    }
+                }
+
+                if (fileUrl) {
+                    const downloadUrl = fileUrl.startsWith('http') || fileUrl.startsWith('data:') ? fileUrl : `${BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    // Generate downloadable file
+                    const content = `AITU Academic Resource: ${fileName}\nCourse: ${course.title}\nDownloaded from AITU File Management System.`;
+                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${fileName.replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                }
+>>>>>>> Stashed changes
             });
         });
 
@@ -318,9 +416,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.rl-file-admin-edit-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const newName = prompt('Enter new filename:');
+                const promptMsg = isAr ? 'أدخل اسم الملف الجديد:' : 'Enter new filename:';
+                const newName = prompt(promptMsg);
                 if (newName && newName.trim() !== '') {
-                    // find text node and replace it
                     const nameContainer = e.target.closest('.rl-file-row').querySelector('.rl-file-name');
                     nameContainer.innerHTML = nameContainer.innerHTML.replace(/<\/svg>[\s\S]*$/, '</svg> ' + newName.trim());
                 }
@@ -331,7 +429,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelectorAll('.rl-file-admin-delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (confirm('Are you sure you want to delete this resource?')) {
+                const confirmMsg = isAr ? 'هل أنت متأكد من رغبتك في حذف هذا المورد؟' : 'Are you sure you want to delete this resource?';
+                if (confirm(confirmMsg)) {
                     const row = e.target.closest('.rl-file-row');
                     row.style.opacity = '0.5';
                     setTimeout(() => row.remove(), 200);
@@ -351,26 +450,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (deleteCourseBtn) {
                 deleteCourseBtn.addEventListener('click', async () => {
-                    if (confirm(`Are you sure you want to permanently delete course "${course.title}"?`)) {
+                    const deleteConfirmMsg = isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟` 
+                        : `Are you sure you want to permanently delete course "${course.title}"?`;
+                    if (confirm(deleteConfirmMsg)) {
                         deleteCourseBtn.disabled = true;
-                        deleteCourseBtn.innerText = 'Deleting...';
+                        deleteCourseBtn.innerText = isAr ? 'جاري الحذف...' : 'Deleting...';
                         try {
                             await courseService.deleteCourse(course.id);
                             logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', course.title);
-                            alert('Course deleted successfully.');
+                            alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
                             window.location.href = 'courses.html';
                         } catch (err) {
-                            alert('Failed to delete course.');
+                            alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
                             deleteCourseBtn.disabled = false;
-                            deleteCourseBtn.innerText = 'Delete';
+                            deleteCourseBtn.innerText = isAr ? 'حذف' : 'Delete';
                         }
                     }
                 });
             }
         }
 
-        // Download All → Show Modal
-        document.getElementById('downloadAllBtn').addEventListener('click', () => {
+        // Download All → Show Confirmation Modal FIRST
+        document.getElementById('downloadAllBtn')?.addEventListener('click', () => {
             showDownloadModal(course);
         });
 
@@ -382,7 +484,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
     } catch (error) {
-        body.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text-gray);"><h2 style="color:var(--primary-dark);">Course Not Found</h2><p>${error.message}</p><a href="courses.html" style="color:var(--primary-blue);margin-top:15px;display:inline-block;">Back to Courses</a></div>`;
+        const lang = getCurrentLang();
+        const isAr = lang === 'ar';
+        body.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text-gray);"><h2 style="color:var(--primary-dark);">${isAr ? 'الكورس غير موجود' : 'Course Not Found'}</h2><p>${error.message}</p><a href="courses.html" style="color:var(--primary-blue);margin-top:15px;display:inline-block;">${isAr ? 'العودة لصفحة الكورسات' : 'Back to Courses'}</a></div>`;
     } finally {
         // Hide Global Loader
         const loader = document.getElementById('global-page-loader');
@@ -393,46 +497,194 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // ============================
+    // DOWNLOAD BUNDLE HELPER FUNCTION
+    // ============================
+    async function executeBundleDownload(currentCourse) {
+        if (!currentCourse) return;
+        const lang = getCurrentLang();
+        const isAr = lang === 'ar';
+
+        try {
+            const filesToDownload = [];
+            if (Array.isArray(currentCourse.modules)) {
+                currentCourse.modules.forEach(m => {
+                    if (Array.isArray(m.lessons)) {
+                        m.lessons.forEach(l => {
+                            filesToDownload.push({
+                                id: l.id,
+                                name: l.title || l.name || 'Lesson Resource',
+                                file: l.file,
+                                type: l.type || 'PDF'
+                            });
+                        });
+                    }
+                });
+            }
+            if (filesToDownload.length === 0 && Array.isArray(currentCourse.resources)) {
+                currentCourse.resources.forEach(r => {
+                    filesToDownload.push({
+                        id: r.id,
+                        name: r.name || 'Lesson Resource',
+                        file: r.file,
+                        type: r.type || 'PDF'
+                    });
+                });
+            }
+
+            const widgetItems = filesToDownload.length > 0 
+                ? filesToDownload.map(f => f.name)
+                : [`${currentCourse.title || 'Course'}_Bundle`];
+
+            showProgressWidget(widgetItems, 'download');
+
+            // Try server zip download first
+            const numericIds = filesToDownload.map(f => parseInt(f.id)).filter(id => !isNaN(id));
+            if (numericIds.length > 0) {
+                try {
+                    const res = await fileService.downloadZip(numericIds);
+                    if (res && res.success) return;
+                } catch (err) {
+                    console.warn('Server ZIP download unavailable, attempting client download:', err);
+                }
+            }
+
+            // Direct/Fallback downloads
+            if (filesToDownload.length > 0) {
+                let delay = 0;
+                filesToDownload.forEach((f) => {
+                    setTimeout(async () => {
+                        const numericId = parseInt(f.id);
+                        if (!isNaN(numericId)) {
+                            try {
+                                await fileService.downloadFile(numericId, f.name);
+                                return;
+                            } catch (e) {}
+                        }
+
+                        if (f.file) {
+                            const downloadUrl = f.file.startsWith('http') || f.file.startsWith('data:') ? f.file : `${BASE_URL}${f.file.startsWith('/') ? '' : '/'}${f.file}`;
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = f.name;
+                            a.target = '_blank';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                        } else {
+                            const content = `AITU Academic Resource: ${f.name}\nCourse: ${currentCourse.title || 'Course'}\nDownloaded from AITU File Management System.`;
+                            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${(f.name || 'resource').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}.${(f.type || 'PDF').toLowerCase()}`;
+                            a.target = '_blank';
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            setTimeout(() => URL.revokeObjectURL(url), 1000);
+                        }
+                    }, delay);
+                    delay += 350;
+                });
+            } else {
+                const content = `AITU Academic Resource Bundle\nCourse: ${currentCourse.title || 'Course'}\nDescription: ${currentCourse.description || ''}\nDownloaded from AITU File Management System.`;
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${(currentCourse.title || 'course').replace(/[^a-zA-Z0-9_\-\.\u0600-\u06FF]/g, '_')}_bundle.txt`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+        } catch (err) {
+            console.warn('Error in executeBundleDownload fallback:', err);
+        }
+    }
+
+    // ============================
     // DOWNLOAD MODAL LOGIC
     // ============================
-    function showDownloadModal(course) {
+    function showDownloadModal(currentCourse) {
         const modal = document.getElementById('courseDownloadModal');
-        document.getElementById('modalCourseName').textContent = course.title;
-        document.getElementById('modalCourseDesc').textContent = 'Full course resource bundle for guest access.';
-        document.getElementById('modalTotalSize').textContent = course.size;
+        if (!modal) return;
+
+        const lang = getCurrentLang();
+        const isAr = lang === 'ar';
+
+        const nameEl = document.getElementById('modalCourseName');
+        const descEl = document.getElementById('modalCourseDesc');
+        const sizeEl = document.getElementById('modalTotalSize');
+
+        if (nameEl) nameEl.textContent = currentCourse.title;
+        if (descEl) {
+            descEl.textContent = isAr 
+                ? 'حزمة الموارد الأكاديمية الكاملة للتنزيل المباشر.' 
+                : 'Full course resource bundle for guest access.';
+        }
+        if (sizeEl) {
+            sizeEl.innerHTML = `<span dir="ltr">${currentCourse.size || '0 MB'}</span>`;
+        }
+
+        // Gather resources from modules or course resources
+        let resourcesList = [];
+        if (Array.isArray(currentCourse.modules)) {
+            currentCourse.modules.forEach(m => {
+                if (Array.isArray(m.lessons)) {
+                    m.lessons.forEach(l => {
+                        resourcesList.push({
+                            id: l.id,
+                            name: l.title || l.name || 'Lesson Resource',
+                            type: (l.type || 'PDF').toUpperCase(),
+                            size: l.size || '10 MB',
+                            file: l.file
+                        });
+                    });
+                }
+            });
+        }
+        if (resourcesList.length === 0 && Array.isArray(currentCourse.resources)) {
+            resourcesList = currentCourse.resources;
+        }
 
         const grid = document.getElementById('modalContentGrid');
-        const iconMap = {
-            'PDF': { cls: 'pdf', svg: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
-            'PPTX': { cls: 'pptx', svg: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
-            'ZIP': { cls: 'zip', svg: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' },
-            'MULTI': { cls: 'multi', svg: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>' },
-            'XLSX': { cls: 'xlsx', svg: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' }
-        };
+        if (grid) {
+            const iconMap = {
+                'PDF': { cls: 'pdf', svg: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+                'PPTX': { cls: 'pptx', svg: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+                'ZIP': { cls: 'zip', svg: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>' },
+                'MULTI': { cls: 'multi', svg: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>' },
+                'XLSX': { cls: 'xlsx', svg: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>' },
+                'VIDEO': { cls: 'multi', svg: '<polygon points="5 3 19 12 5 21 5 3"/>' }
+            };
 
-        const resources = course.resources || [];
-        grid.innerHTML = resources.map(res => {
-            const icon = iconMap[res.type] || iconMap['PDF'];
-            return `
-                <div class="cdm-content-card">
-                    <div class="cdm-content-icon ${icon.cls}">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icon.svg}</svg>
+            grid.innerHTML = resourcesList.map(res => {
+                const typeKey = (res.type || 'PDF').toUpperCase();
+                const icon = iconMap[typeKey] || iconMap['PDF'];
+                return `
+                    <div class="cdm-content-card">
+                        <div class="cdm-content-icon ${icon.cls}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icon.svg}</svg>
+                        </div>
+                        <div style="flex:1; min-width:0; overflow:hidden;">
+                            <div class="cdm-content-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${res.name}</div>
+                            <div class="cdm-content-meta" dir="ltr" style="text-align:${isAr ? 'right' : 'left'};">${res.type} • ${res.size}</div>
+                        </div>
                     </div>
-                    <div>
-                        <div class="cdm-content-name">${res.name}</div>
-                        <div class="cdm-content-meta">${res.type} • ${res.size}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+        }
 
         modal.classList.add('active');
     }
 
     function hideModal() {
-        document.getElementById('courseDownloadModal').classList.remove('active');
+        const modal = document.getElementById('courseDownloadModal');
+        if (modal) modal.classList.remove('active');
     }
 
+<<<<<<< Updated upstream
     document.getElementById('closeModal').addEventListener('click', hideModal);
     document.getElementById('cancelModal').addEventListener('click', hideModal);
     document.getElementById('confirmModal').addEventListener('click', () => {
@@ -448,4 +700,41 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         files.forEach((f, i) => setTimeout(() => downloadResource(f.path, f.name), i * 1200));
     });
+=======
+    document.getElementById('closeModal')?.addEventListener('click', hideModal);
+    document.getElementById('cancelModal')?.addEventListener('click', hideModal);
+
+    const confirmModalBtn = document.getElementById('confirmModal');
+    if (confirmModalBtn) {
+        confirmModalBtn.addEventListener('click', async () => {
+            const lang = getCurrentLang();
+            const isAr = lang === 'ar';
+
+            confirmModalBtn.disabled = true;
+            const originalHTML = confirmModalBtn.innerHTML;
+            confirmModalBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+                <span>${isAr ? 'جاري تجهيز التحميل...' : 'Preparing Download...'}</span>
+            `;
+
+            try {
+                await executeBundleDownload(course);
+                try {
+                    await logService.addLog(
+                        user?.username || 'Guest',
+                        user?.role || 'Public User',
+                        'Download Course',
+                        `Downloaded course bundle "${course?.title || ''}"`
+                    );
+                } catch (e) {}
+            } catch (err) {
+                console.warn('Confirm modal download notice:', err);
+            } finally {
+                confirmModalBtn.disabled = false;
+                confirmModalBtn.innerHTML = originalHTML;
+                hideModal();
+            }
+        });
+    }
+>>>>>>> Stashed changes
 });

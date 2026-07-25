@@ -82,23 +82,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             <div class="metrics-grid" style="margin-bottom:25px;">
                 <div class="metric-card stat-btn active-stat" data-role="all" style="padding: 15px; cursor:pointer;" id="cardStatTotal">
                     <div class="metric-value" style="font-size: 1.8rem;" id="statTotal">0</div>
-                    <div class="metric-card-header" style="margin:0;">Total Users</div>
+                    <div class="metric-card-header" style="margin:0;">${t('users_stat_total')}</div>
                 </div>
                 <div class="metric-card stat-btn" data-role="Supervisor" style="padding: 15px; border-bottom: 4px solid #9333ea; cursor:pointer;" id="cardStatSup">
                     <div class="metric-value" style="font-size: 1.8rem;" id="statSup">0</div>
-                    <div class="metric-card-header" style="margin:0;">Supervisors</div>
+                    <div class="metric-card-header" style="margin:0;">${t('users_stat_supervisors')}</div>
                 </div>
-                <!-- Counts by KIND of role, not by department. The old cards were
-                     "IT Managers" and "Field Managers" (EL + Mechanical), which
-                     meant a DESIGN Manager was counted in neither and the grid
-                     would need a new card for every department added. -->
                 <div class="metric-card stat-btn" data-role="managers" style="padding: 15px; border-bottom: 4px solid #0284c7; cursor:pointer;" id="cardStatManagers">
                     <div class="metric-value" style="font-size: 1.8rem;" id="statManagers">0</div>
-                    <div class="metric-card-header" style="margin:0;">Dept. Managers</div>
+                    <div class="metric-card-header" style="margin:0;">${t('users_stat_managers')}</div>
                 </div>
                 <div class="metric-card stat-btn" data-role="Faculty" style="padding: 15px; border-bottom: 4px solid #16a34a; cursor:pointer;" id="cardStatFaculty">
                     <div class="metric-value" style="font-size: 1.8rem;" id="statFaculty">0</div>
-                    <div class="metric-card-header" style="margin:0;">Faculty</div>
+                    <div class="metric-card-header" style="margin:0;">${t('users_stat_faculty')}</div>
                 </div>
             </div>
 
@@ -261,10 +257,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     function getRoleDisplay(role) {
-        // "Mechanic Manager" and "Mechanical Manager" are pre-migration names.
-        // The code-based scheme calls it "ME Manager".
-        if (role === 'Mechanic Manager' || role === 'Mechanical Manager') return 'ME Manager';
-        return role || '';
+        const isAr = getCurrentLang() === 'ar';
+        let r = role || '';
+        if (r === 'Mechanic Manager' || r === 'Mechanical Manager') r = 'ME Manager';
+
+        if (!isAr) return r;
+
+        if (r === 'Supervisor') return 'مشرف عام';
+        if (r === 'Faculty') return 'عضو هيئة تدريس';
+        if (r === 'Public User') return 'مستخدم عام';
+        if (r.endsWith(' Manager')) {
+            const code = r.replace(/\s+Manager$/i, '');
+            return code && code !== 'Department' ? `مدير قسم (${code})` : 'مدير قسم';
+        }
+        return r;
     }
 
     function renderUsers(usersToRender) {
@@ -360,13 +366,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="form-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                             <h3 style="display:flex; align-items:center; gap:10px; color:var(--primary-dark); font-size:1.15rem; font-weight:700; margin-top:0; margin-bottom:25px; border-bottom:1px solid #f1f5f9; padding-bottom:15px;">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#0b3b70;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                Personal Information
+                                ${t('users_personal_info')}
                             </h3>
                             
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:20px;">
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Full Name</label>
-                                    <input type="text" id="addFullName" class="form-control" placeholder="e.g. Dr. John Smith" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_full_name')}</label>
+                                    <input type="text" id="addFullName" class="form-control" placeholder="${t('users_full_name_ph')}" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
                                 </div>
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_email')}</label>
@@ -377,18 +383,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                             <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:20px; align-items:center;">
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_phone')}</label>
-                                    <input type="text" id="addPhone" class="form-control" placeholder="+20 (1__) ___-____" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
+                                    <input type="tel" id="addPhone" class="form-control" placeholder="01xxxxxxxxx" maxlength="11" pattern="01[0-9]{9}" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
                                 </div>
                                 
                                 <!-- Profile Picture Upload Area -->
-                                <div class="profile-pic-upload" style="display:flex; align-items:center; gap:15px; border:2px dashed #cbd5e1; border-radius:10px; padding:15px; background:#f8fafc; cursor:pointer; height:76px; margin-top:28px;">
-                                    <div style="width:40px; height:40px; border-radius:8px; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:var(--text-gray);">
-                                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                <div class="profile-pic-upload" id="profilePicUploadArea" style="display:flex; align-items:center; gap:12px; border:2px dashed #cbd5e1; border-radius:10px; padding:10px 14px; background:#f8fafc; cursor:pointer; height:76px; margin-top:28px; box-sizing:border-box; position:relative; transition:all 0.2s;">
+                                    <div id="profilePicPreviewBox" style="width:48px; height:48px; border-radius:50%; background:#e2e8f0; display:flex; align-items:center; justify-content:center; color:var(--text-gray); overflow:hidden; flex-shrink:0; border:2px solid #cbd5e1;">
+                                        <svg id="profilePicIcon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                        <img id="profilePicImg" src="" alt="Preview" style="width:100%; height:100%; object-fit:cover; display:none;">
                                     </div>
-                                    <div style="line-height:1.2;">
-                                        <div style="font-size:0.85rem; font-weight:700; color:var(--primary-dark);">Profile Picture</div>
-                                        <div style="font-size:0.75rem; color:var(--text-gray);">PNG, JPG up to 5MB</div>
+                                    <div style="flex:1; min-width:0; line-height:1.3;">
+                                        <div id="profilePicName" style="font-size:0.85rem; font-weight:700; color:var(--primary-dark); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${t('users_profile_pic')}</div>
+                                        <div id="profilePicSub" style="font-size:0.75rem; color:var(--text-gray);">${t('users_profile_pic_sub')}</div>
                                     </div>
+                                    <button type="button" id="btnRemovePic" style="display:none; background:#fee2e2; border:none; color:#ef4444; border-radius:50%; width:24px; height:24px; cursor:pointer; font-weight:bold; font-size:12px; line-height:24px; padding:0; text-align:center; flex-shrink:0;" title="Remove picture">✕</button>
                                     <input type="file" id="addProfilePic" style="display:none;" accept="image/*">
                                 </div>
                             </div>
@@ -398,15 +406,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="form-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                             <h3 style="display:flex; align-items:center; gap:10px; color:var(--primary-dark); font-size:1.15rem; font-weight:700; margin-top:0; margin-bottom:25px; border-bottom:1px solid #f1f5f9; padding-bottom:15px;">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#0b3b70;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                                Organizational Details
+                                ${t('users_org_details')}
                             </h3>
                             
                             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                                 <div class="form-group" style="margin:0;">
                                     <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_dept')}</label>
-                                    <!-- value is the real Folders.Id. The old options carried
-                                         display NAMES, which the submit handler then mapped back
-                                         to an id with a hard-coded if/else chain. -->
                                     <select id="addDepartment" class="form-control" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;" required>
                                         <option value="" disabled selected>${t('users_select_dept')}</option>
                                         ${departments.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('')}
@@ -417,8 +422,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         </div>` : ''}
                                 </div>
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Designation / Job Title</label>
-                                    <input type="text" id="addDesignation" class="form-control" placeholder="e.g. Senior Researcher" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_designation')}</label>
+                                    <input type="text" id="addDesignation" class="form-control" placeholder="${t('users_designation_ph')}" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
                                 </div>
                             </div>
                         </div>
@@ -427,12 +432,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div class="form-card" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px;">
                             <h3 style="display:flex; align-items:center; gap:10px; color:var(--primary-dark); font-size:1.15rem; font-weight:700; margin-top:0; margin-bottom:25px; border-bottom:1px solid #f1f5f9; padding-bottom:15px;">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#0b3b70;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                Security Settings
+                                ${t('users_security_settings')}
                             </h3>
                             
                             <div style="display:grid; grid-template-columns: 1fr 1.2fr; gap:20px; align-items:center;">
                                 <div class="form-group" style="margin:0;">
-                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">Account Expiry Date (Optional)</label>
+                                    <label style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); display:block; margin-bottom:8px;">${t('users_expiry_date')}</label>
                                     <input type="date" id="addExpiryDate" class="form-control" style="background:#f8fafc; border:1px solid #e2e8f0; height:46px; border-radius:8px;">
                                 </div>
                                 
@@ -442,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         <input type="checkbox" id="addForcePassword" style="opacity:0; width:0; height:0;">
                                         <span class="slider round" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px;"></span>
                                     </label>
-                                    <span style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); line-height:1.2;">Force password change on first login</span>
+                                    <span style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); line-height:1.2;">${t('users_force_pw')}</span>
                                 </div>
                             </div>
                         </div>
@@ -453,40 +458,32 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="create-user-right" style="background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:30px; display:flex; flex-direction:column; gap:20px;">
                         <h3 style="display:flex; align-items:center; gap:10px; color:var(--primary-dark); font-size:1.15rem; font-weight:700; margin-top:0; margin-bottom:5px;">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="color:#0b3b70;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            Access & Permissions
+                            ${t('users_access_permissions')}
                         </h3>
                         
                         <p style="font-size:0.85rem; color:var(--text-gray); margin:0 0 10px 0; line-height:1.5;">
-                            Select the appropriate access level for this user. Permissions are additive based on the role.
+                            ${t('users_access_sub')}
                         </p>
 
                         <!-- Role Selector Cards -->
                         <div class="role-selector-group" style="display:flex; flex-direction:column; gap:15px;">
-                            
-                            <!-- Three cards, whatever the number of departments.
-                                 There used to be a card per role, including a
-                                 hard-coded "IT Manager" one; DESIGN Manager had
-                                 nowhere to appear. "Department Manager" now
-                                 resolves to "{CODE} Manager" from the department
-                                 chosen above, exactly as RoleHelper.cs builds it. -->
 
                             <div class="role-option-card active" data-role="Faculty" style="border:2px solid #0b3b70; background:#eff6ff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:#0b3b70; font-size:0.95rem; margin-bottom:5px;">Faculty</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Basic access to upload course materials and view the repository.</div>
+                                <div style="font-weight:700; color:#0b3b70; font-size:0.95rem; margin-bottom:5px;">${t('users_role_faculty')}</div>
+                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">${t('users_role_faculty_desc')}</div>
                             </div>
 
                             <div class="role-option-card" data-role="Department Manager" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Department Manager</div>
+                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">${t('users_role_dept_mgr')}</div>
                                 <div style="font-size:0.8rem; color:#475569; line-height:1.4;">
-                                    Full access to their own department's repository and courses.
-                                    The role is taken from the department selected on the left
-                                    &mdash; e.g. <strong id="roleManagerPreview">select a department</strong>.
+                                    ${t('users_role_dept_mgr_desc')}
+                                    &mdash; <strong id="roleManagerPreview">${t('users_select_dept_first')}</strong>.
                                 </div>
                             </div>
 
                             <div class="role-option-card" data-role="Supervisor" style="border:1px solid #e2e8f0; background:#fff; border-radius:8px; padding:15px; cursor:pointer; transition:all 0.2s;">
-                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">Supervisor</div>
-                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">Unrestricted access to every department, user management, and audit logs.</div>
+                                <div style="font-weight:700; color:var(--primary-dark); font-size:0.95rem; margin-bottom:5px;">${t('users_role_supervisor')}</div>
+                                <div style="font-size:0.8rem; color:#475569; line-height:1.4;">${t('users_role_supervisor_desc')}</div>
                             </div>
 
                         </div>
@@ -495,8 +492,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <div style="display:flex; gap:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:15px; margin-top:15px;">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#64748b" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                             <div style="line-height:1.4;">
-                                <div style="font-size:0.75rem; font-weight:700; color:#475569; letter-spacing:0.05em;">SYSTEM NOTE</div>
-                                <div style="font-size:0.75rem; color:#64748b; font-style:italic;">User will receive an automated invitation email once the profile is created.</div>
+                                <div style="font-size:0.75rem; font-weight:700; color:#475569; letter-spacing:0.05em;">${t('users_system_note')}</div>
+                                <div style="font-size:0.75rem; color:#64748b; font-style:italic;">${t('users_system_note_sub')}</div>
                             </div>
                         </div>
                     </div>
@@ -542,24 +539,77 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const d = departments.find(x => String(x.id) === String(deptSelect.value));
                 rolePreview.textContent = d && d.code
                     ? `${d.code} Manager`
-                    : 'select a department';
+                    : t('users_select_dept_first');
             };
             deptSelect.addEventListener('change', syncPreview);
             syncPreview();
         }
 
-        // Trigger profile picture upload click
-        const uploadArea = document.querySelector('.profile-pic-upload');
+        // Trigger profile picture upload click & preview
+        const uploadArea = document.getElementById('profilePicUploadArea');
         const fileInput = document.getElementById('addProfilePic');
+        const previewImg = document.getElementById('profilePicImg');
+        const iconSvg = document.getElementById('profilePicIcon');
+        const picNameEl = document.getElementById('profilePicName');
+        const picSubEl = document.getElementById('profilePicSub');
+        const removeBtn = document.getElementById('btnRemovePic');
+
         if (uploadArea && fileInput) {
-            uploadArea.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length) {
-                    const picName = uploadArea.querySelector('div:nth-child(2) div:first-child');
-                    const picSize = uploadArea.querySelector('div:nth-child(2) div:last-child');
-                    if (picName) picName.textContent = fileInput.files[0].name;
-                    if (picSize) picSize.textContent = (fileInput.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
+            uploadArea.addEventListener('click', (e) => {
+                if (e.target !== removeBtn && !removeBtn.contains(e.target)) {
+                    fileInput.click();
                 }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        if (previewImg) {
+                            previewImg.src = event.target.result;
+                            previewImg.style.display = 'block';
+                        }
+                        if (iconSvg) iconSvg.style.display = 'none';
+                    };
+                    reader.readAsDataURL(file);
+
+                    if (picNameEl) picNameEl.textContent = file.name;
+                    if (picSubEl) {
+                        const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                        picSubEl.innerHTML = `<span style="direction:ltr; unicode-bidi:embed; display:inline-block;">${sizeMB} MB</span>`;
+                    }
+                    if (removeBtn) removeBtn.style.display = 'block';
+                }
+            });
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    fileInput.value = '';
+                    if (previewImg) {
+                        previewImg.src = '';
+                        previewImg.style.display = 'none';
+                    }
+                    if (iconSvg) iconSvg.style.display = 'block';
+                    if (picNameEl) picNameEl.textContent = t('users_profile_pic');
+                    if (picSubEl) picSubEl.textContent = t('users_profile_pic_sub');
+                    removeBtn.style.display = 'none';
+                });
+            }
+        }
+
+        // Real-time Input Sanitization & Formatting
+        const addPhoneInput = document.getElementById('addPhone');
+        if (addPhoneInput) {
+            addPhoneInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '').slice(0, 11);
+            });
+        }
+        const addEmailInput = document.getElementById('addEmail');
+        if (addEmailInput) {
+            addEmailInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\s/g, '');
             });
         }
 
@@ -568,38 +618,47 @@ document.addEventListener('DOMContentLoaded', async () => {
         const alertBox = document.getElementById('createPageAlerts');
         if (btnSubmit) {
             btnSubmit.addEventListener('click', async () => {
+                const isAr = getCurrentLang() === 'ar';
                 const fullName = document.getElementById('addFullName').value.trim();
                 const email = document.getElementById('addEmail').value.trim();
                 const phone = document.getElementById('addPhone').value.trim();
                 const department = document.getElementById('addDepartment').value;
                 const designation = document.getElementById('addDesignation').value.trim();
                 
-                if (!fullName || !email) {
-                    showAlert(alertBox, 'Full Name and Email Address are required.', 'error');
+                // 1. Full Name Validation
+                const nameRegex = /^[a-zA-Z\u0600-\u06FF\s.'-]{2,60}$/;
+                if (!fullName || !nameRegex.test(fullName)) {
+                    showAlert(alertBox, isAr ? 'يرجى إدخال اسم كامل صحيح (حروف فقط بدون أرقام أو رموز غريبة).' : 'Please enter a valid full name (letters only).', 'error');
                     return;
                 }
 
-                // The old code defaulted a missing/unknown department to id 1 (IT)
-                // and silently created the user in the wrong place.
+                // 2. Strict Email Validation (with TLD extension)
+                const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                if (!email || !emailRegex.test(email)) {
+                    showAlert(alertBox, isAr ? 'يرجى إدخال بريد إلكتروني صحيح يحتوي على نطاق كامل (مثال: name@domain.com).' : 'Please enter a valid email address with a complete domain (e.g. name@domain.com).', 'error');
+                    return;
+                }
+
+                // 3. Egyptian Phone Validation (11 digits, starting with 01)
+                const phoneRegex = /^01[0-9]{9}$/;
+                if (phone && !phoneRegex.test(phone)) {
+                    showAlert(alertBox, isAr ? 'يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقم يبدأ بـ 01 (مثال: 01012345678).' : 'Please enter a valid 11-digit Egyptian phone number starting with 01 (e.g., 01012345678).', 'error');
+                    return;
+                }
+
                 const chosenDept = departments.find(d => String(d.id) === String(department));
                 if (!chosenDept) {
-                    showAlert(alertBox, 'Please select a department.', 'error');
+                    showAlert(alertBox, isAr ? 'يرجى اختيار القسم.' : 'Please select a department.', 'error');
                     return;
                 }
 
                 if (selectedRole === 'Department Manager' && !chosenDept.code) {
-                    showAlert(alertBox, `"${chosenDept.name}" has no department code, so it cannot have a manager. Set a code for it in the Repository.`, 'error');
-                    return;
-                }
-
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    showAlert(alertBox, 'Please enter a valid email address.', 'error');
+                    showAlert(alertBox, isAr ? `القسم "${chosenDept.name}" لا يملك كود قسم، لذا لا يمكن تعيين مدير له.` : `"${chosenDept.name}" has no department code, so it cannot have a manager. Set a code for it in the Repository.`, 'error');
                     return;
                 }
 
                 btnSubmit.disabled = true;
-                btnSubmit.innerText = 'Creating...';
+                btnSubmit.innerText = isAr ? 'جاري الإنشاء...' : 'Creating...';
 
                 try {
                     const username = email.split('@')[0];
@@ -608,10 +667,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const deptId = parseInt(department, 10);
                     const dept = departments.find(d => String(d.id) === String(department));
 
-                    // "Department Manager" means the manager of the department
-                    // chosen above: DESIGN -> "DESIGN Manager". Built the same
-                    // way RoleHelper.ManagerRoleFor() builds it server-side, so
-                    // any department works the moment it exists.
                     let resolvedRole = selectedRole;
                     if (selectedRole === 'Department Manager') {
                         resolvedRole = `${dept.code} Manager`;
@@ -623,10 +678,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     initUsersList();
                     const listAlert = document.getElementById('usersPageAlerts');
                     if (listAlert) {
-                        showAlert(listAlert, `User account "${fullName}" successfully created.`, 'success');
+                        showAlert(listAlert, isAr ? `تم إنشاء حساب المستخدم "${fullName}" بنجاح.` : `User account "${fullName}" successfully created.`, 'success');
                     }
                 } catch (err) {
-                    showAlert(alertBox, err.message || 'Failed to create user account.', 'error');
+                    showAlert(alertBox, err.message || (isAr ? 'فشل إنشاء حساب المستخدم.' : 'Failed to create user account.'), 'error');
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = 'Create User';
                 }

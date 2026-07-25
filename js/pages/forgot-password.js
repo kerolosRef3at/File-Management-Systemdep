@@ -12,8 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const email = document.getElementById('forgotEmail').value.trim();
 
-            if (!email) {
-                showAlert(alertBox, 'Please enter your email address.', 'error');
+            const isAr = (localStorage.getItem('fms_lang') || 'ar') === 'ar';
+            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            if (!email || !emailRegex.test(email)) {
+                showAlert(alertBox, isAr ? 'يرجى إدخال بريد إلكتروني صحيح (مثال: name@domain.com).' : 'Please enter a valid email address (e.g. name@domain.com).', 'error');
                 return;
             }
 
@@ -24,9 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 // TODO: POST /api/Auth/forgot-password
                 await authService.forgotPassword(email);
-                
+
                 showAlert(alertBox, 'Verification code sent! Redirecting to verification page...', 'success');
-                
+
                 setTimeout(() => {
                     window.location.href = `otp.html?email=${encodeURIComponent(email)}`;
                 }, 1500);

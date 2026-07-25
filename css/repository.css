@@ -459,6 +459,11 @@
     color: var(--text-gray);
     font-weight: 600;
     margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 220px;
+    display: block;
 }
 
 .dept-card-short {
@@ -466,11 +471,19 @@
     font-weight: 800;
     color: var(--primary-dark);
     margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+    display: block;
 }
 
 .dept-card-stats {
     font-size: 0.8rem;
     color: var(--text-gray);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .delete-dept-btn {

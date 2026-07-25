@@ -1017,7 +1017,7 @@ html[dir="rtl"] .trust-stats {
 
 /* Auth pages RTL */
 html[dir="rtl"] .auth-layout {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 html[dir="rtl"] .auth-brand {
@@ -1025,7 +1025,7 @@ html[dir="rtl"] .auth-brand {
 }
 
 html[dir="rtl"] .auth-brand-header {
-    flex-direction: row-reverse;
+    direction: rtl;
 }
 
 html[dir="rtl"] .auth-brand-header-text {

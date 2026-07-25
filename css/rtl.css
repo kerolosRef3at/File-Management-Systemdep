@@ -1,6 +1,6 @@
 /* =========================================
    RTL (Right-to-Left) Support
-   Clean & Precision Layout Mirroring for Arabic
+   Full layout mirroring for Arabic language
 ========================================= */
 
 /* --- General Direction & Text Alignment --- */
@@ -9,13 +9,12 @@ html[dir="rtl"] body {
     direction: rtl;
 }
 
-/* --- Admin Layout: Sidebar flip to right side --- */
-html[dir="rtl"] .sidebar,
-html[dir="rtl"] #adminSidebar {
+/* --- Admin Layout: Sidebar flip to right --- */
+html[dir="rtl"] .sidebar {
     left: auto !important;
     right: 0 !important;
     border-right: none !important;
-    border-left: 1px solid rgba(255, 255, 255, 0.05) !important;
+    border-left: 1px solid #062343 !important;
 }
 
 html[dir="rtl"] .admin-layout .main-wrapper {
@@ -23,29 +22,7 @@ html[dir="rtl"] .admin-layout .main-wrapper {
     margin-right: 260px !important;
 }
 
-/* --- Sidebar Header (Logo on Right, Text on Left) --- */
-html[dir="rtl"] #adminSidebar .sidebar-header {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] #adminSidebar .sidebar-header div {
-    text-align: right !important;
-}
-
-/* --- Sidebar Menu Links --- */
-html[dir="rtl"] #adminSidebar .sidebar-menu a {
-    flex-direction: row !important;
-    text-align: right !important;
-    justify-content: flex-start !important;
-}
-
-html[dir="rtl"] #adminSidebar .sidebar-menu a svg {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
-
-/* --- Sidebar Active Link: Indicator bar on Right edge --- */
+/* --- Sidebar Active Link: flip indicator to right side --- */
 html[dir="rtl"] #adminSidebar .sidebar-menu a.active {
     border-left: none !important;
     border-right: 4px solid #60A5FA !important;
@@ -56,146 +33,239 @@ html[dir="rtl"] #adminSidebar .sidebar-menu a.active {
     padding-right: 23px !important;
 }
 
-/* --- Sidebar Footer & Buttons --- */
-html[dir="rtl"] #adminSidebar .sidebar-footer {
+/* --- Sidebar Menu Links --- */
+html[dir="rtl"] #adminSidebar .sidebar-menu a {
+    text-align: right;
+    direction: rtl;
+}
+
+html[dir="rtl"] .sidebar-menu li a svg {
+    margin-left: 10px;
+    margin-right: 0;
+}
+
+/* --- Sidebar Header & Footer --- */
+html[dir="rtl"] .sidebar-header {
+    text-align: right;
+    direction: rtl;
+}
+
+html[dir="rtl"] .sidebar-header div {
     text-align: right !important;
 }
 
-html[dir="rtl"] #adminSidebar .sidebar-footer button,
-html[dir="rtl"] #adminSidebar .sidebar-footer a {
-    flex-direction: row !important;
-    text-align: right !important;
-    justify-content: flex-start !important;
+html[dir="rtl"] .sidebar-footer {
+    text-align: right;
+    direction: rtl;
 }
 
-html[dir="rtl"] #adminSidebar .sidebar-user-block a div {
-    text-align: right !important;
-}
-
-/* Logout icon flip (pointing left out of system) */
-html[dir="rtl"] .logout-btn svg,
-html[dir="rtl"] #sidebarLogoutBtn svg,
-html[dir="rtl"] #dropdownLogoutBtn svg {
-    transform: scaleX(-1);
-}
-
-/* --- Top Header --- */
+/* --- Top Header & Page Titles --- */
 html[dir="rtl"] .top-header {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
-html[dir="rtl"] .header-left {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
+html[dir="rtl"] .header-left,
 html[dir="rtl"] .header-right {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
 html[dir="rtl"] .page-title-box {
-    text-align: right !important;
+    text-align: right;
 }
 
 html[dir="rtl"] .page-title-box h2 {
-    text-align: right !important;
+    text-align: right;
 }
 
 html[dir="rtl"] .subtitle-row {
-    direction: rtl !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
-/* --- User Avatar & Topbar Dropdown --- */
+/* --- Language Toggle & User Avatar Button in Top Header --- */
+html[dir="rtl"] .lang-toggle-topbar {
+    direction: rtl;
+}
+
 html[dir="rtl"] .dash-user-avatar-btn {
-    flex-direction: row !important;
+    direction: rtl;
+    padding: 6px 6px 6px 20px !important;
 }
 
-html[dir="rtl"] .user-meta {
+html[dir="rtl"] .dash-user-avatar-btn .user-meta {
     text-align: right !important;
 }
 
+/* Dropdown alignment */
 html[dir="rtl"] .dash-user-dropdown {
     left: 0 !important;
     right: auto !important;
+    direction: rtl;
+    text-align: right;
 }
 
 html[dir="rtl"] .dash-user-dropdown-header {
-    flex-direction: row !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
 html[dir="rtl"] .dash-user-dropdown-menu a,
 html[dir="rtl"] .dash-user-dropdown-menu button {
-    flex-direction: row !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] .dash-user-dropdown-menu a:hover,
+html[dir="rtl"] .dash-user-dropdown-menu button:hover {
+    transform: translateX(-4px);
 }
 
 /* --- Page Content General --- */
 html[dir="rtl"] .page-header-actions {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
-html[dir="rtl"] .page-header-actions div {
-    text-align: right !important;
-}
-
+html[dir="rtl"] .page-header-actions div,
 html[dir="rtl"] .page-header-actions h1 {
-    text-align: right !important;
+    text-align: right;
 }
 
 /* --- Tables --- */
 html[dir="rtl"] .data-table th,
 html[dir="rtl"] .data-table td {
-    text-align: right !important;
+    text-align: right;
 }
 
 html[dir="rtl"] .data-table th:first-child,
 html[dir="rtl"] .data-table td:first-child {
-    padding-right: 20px !important;
-    padding-left: 10px !important;
-}
-
-html[dir="rtl"] .data-table .user-cell {
-    flex-direction: row !important;
+    padding-right: 20px;
+    padding-left: 10px;
 }
 
 html[dir="rtl"] .data-table .user-details {
-    text-align: right !important;
+    text-align: right;
 }
 
 /* --- Search Bar --- */
 html[dir="rtl"] .search-bar {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
 html[dir="rtl"] .search-bar input {
-    text-align: right !important;
-    direction: rtl !important;
+    text-align: right;
+    direction: rtl;
 }
 
 html[dir="rtl"] .search-bar svg {
-    margin-left: 10px !important;
-    margin-right: 0 !important;
+    margin-left: 10px;
+    margin-right: 0;
 }
 
-/* --- Filter Controls & Chips --- */
+/* --- Filter Controls --- */
 html[dir="rtl"] .filters-bar {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
 html[dir="rtl"] .filter-select {
-    direction: rtl !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
 html[dir="rtl"] .chips-wrapper {
-    direction: rtl !important;
+    direction: rtl;
 }
 
+/* --- Metrics Cards Grid --- */
+html[dir="rtl"] .metrics-grid {
+    direction: rtl;
+}
+
+html[dir="rtl"] .metric-card {
+    text-align: right;
+}
+
+html[dir="rtl"] .metric-card-header {
+    text-align: right;
+}
+
+/* --- Form Controls --- */
+html[dir="rtl"] .form-group label {
+    text-align: right;
+    display: block;
+}
+
+html[dir="rtl"] .form-control {
+    text-align: right;
+    direction: rtl;
+}
+
+html[dir="rtl"] select.form-control {
+    direction: rtl;
+    text-align: right;
+}
+
+/* --- Profile Page --- */
+html[dir="rtl"] .profile-grid,
+html[dir="rtl"] .profile-form-row {
+    direction: rtl;
+}
+
+html[dir="rtl"] .photo-upload-section div {
+    text-align: right;
+}
+
+/* --- Dashboard --- */
+html[dir="rtl"] .dash-header,
+html[dir="rtl"] .dash-stats-grid,
+html[dir="rtl"] .dash-stat-card,
+html[dir="rtl"] .dash-charts-row,
+html[dir="rtl"] .dash-bottom-row {
+    direction: rtl;
+}
+
+html[dir="rtl"] .dash-header-left,
+html[dir="rtl"] .dash-stat-card,
+html[dir="rtl"] .dash-stat-title,
+html[dir="rtl"] .dash-chart-title {
+    text-align: right;
+}
+
+html[dir="rtl"] .dash-donut-legend {
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] .dash-docs-table th,
+html[dir="rtl"] .dash-docs-table td {
+    text-align: right;
+}
+
+html[dir="rtl"] .dash-event-item {
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] .dash-filter-select {
+    direction: rtl;
+}
+
+/* --- Users / Create User Page --- */
+html[dir="rtl"] .create-user-header > div:first-child,
+html[dir="rtl"] .create-user-right,
+html[dir="rtl"] .role-option-card,
+html[dir="rtl"] .form-card label {
+    text-align: right;
+}
+
+html[dir="rtl"] .create-user-breadcrumb,
+html[dir="rtl"] .create-user-layout {
+    direction: rtl;
+}
+
+/* --- Logs Page --- */
+html[dir="rtl"] .logs-filters-container,
 html[dir="rtl"] .chip-btn {
-    direction: rtl !important;
-    flex-direction: row !important;
+    direction: rtl;
 }
 
 html[dir="rtl"] .action-dot {
@@ -203,304 +273,69 @@ html[dir="rtl"] .action-dot {
     margin-right: 0 !important;
 }
 
-/* --- Metrics Cards Grid --- */
-html[dir="rtl"] .metrics-grid {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .metric-card {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .metric-card-header {
-    text-align: right !important;
-}
-
-/* --- Form Controls --- */
-html[dir="rtl"] .form-group label {
-    text-align: right !important;
-    display: block !important;
-}
-
-html[dir="rtl"] .form-control {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-html[dir="rtl"] select.form-control {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-/* --- Profile Page --- */
-html[dir="rtl"] .profile-grid {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .profile-card-header {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .profile-form-row {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .photo-upload-section {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .photo-upload-section div {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .photo-upload-actions {
-    flex-direction: row !important;
-}
-
-/* --- Dashboard --- */
-html[dir="rtl"] .dash-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-header-left {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-header-right {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-stats-grid {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .dash-stat-card {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-stat-top {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-stat-title {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-charts-row {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .dash-chart-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-chart-title {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-donut-legend {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-bottom-row {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .dash-docs-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-docs-table th,
-html[dir="rtl"] .dash-docs-table td {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-events-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .dash-event-item {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .dash-filter-select {
-    direction: rtl !important;
-}
-
-/* --- Users / Create User Page --- */
-html[dir="rtl"] .create-user-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .create-user-header>div:first-child {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .create-user-breadcrumb {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .create-user-layout {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .create-user-right {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .role-option-card {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .form-card h3 {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .form-card label {
-    text-align: right !important;
-}
-
-/* --- Create Course Page --- */
+/* --- Create Course --- */
 html[dir="rtl"] .create-course-layout {
-    direction: rtl !important;
+    direction: rtl;
 }
 
 html[dir="rtl"] .create-course-section {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .create-course-section-title {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .content-builder-header {
-    flex-direction: row !important;
+    text-align: right;
 }
 
 html[dir="rtl"] .content-builder-title-area {
-    flex-direction: row !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
 /* --- Upload Resources Modal --- */
-html[dir="rtl"] .upload-modal-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .upload-header-left {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .upload-header-actions {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .upload-global-destination {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .upload-global-destination label {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .upload-global-destination select {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .upload-content-grid {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .upload-progress-info {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .upload-queue-header {
-    flex-direction: row !important;
-}
-
-html[dir="rtl"] .upload-queue-header h3 {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .upload-best-practices {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .file-item-card {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .file-item-main {
-    flex-direction: row !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .file-item-info {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .file-item-actions {
-    flex-direction: row !important;
-}
-
+html[dir="rtl"] .upload-header-left,
+html[dir="rtl"] .upload-global-destination label,
+html[dir="rtl"] .upload-queue-header h3,
+html[dir="rtl"] .upload-best-practices,
+html[dir="rtl"] .file-item-info,
 html[dir="rtl"] .file-title-field label {
-    text-align: right !important;
+    text-align: right;
 }
 
+html[dir="rtl"] .upload-global-destination,
+html[dir="rtl"] .upload-content-grid,
+html[dir="rtl"] .file-item-card,
 html[dir="rtl"] .file-title-input {
-    text-align: right !important;
-    direction: rtl !important;
+    direction: rtl;
 }
 
-/* --- Buttons General RTL --- */
+/* --- Buttons general RTL --- */
 html[dir="rtl"] .btn-primary,
 html[dir="rtl"] .btn-outline {
-    direction: rtl !important;
-    flex-direction: row !important;
+    direction: rtl;
 }
 
-html[dir="rtl"] button svg+span,
-html[dir="rtl"] button span+svg {
-    margin-left: 0 !important;
-    margin-right: 8px !important;
+html[dir="rtl"] button svg + span,
+html[dir="rtl"] button span + svg {
+    margin-left: 0;
+    margin-right: 8px;
 }
 
-/* --- Alert Boxes --- */
+/* --- Alert boxes --- */
 html[dir="rtl"] .alert {
-    direction: rtl !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
 /* --- Skeleton Loaders --- */
 html[dir="rtl"] .dash-skeleton {
-    direction: rtl !important;
-}
-
-/* --- Language Toggle Button --- */
-html[dir="rtl"] .lang-toggle-topbar {
-    flex-direction: row !important;
+    direction: rtl;
 }
 
 /* --- Mobile Responsive RTL --- */
 @media (max-width: 1024px) {
-
-    html[dir="rtl"] .sidebar,
-    html[dir="rtl"] #adminSidebar {
+    html[dir="rtl"] .sidebar {
         right: auto !important;
         left: -300px !important;
-        transform: none !important;
+        transform: none;
     }
 
-    html[dir="rtl"] .sidebar.open,
-    html[dir="rtl"] #adminSidebar.open {
+    html[dir="rtl"] .sidebar.open {
         left: auto !important;
         right: 0 !important;
     }
@@ -512,8 +347,8 @@ html[dir="rtl"] .lang-toggle-topbar {
 
 @media (max-width: 768px) {
     html[dir="rtl"] .page-header-actions {
-        flex-direction: column !important;
-        align-items: flex-start !important;
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     html[dir="rtl"] .create-user-layout {
@@ -521,160 +356,55 @@ html[dir="rtl"] .lang-toggle-topbar {
     }
 
     html[dir="rtl"] .filters-bar {
-        flex-direction: column !important;
-        align-items: stretch !important;
+        flex-direction: column;
+        align-items: stretch;
     }
 
     html[dir="rtl"] .upload-modal-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     html[dir="rtl"] .upload-header-actions {
         width: 100%;
-        justify-content: flex-start !important;
+        justify-content: flex-end;
     }
 }
 
 /* --- 403 Page RTL --- */
 html[dir="rtl"] .error-page {
-    direction: rtl !important;
-    text-align: right !important;
+    direction: rtl;
+    text-align: right;
 }
 
 /* --- Courses Page RTL --- */
-html[dir="rtl"] .course-card {
-    text-align: right !important;
-}
-
+html[dir="rtl"] .course-card,
 html[dir="rtl"] .course-card-body {
-    text-align: right !important;
+    text-align: right;
 }
 
-html[dir="rtl"] .course-card-meta {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .course-card-footer {
-    flex-direction: row !important;
-}
-
+html[dir="rtl"] .course-card-meta,
 html[dir="rtl"] .course-filters-bar {
-    direction: rtl !important;
+    direction: rtl;
 }
 
-html[dir="rtl"] .courses-search-bar,
-html[dir="rtl"] .course-search-bar {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .courses-search-bar input,
 html[dir="rtl"] .course-search-bar input {
-    text-align: right !important;
-    direction: rtl !important;
+    text-align: right;
+    direction: rtl;
 }
 
-/* --- Badge & Role Alignment --- */
+/* --- Inline Style Overrides for Layout.js --- */
+html[dir="rtl"] #adminSidebar .sidebar-footer button[id="sidebarLangBtn"],
+html[dir="rtl"] #adminSidebar .sidebar-footer button[id="sidebarLogoutBtn"] {
+    direction: rtl;
+    text-align: right;
+}
+
+html[dir="rtl"] .stat-btn {
+    text-align: right;
+}
+
 html[dir="rtl"] .badge-protected {
-    margin-left: 0 !important;
-    margin-right: 8px !important;
-}
-
-html[dir="rtl"] .role-badge {
-    direction: ltr !important;
-    display: inline-block !important;
-}
-
-/* --- Admin & Public Courses RTL --- */
-html[dir="rtl"] .admin-courses-header,
-html[dir="rtl"] .courses-title-section {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .admin-dept-tabs {
-    direction: rtl !important;
-}
-
-html[dir="rtl"] #draftsTabBtn {
-    margin-left: 0 !important;
-    margin-right: 8px !important;
-}
-
-html[dir="rtl"] .admin-course-card,
-html[dir="rtl"] .admin-add-course-card,
-html[dir="rtl"] .course-card-public {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .admin-card-badge,
-html[dir="rtl"] .course-card-badges {
-    left: auto !important;
-    right: 12px !important;
-}
-
-html[dir="rtl"] .courses-left-panel {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .bulk-download-cta {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .admin-course-footer {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-html[dir="rtl"] .courses-cta-banner {
-    text-align: right !important;
-    direction: rtl !important;
-}
-
-/* --- Course Builder Modal RTL --- */
-html[dir="rtl"] .cc-container,
-html[dir="rtl"] .cc-modal-container {
-    direction: rtl !important;
-    text-align: right !important;
-}
-
-html[dir="rtl"] .cc-header {
-    flex-direction: row-reverse !important;
-}
-
-html[dir="rtl"] .cc-header-actions {
-    flex-direction: row-reverse !important;
-}
-
-html[dir="rtl"] .cc-label,
-html[dir="rtl"] .cc-input,
-html[dir="rtl"] .cc-select,
-html[dir="rtl"] .cc-textarea {
-    text-align: right !important;
-}
-
-html[dir="rtl"] .cc-mode-tabs {
-    flex-direction: row-reverse !important;
-}
-
-html[dir="rtl"] .cc-package-bar {
-    flex-direction: row-reverse !important;
-}
-
-/* --- Mobile Hero Section RTL Centering Override --- */
-@media (max-width: 768px) {
-    html[dir="rtl"] .hero-content,
-    html[dir="rtl"] .hero-content h1,
-    html[dir="rtl"] .hero-content p {
-        text-align: center !important;
-    }
-
-    html[dir="rtl"] .hero-buttons {
-        justify-content: center !important;
-        align-items: center !important;
-        margin: 0 auto !important;
-        width: 100% !important;
-    }
+    margin-left: 0;
+    margin-right: 8px;
 }

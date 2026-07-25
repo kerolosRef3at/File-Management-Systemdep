@@ -292,9 +292,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                     </div>
                 </div>
-                <div class="dash-stat-value" style="font-size: 20px;">
-                    ${usedValue} <span style="font-size:13px; color:#6B7A99; font-weight:500;">/ ${displayTotalValue}</span>
-                    <span class="percent">${usedPercent}%</span>
+                <div class="dash-stat-value" style="font-size: 18px;">
+                    <span style="display:inline-flex; align-items:baseline; gap:4px; flex-wrap:wrap;">
+                        <span dir="ltr" style="unicode-bidi: embed;">${usedValue}</span>
+                        <span style="font-size:13px; color:#6B7A99; font-weight:500;">/ ${displayTotalValue}</span>
+                    </span>
+                    <span class="percent" dir="ltr" style="unicode-bidi: embed;">${usedPercent}%</span>
                 </div>
                 <div class="dash-progress-track">
                     <div class="dash-progress-fill" style="width:${usedPercent}%"></div>
@@ -307,20 +310,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderVelocityChartSVG(data) {
         if (!data || !data.length) return '<div style="color:#6B7A99;text-align:center;padding:40px;">No data available</div>';
 
-        const W = 700, H = 260;
-        const padL = 50, padR = 20, padT = 20, padB = 40;
+        const W = 700, H = 300;
+        const padL = 55, padR = 20, padT = 20, padB = 75;
         const chartW = W - padL - padR;
         const chartH = H - padT - padB;
 
         const counts = data.map(d => d.count);
-        const minVal = Math.floor(Math.min(...counts) / 1000) * 1000;
-        const maxVal = Math.ceil(Math.max(...counts) / 1000) * 1000;
+        const rawMin = Math.min(...counts);
+        const rawMax = Math.max(...counts);
+
+        // ---- Dynamic "nice" Y-axis scaling ----
+        function niceNum(val, round) {
+            if (val <= 0) return 1;
+            const exp = Math.floor(Math.log10(val));
+            const frac = val / Math.pow(10, exp);
+            let nice;
+            if (round) {
+                if (frac < 1.5) nice = 1;
+                else if (frac < 3) nice = 2;
+                else if (frac < 7) nice = 5;
+                else nice = 10;
+            } else {
+                if (frac <= 1) nice = 1;
+                else if (frac <= 2) nice = 2;
+                else if (frac <= 5) nice = 5;
+                else nice = 10;
+            }
+            return nice * Math.pow(10, exp);
+        }
+
+        let minVal, maxVal, tickStep, yTickCount;
+        if (rawMax === rawMin) {
+            const v = rawMax || 1;
+            minVal = 0;
+            maxVal = v <= 5 ? (v + 2) : Math.ceil(v * 1.3);
+            tickStep = maxVal <= 10 ? 1 : niceNum(maxVal / 5, true);
+            yTickCount = Math.ceil(maxVal / tickStep);
+            maxVal = yTickCount * tickStep;
+        } else {
+            const rawRange = rawMax - rawMin;
+            tickStep = niceNum(rawRange / 5, true);
+            minVal = Math.floor(rawMin / tickStep) * tickStep;
+            maxVal = Math.ceil(rawMax / tickStep) * tickStep;
+            if (minVal < 0) minVal = 0;
+            yTickCount = Math.round((maxVal - minVal) / tickStep);
+        }
         const range = maxVal - minVal || 1;
 
-        const xStep = chartW / (data.length - 1);
+        const xStep = data.length > 1 ? chartW / (data.length - 1) : chartW;
 
         const points = data.map((d, i) => {
-            const x = padL + i * xStep;
+            const x = padL + (data.length > 1 ? i * xStep : chartW / 2);
             const y = padT + chartH - ((d.count - minVal) / range) * chartH;
             return { x, y, ...d };
         });
@@ -338,32 +378,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Area path
         const areaD = pathD + ' L ' + points[points.length-1].x + ' ' + (padT + chartH) + ' L ' + points[0].x + ' ' + (padT + chartH) + ' Z';
 
-        // Y-axis ticks
-        const yTickCount = 5;
+        // Y-axis ticks (dynamic)
         let yTicks = '';
         for (let i = 0; i <= yTickCount; i++) {
-            const val = minVal + (range / yTickCount) * i;
-            const y = padT + chartH - (i / yTickCount) * chartH;
+            const val = minVal + tickStep * i;
+            const y = padT + chartH - ((val - minVal) / range) * chartH;
             yTicks += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="#E8ECF4" stroke-width="1"/>';
             yTicks += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="end" font-family="system-ui">' + formatNumber(Math.round(val)) + '</text>';
         }
 
-        // X-axis labels
+        // X-axis labels — show ~8-12 evenly spaced, always rotated -45°
         let xLabels = '';
-        points.forEach(p => {
-            xLabels += '<text x="' + p.x + '" y="' + (H - 8) + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui">' + p.month + '</text>';
+        const targetLabels = Math.min(data.length, 10);
+        const labelSkip = Math.max(1, Math.ceil(data.length / targetLabels));
+        const xLabelY = padT + chartH + 14;
+
+        points.forEach((p, i) => {
+            // Show first, last, and every labelSkip-th point
+            if (i !== 0 && i !== points.length - 1 && i % labelSkip !== 0) return;
+            xLabels += '<text x="' + p.x + '" y="' + xLabelY + '" fill="#6B7A99" font-size="10" font-weight="500" text-anchor="end" font-family="system-ui" transform="rotate(-45,' + p.x + ',' + xLabelY + ')">' + p.month + '</text>';
         });
 
         // Dots
         let dots = '';
-        points.forEach(p => {
-            dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="4" fill="#1A3CAA" stroke="#fff" stroke-width="2" style="cursor:pointer"><title>' + p.month + ': ' + formatNumber(p.count) + ' downloads</title></circle>';
+        // If too many points, show dots only on labeled positions + hover line approach
+        const showAllDots = data.length <= 20;
+        points.forEach((p, i) => {
+            const r = showAllDots ? '4' : '3';
+            dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="#1A3CAA" stroke="#fff" stroke-width="2" style="cursor:pointer" opacity="' + (showAllDots ? '1' : '0.8') + '"><title>' + p.month + ': ' + formatNumber(p.count) + ' downloads</title></circle>';
         });
 
-        return '<svg viewBox="0 0 700 260">' +
+        return '<svg viewBox="0 0 ' + W + ' ' + H + '">' +
             '<defs>' +
             '<linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1A3CAA" stop-opacity="0.15"/><stop offset="100%" stop-color="#1A3CAA" stop-opacity="0"/></linearGradient>' +
-            '<clipPath id="chartClip"><rect x="0" y="0" width="700" height="260" class="chart-clip-rect"/></clipPath>' +
+            '<clipPath id="chartClip"><rect x="0" y="0" width="' + W + '" height="' + H + '" class="chart-clip-rect"/></clipPath>' +
             '</defs>' +
             yTicks +
             '<g clip-path="url(#chartClip)">' +
