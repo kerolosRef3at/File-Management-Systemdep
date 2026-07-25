@@ -277,6 +277,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const usersTableBody = document.getElementById('usersTableBody');
         if (!usersTableBody) return;
 
+        const isAr = getCurrentLang() === 'ar';
         usersTableBody.innerHTML = '';
 
         if (!Array.isArray(usersToRender) || usersToRender.length === 0) {
@@ -284,10 +285,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        const loggedInUser = getCurrentUser();
+        const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
+        const isPrimaryAdmin = loggedInUsername === 'admin';
+
         usersToRender.forEach(user => {
             const initial = (user.username || 'U').charAt(0).toUpperCase();
             const protectedBadge = user.isProtected ? '<span class="badge-protected">Protected</span>' : '';
-            const deleteDisabled = user.isProtected ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : '';
+            const isTargetSupervisor = user.role === 'Supervisor';
+            const isSelf = String(user.username || '').toLowerCase() === loggedInUsername;
+
+            let canDelete = true;
+            let deleteReason = '';
+
+            if (user.isProtected) {
+                canDelete = false;
+                deleteReason = isAr ? 'حساب محمي لا يمكن حذفه' : 'Protected Account';
+            } else if (isSelf) {
+                canDelete = false;
+                deleteReason = isAr ? 'لا يمكنك حذف حسابك الحالي' : 'Cannot delete your own account';
+            } else if (isTargetSupervisor && !isPrimaryAdmin) {
+                canDelete = false;
+                deleteReason = isAr ? 'حساب الأدمن الرئيسي (admin) فقط هو من يقدر على حذف المشرفين' : 'Only primary admin can delete another Supervisor';
+            }
+
+            const deleteDisabled = !canDelete ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : '';
+            const deleteTitle = canDelete ? t('users_delete') : deleteReason;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -308,7 +331,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${user.phone || 'N/A'}</td>
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${user.joined}</td>
                 <td>
-                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="${t('users_delete')}" ${deleteDisabled} style="background:none; border:none; cursor:pointer; color:var(--text-gray); transition:0.3s;">
+                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="${deleteTitle}" ${deleteDisabled} style="background:none; border:none; cursor:${canDelete ? 'pointer' : 'not-allowed'}; color:var(--text-gray); transition:0.3s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
@@ -318,10 +341,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         document.querySelectorAll('.delete-user-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                const loggedInUser = getCurrentUser();
+                const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
+                const isPrimaryAdmin = loggedInUsername === 'admin';
+                const isAr = getCurrentLang() === 'ar';
+
                 const id = e.currentTarget.getAttribute('data-id');
                 const targetUser = allUsers.find(u => u.id == id);
                 if (!targetUser) return;
-                const isAr = getCurrentLang() === 'ar';
+
+                if (targetUser.isProtected) {
+                    showAlert(alertsContainer, isAr ? 'لا يمكن حذف الحسابات المحمية.' : 'Protected accounts cannot be deleted.', 'error');
+                    return;
+                }
+                if (String(targetUser.username || '').toLowerCase() === loggedInUsername) {
+                    showAlert(alertsContainer, isAr ? 'لا يمكنك حذف حسابك الحالي المسجل به.' : 'You cannot delete your current account.', 'error');
+                    return;
+                }
+                if (targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
+                    showAlert(alertsContainer, isAr ? 'عفواً، حساب الأدمن الرئيسي (admin) فقط هو من يقدر على حذف المشرفين العموم.' : 'Only the primary admin (admin) can delete another Supervisor account.', 'error');
+                    return;
+                }
 
                 showConfirmModal({
                     title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
@@ -334,8 +374,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     requirePassword: true,
                     onConfirm: async () => {
                         try {
-                            await userService.deleteUser(id);
-                            logService.addLog(currentUser?.username || 'admin', currentUser?.role || 'Supervisor', 'Delete User', targetUser.username);
+                            await userService.deleteUser(id, targetUser);
+                            logService.addLog(loggedInUser?.username || 'admin', loggedInUser?.role || 'Supervisor', 'Delete User', targetUser.username);
                             showAlert(alertsContainer, `User account "${targetUser.username}" successfully deleted.`, 'success');
                             await loadUsers();
                         } catch (err) {
@@ -455,7 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <!-- Toggle Switch for Force Password Change -->
                                 <div style="display:flex; align-items:center; gap:12px; margin-top:28px;">
                                     <label class="switch" style="position:relative; display:inline-block; width:50px; height:26px; flex-shrink:0;">
-                                        <input type="checkbox" id="addForcePassword" style="opacity:0; width:0; height:0;">
+                                        <input type="checkbox" id="addForcePassword" checked style="opacity:0; width:0; height:0;">
                                         <span class="slider round" style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; transition:.4s; border-radius:34px;"></span>
                                     </label>
                                     <span style="font-weight:600; font-size:0.9rem; color:var(--primary-dark); line-height:1.2;">${t('users_force_pw')}</span>

@@ -322,10 +322,10 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
                 </p>
                 <div style="text-align: right; margin-bottom: 6px;">
                     <label style="font-size: 0.85rem; font-weight: 600; color: #334155; ${isAr ? 'text-align: right;' : 'text-align: left;'} display: block;">${isAr ? 'كلمة المرور:' : 'Password:'}</label>
-                    <input type="password" id="aituConfirmPasswordInput" placeholder="${isAr ? 'أدخل كلمة المرور الحالية' : 'Enter your password'}" style="
+                    <input type="password" id="aituConfirmPasswordInput" name="confirm_password_no_autofill" placeholder="${isAr ? 'أدخل كلمة المرور الحالية' : 'Enter your password'}" style="
                         width: 100%; padding: 11px 14px; border: 1px solid #cbd5e1; border-radius: 8px;
                         margin-top: 4px; font-size: 0.95rem; outline: none; box-sizing: border-box;
-                    " autocomplete="current-password">
+                    " autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
                 </div>
                 <div id="aituConfirmPasswordError" style="color: #ef4444; font-size: 0.85rem; text-align: ${isAr ? 'right' : 'left'}; margin-bottom: 16px; display: none;"></div>
 
@@ -349,7 +349,13 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
         const finalBtn = overlay.querySelector('#aituConfirmFinalBtn');
         const cancelBtn2 = overlay.querySelector('#aituConfirmCancelBtn2');
 
-        setTimeout(() => pwInput?.focus(), 100);
+        if (pwInput) pwInput.value = '';
+        setTimeout(() => {
+            if (pwInput) {
+                pwInput.value = '';
+                pwInput.focus();
+            }
+        }, 100);
 
         cancelBtn2.addEventListener('click', () => overlay.remove());
 

@@ -122,7 +122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // --- Main render ---
     function renderDashboard(container, { stats, downloads, resourceMix, programDownloads, documents, events }) {
         const user = getCurrentUser();
-        const userDisplayName = user ? (user.name || user.username) : 'User';
+        const rawUserDisplayName = user ? (user.name || user.username) : 'User';
+        const userDisplayName = String(rawUserDisplayName || '').includes('@') ? String(rawUserDisplayName).split('@')[0] : rawUserDisplayName;
         
         const hour = new Date().getHours();
         let greeting = t('dash_evening');
@@ -387,16 +388,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             yTicks += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="end" font-family="system-ui">' + formatNumber(Math.round(val)) + '</text>';
         }
 
-        // X-axis labels — show ~8-12 evenly spaced, always rotated -45°
+        // X-axis labels
         let xLabels = '';
-        const targetLabels = Math.min(data.length, 10);
+        const shouldRotate = data.length > 8;
+        const xLabelY = padT + chartH + (shouldRotate ? 26 : 22);
+        const targetLabels = Math.min(data.length, 12);
         const labelSkip = Math.max(1, Math.ceil(data.length / targetLabels));
-        const xLabelY = padT + chartH + 14;
 
         points.forEach((p, i) => {
-            // Show first, last, and every labelSkip-th point
-            if (i !== 0 && i !== points.length - 1 && i % labelSkip !== 0) return;
-            xLabels += '<text x="' + p.x + '" y="' + xLabelY + '" fill="#6B7A99" font-size="10" font-weight="500" text-anchor="end" font-family="system-ui" transform="rotate(-45,' + p.x + ',' + xLabelY + ')">' + p.month + '</text>';
+            if (data.length > 12 && i !== 0 && i !== points.length - 1 && i % labelSkip !== 0) return;
+            if (shouldRotate) {
+                xLabels += '<text x="' + (p.x - 2) + '" y="' + xLabelY + '" fill="#6B7A99" font-size="10" font-weight="500" text-anchor="end" font-family="system-ui" transform="rotate(-30,' + (p.x - 2) + ',' + xLabelY + ')">' + p.month + '</text>';
+            } else {
+                xLabels += '<text x="' + p.x + '" y="' + xLabelY + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui">' + p.month + '</text>';
+            }
         });
 
         // Dots

@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <label style="display:block; margin-bottom:5px; font-weight:600; font-size:0.95rem;">${t('profile_email')}</label>
                             <div style="position: relative;">
                                 <svg style="position:absolute; left:12px; top:14px; color:var(--text-gray);" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                                <input type="email" id="email" class="form-control" value="${user.email || (user.username ? user.username + '@aitu.edu.eg' : '')}" style="padding-left: 40px;" placeholder="${t('profile_email_ph')}" required>
+                                <input type="email" id="email" class="form-control" value="${user.email ? (user.email.split('@').length > 2 ? user.email.split('@')[0] + '@' + user.email.split('@')[1] : user.email) : (user.username ? (user.username.includes('@') ? user.username : user.username + '@aitu.edu.eg') : '')}" style="padding-left: 40px;" placeholder="${t('profile_email_ph')}" required>
                             </div>
                         </div>
 
@@ -279,7 +279,44 @@ document.addEventListener('DOMContentLoaded', () => {
             profileFileInput.click();
         });
 
-        profileFileInput.addEventListener('change', (e) => {
+        function compressAvatarImage(file, maxWidth = 300, maxHeight = 300, quality = 0.82) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round((height * maxWidth) / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round((width * maxHeight) / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = () => resolve(e.target.result);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+            });
+        }
+
+        profileFileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
                 const isAr = getCurrentLang() === 'ar';
@@ -287,14 +324,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     showAlert(profileAlert, isAr ? 'حجم الصورة يتجاوز الحد الأقصى (4 ميجابايت).' : 'Image size exceeds maximum limit (4 MB).', 'error');
                     return;
                 }
-                const reader = new FileReader();
-                reader.onload = (evt) => {
-                    currentAvatarDataUrl = evt.target.result;
+                try {
+                    currentAvatarDataUrl = await compressAvatarImage(file, 300, 300, 0.82);
                     if (preview) {
                         preview.src = currentAvatarDataUrl;
                     }
-                };
-                reader.readAsDataURL(file);
+                } catch (err) {
+                    console.warn("Avatar compression fallback:", err);
+                }
             }
         });
     }

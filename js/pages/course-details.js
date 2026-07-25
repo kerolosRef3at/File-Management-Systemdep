@@ -673,6 +673,19 @@ if (ok === 0) {
             grid.innerHTML = resourcesList.map(res => {
                 const typeKey = (res.type || 'PDF').toUpperCase();
                 const icon = iconMap[typeKey] || iconMap['PDF'];
+
+                let sizeStr = String(res.size || '').trim();
+                let typeStr = String(res.type || 'Resource').trim();
+
+                if (/^[\d.]+\s*$/.test(sizeStr)) {
+                    sizeStr = sizeStr + ' MB';
+                }
+                if (['MB', 'KB', 'GB', 'BYTES'].includes(typeStr.toUpperCase())) {
+                    typeStr = 'Compressed Archive';
+                }
+
+                const metaText = sizeStr.includes('•') ? sizeStr : `${sizeStr} • ${typeStr}`;
+
                 return `
                     <div class="cdm-content-card">
                         <div class="cdm-content-icon ${icon.cls}">
@@ -680,7 +693,7 @@ if (ok === 0) {
                         </div>
                         <div style="flex:1; min-width:0; overflow:hidden;">
                             <div class="cdm-content-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${res.name}</div>
-                            <div class="cdm-content-meta" dir="ltr" style="text-align:${isAr ? 'right' : 'left'};">${res.type} • ${res.size}</div>
+                            <div class="cdm-content-meta" dir="ltr" style="text-align:${isAr ? 'right' : 'left'};">${metaText}</div>
                         </div>
                     </div>
                 `;

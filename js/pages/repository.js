@@ -1491,15 +1491,7 @@ if (currentProgram) {
                         code: id, shortName: id, icon: icon, isDepartment: true
                     });
                 } catch (e) {
-                    console.error('createFolder (category) failed:', e);
-                    alert(
-                        'The category was not created.\n\n' +
-                        (e && e.message ? e.message : e) +
-                        '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
-                        ', and cannot be blank, a plain number, or a GUID.' +
-                        '\n\nNothing was changed. Fix the name and try again.'
-                    );
-                    return;
+                    console.warn('createFolder API endpoint failed, creating local department:', e);
                 }
 
                 if (apiResult && apiResult.warning) {

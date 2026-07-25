@@ -49,7 +49,7 @@ export function renderLayout(activePage = 'repository') {
     // Build sidebar menu links based on role
     const navItems = [];
     
-    if (!isPublicUser) {
+    if (isManager) {
         navItems.push({ href: 'dashboard.html', page: 'dashboard', label: t('sidebar_dashboard'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' });
     }
 
@@ -83,7 +83,8 @@ export function renderLayout(activePage = 'repository') {
         actionBtnHTML = '<div class="sidebar-btn-wrapper" style="display:none !important;"><button class="btn-upload" id="' + ab.id + '">' + ab.label + '</button></div>';
     }
 
-    const userDisplayName = user ? (user.name || user.username) : 'Guest';
+    const rawUserDisplayName = user ? (user.name || user.username) : 'Guest';
+    const userDisplayName = String(rawUserDisplayName || '').includes('@') ? String(rawUserDisplayName).split('@')[0] : rawUserDisplayName;
     const userEmail = user ? user.email : '';
     const userInitial = userDisplayName.charAt(0).toUpperCase();
 
