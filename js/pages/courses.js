@@ -660,8 +660,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             class="admin-card-delete-btn"
                             data-id="${course.id}"
                             data-title="${escapeHtml(course.title)}"
-                            title="${isAr ? 'حذف الكورس' : 'Delete Course'}"
-                            style="position:absolute; top:8px; right:8px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; transition:transform 0.2s;">
+                            title="${isAr ? 'حذف الكورس' : 'Delete Course'}">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
