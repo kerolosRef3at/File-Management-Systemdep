@@ -183,42 +183,67 @@ export const authService = {
         };
     },
 
-    // TODO: POST /api/Auth/forgot-password
-async forgotPassword(email) {
-    await delay();
-    try {
-        return await fetchAPI('/api/Auth/forgot-password', {
+    // js/shared/services.js - forgotPassword function
+    // Mock/local OTP fallback removed: it used to always resolve as success
+    // (even generating a fake local code) whether or not the real email was
+    // sent, which hid real backend/SMTP failures from the user. Now this just
+    // calls the real endpoint and lets a failure be a failure.
+    async forgotPassword(email) {
+        // Validate email format
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!email || !emailRegex.test(email)) {
+            throw new Error('Please enter a valid email address.');
+        }
+
+        const result = await fetchAPI('/api/Auth/forgot-password', {
             method: 'POST',
             body: JSON.stringify({ email })
         });
-    } catch (err) {
-        throw new Error(err.message || 'Email not found.');
-    }
-},
 
-async verifyOTP(email, code) {
-    await delay();
-    try {
-        return await fetchAPI('/api/Auth/verify-otp', {
+        return result;
+    },
+
+    // js/shared/services.js - verifyOTP function
+    async verifyOTP(email, code) {
+        if (!email || !code) {
+            throw new Error('Email and code are required.');
+        }
+
+        const result = await fetchAPI('/api/Auth/verify-otp', {
             method: 'POST',
             body: JSON.stringify({ email, code })
         });
-    } catch (err) {
-        throw new Error('Invalid or expired OTP.');
-    }
-},
 
-async resetPassword(email, code, newPassword) {
-    await delay();
-    try {
-        return await fetchAPI('/api/Auth/reset-password', {
+        if (result && result.verified) {
+            localStorage.setItem('aitu_verified_email', email);
+            return result;
+        }
+
+        throw new Error('Invalid verification code. Please try again.');
+    },
+
+    // js/shared/services.js - resetPassword function
+    async resetPassword(email, code, newPassword) {
+        if (!email || !code || !newPassword) {
+            throw new Error('Email, code, and new password are required.');
+        }
+
+        if (newPassword.length < 8) {
+            throw new Error('Password must be at least 8 characters long.');
+        }
+
+        const result = await fetchAPI('/api/Auth/reset-password', {
             method: 'POST',
             body: JSON.stringify({ email, code, newPassword })
         });
-    } catch (err) {
-        throw new Error('Reset password failed.');
+
+        if (result && result.success) {
+            localStorage.removeItem('aitu_verified_email');
+            return result;
+        }
+
+        throw new Error('Failed to reset password. Please try again.');
     }
-}
 };
 //===========================================
 // ✅ Helper Functions

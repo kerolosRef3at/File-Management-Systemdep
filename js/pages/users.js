@@ -25,13 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lang = getCurrentLang();
     const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
-    // Departments and roles come from the server. Both used to be typed into
-    // this file by hand -- three <option> tags, a name->id map, and a fixed set
-    // of role cards -- so a department created in the Repository had no entry
-    // anywhere here. Picking it was impossible; the code fell through to
-    // deptId = 1 (IT) and role "Mechanical Manager".
-    //   GET /api/Admin/departments -> [{ id, name, code, icon, managerRole }]
-    //   GET /api/Admin/roles       -> [{ role, deptCode, description }]
+    // Departments and roles come from the server.
     let departments = [];
     let roles = [];
 
@@ -48,7 +42,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    /** "DESIGN Manager" -> "DESIGN". Null for Supervisor/Faculty. Mirrors RoleHelper.cs. */
     function deptCodeFromRole(role) {
         const r = String(role || '').trim();
         const m = r.match(/^(.+)\s+Manager$/i);
@@ -219,7 +212,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             showAlert(alertsContainer, error.message || 'Failed to fetch user accounts.', 'error');
             usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load users from server.</td></tr>';
         } finally {
-            // Hide Global Loader
             const loader = document.getElementById('global-page-loader');
             if (loader) {
                 loader.classList.add('hide-loader');
@@ -234,20 +226,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const statManagers = document.getElementById('statManagers');
         const statFaculty = document.getElementById('statFaculty');
 
-        // Exact matches. The old code used .includes('it') / .includes('el'),
-        // which is why counts drifted: any role whose text happened to contain
-        // those letters was tallied, and new departments were counted nowhere.
         if (statTotal) statTotal.innerText = allUsers.length;
         if (statSup) statSup.innerText = allUsers.filter(u => u.role === 'Supervisor').length;
         if (statManagers) statManagers.innerText = allUsers.filter(u => isManagerRole(u.role)).length;
         if (statFaculty) statFaculty.innerText = allUsers.filter(u => u.role === 'Faculty').length;
     }
 
-    // Only these three department codes have a badge colour in the stylesheet.
-    // Anything else gets the neutral default instead of being painted as ME,
-    // which is what `return 'role-me'` did to every new department.
-    // Substring tests are gone: .includes('it') also matched "Security ...",
-    // .includes('el') matched "Field ...".
     function getRoleBadgeClass(role) {
         if (role === 'Supervisor') return 'role-supervisor';
         const code = deptCodeFromRole(role);
@@ -278,9 +262,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const usersTableBody = document.getElementById('usersTableBody');
         if (!usersTableBody) return;
 
-        // Needed by the delete handlers below. It was only defined in loadUsers,
-        // so referencing it here threw "alertsContainer is not defined" and the
-        // delete never completed.
         const alertsContainer = document.getElementById('usersPageAlerts');
 
         const isAr = getCurrentLang() === 'ar';
@@ -345,84 +326,85 @@ document.addEventListener('DOMContentLoaded', async () => {
             usersTableBody.appendChild(tr);
         });
 
-// js/pages/users.js - Delete button handler
+        // ============================================
+        // DELETE USER HANDLER - FIXED
+        // ============================================
+        document.querySelectorAll('.delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const loggedInUser = getCurrentUser();
+                const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
+                const isPrimaryAdmin = loggedInUsername === 'admin';
+                const isAr = getCurrentLang() === 'ar';
+                const alertsContainer = document.getElementById('usersPageAlerts');
 
-document.querySelectorAll('.delete-user-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const loggedInUser = getCurrentUser();
-        const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
-        const isPrimaryAdmin = loggedInUsername === 'admin';
-        const isAr = getCurrentLang() === 'ar';
-        const alertsContainer = document.getElementById('usersPageAlerts');
-
-        const userId = e.currentTarget.getAttribute('data-id');
-        
-        if (!userId || userId === 'undefined' || userId === 'null') {
-            showAlert(alertsContainer, isAr ? 'معرف المستخدم غير صحيح.' : 'Invalid user ID.', 'error');
-            return;
-        }
-
-        const targetUser = allUsers.find(u => String(u.id) === String(userId));
-        if (!targetUser) {
-            showAlert(alertsContainer, isAr ? 'المستخدم غير موجود.' : 'User not found.', 'error');
-            return;
-        }
-
-        if (targetUser.isProtected) {
-            showAlert(alertsContainer, isAr ? 'لا يمكن حذف الحسابات المحمية.' : 'Protected accounts cannot be deleted.', 'error');
-            return;
-        }
-        
-        if (String(targetUser.username || '').toLowerCase() === loggedInUsername) {
-            showAlert(alertsContainer, isAr ? 'لا يمكنك حذف حسابك الحالي.' : 'You cannot delete your current account.', 'error');
-            return;
-        }
-        
-        if (targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
-            showAlert(alertsContainer, isAr ? 'فقط الأدمن الرئيسي يمكنه حذف المشرفين.' : 'Only the primary admin can delete supervisors.', 'error');
-            return;
-        }
-
-        showConfirmModal({
-            title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
-            message: isAr 
-                ? `هل أنت متأكد من حذف حساب "${targetUser.username}"؟` 
-                : `Are you sure you want to delete "${targetUser.username}"?`,
-            confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
-            cancelText: isAr ? 'إلغاء' : 'Cancel',
-            type: 'danger',
-            requirePassword: true,
-            onConfirm: async (password) => {
-                try {
-                    const result = await userService.deleteUser(userId, targetUser);
-                    
-                    if (result) {
-                        logService.addLog(
-                            loggedInUser?.username || 'admin', 
-                            loggedInUser?.role || 'Supervisor', 
-                            'Delete User', 
-                            targetUser.username
-                        );
-                        
-                        showAlert(alertsContainer, 
-                            isAr ? `تم حذف المستخدم "${targetUser.username}" بنجاح.` : `User "${targetUser.username}" deleted successfully.`, 
-                            'success'
-                        );
-                        
-                        await loadUsers();
-                    }
-                } catch (err) {
-                    console.error('Delete error:', err);
-                    showAlert(alertsContainer, 
-                        err.message || (isAr ? 'فشل حذف المستخدم. حاول مرة أخرى.' : 'Failed to delete user. Please try again.'), 
-                        'error'
-                    );
-                    throw err;
+                const userId = e.currentTarget.getAttribute('data-id');
+                
+                if (!userId || userId === 'undefined' || userId === 'null') {
+                    showAlert(alertsContainer, isAr ? 'معرف المستخدم غير صحيح.' : 'Invalid user ID.', 'error');
+                    return;
                 }
-            }
+
+                const targetUser = allUsers.find(u => String(u.id) === String(userId));
+                if (!targetUser) {
+                    showAlert(alertsContainer, isAr ? 'المستخدم غير موجود.' : 'User not found.', 'error');
+                    return;
+                }
+
+                if (targetUser.isProtected) {
+                    showAlert(alertsContainer, isAr ? 'لا يمكن حذف الحسابات المحمية.' : 'Protected accounts cannot be deleted.', 'error');
+                    return;
+                }
+                
+                if (String(targetUser.username || '').toLowerCase() === loggedInUsername) {
+                    showAlert(alertsContainer, isAr ? 'لا يمكنك حذف حسابك الحالي.' : 'You cannot delete your current account.', 'error');
+                    return;
+                }
+                
+                if (targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
+                    showAlert(alertsContainer, isAr ? 'فقط الأدمن الرئيسي يمكنه حذف المشرفين.' : 'Only the primary admin can delete supervisors.', 'error');
+                    return;
+                }
+
+                showConfirmModal({
+                    title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
+                    message: isAr 
+                        ? `هل أنت متأكد من حذف حساب "${targetUser.username}"؟` 
+                        : `Are you sure you want to delete "${targetUser.username}"?`,
+                    confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
+                    cancelText: isAr ? 'إلغاء' : 'Cancel',
+                    type: 'danger',
+                    requirePassword: true,
+                    onConfirm: async (password) => {
+                        try {
+                            const result = await userService.deleteUser(userId, targetUser);
+                            
+                            if (result) {
+                                logService.addLog(
+                                    loggedInUser?.username || 'admin', 
+                                    loggedInUser?.role || 'Supervisor', 
+                                    'Delete User', 
+                                    targetUser.username
+                                );
+                                
+                                showAlert(alertsContainer, 
+                                    isAr ? `تم حذف المستخدم "${targetUser.username}" بنجاح.` : `User "${targetUser.username}" deleted successfully.`, 
+                                    'success'
+                                );
+                                
+                                await loadUsers();
+                            }
+                        } catch (err) {
+                            console.error('Delete error:', err);
+                            showAlert(alertsContainer, 
+                                err.message || (isAr ? 'فشل حذف المستخدم. حاول مرة أخرى.' : 'Failed to delete user. Please try again.'), 
+                                'error'
+                            );
+                            throw err;
+                        }
+                    }
+                });
+            });
         });
-    });
-});
     }
 
     function showCreateUserPage() {
@@ -619,8 +601,7 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
             });
         });
 
-        // Show the role the chosen department will actually produce, so the
-        // admin sees "DESIGN Manager" before saving rather than after.
+        // Show the role the chosen department will actually produce
         const deptSelect = document.getElementById('addDepartment');
         const rolePreview = document.getElementById('roleManagerPreview');
         if (deptSelect && rolePreview) {
@@ -634,7 +615,7 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
             syncPreview();
         }
 
-        // Trigger profile picture upload click & preview
+        // Profile picture upload
         const uploadArea = document.getElementById('profilePicUploadArea');
         const fileInput = document.getElementById('addProfilePic');
         const previewImg = document.getElementById('profilePicImg');
@@ -688,7 +669,7 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
             }
         }
 
-        // Real-time Input Sanitization & Formatting
+        // Real-time Input Sanitization
         const addPhoneInput = document.getElementById('addPhone');
         if (addPhoneInput) {
             addPhoneInput.addEventListener('input', (e) => {
@@ -721,14 +702,14 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
                     return;
                 }
 
-                // 2. Strict Email Validation (with TLD extension)
+                // 2. Strict Email Validation
                 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
                 if (!email || !emailRegex.test(email)) {
                     showAlert(alertBox, isAr ? 'يرجى إدخال بريد إلكتروني صحيح يحتوي على نطاق كامل (مثال: name@domain.com).' : 'Please enter a valid email address with a complete domain (e.g. name@domain.com).', 'error');
                     return;
                 }
 
-                // 3. Egyptian Phone Validation (11 digits, starting with 01)
+                // 3. Egyptian Phone Validation
                 const phoneRegex = /^01[0-9]{9}$/;
                 if (phone && !phoneRegex.test(phone)) {
                     showAlert(alertBox, isAr ? 'يرجى إدخال رقم هاتف مصري صحيح مكون من 11 رقم يبدأ بـ 01 (مثال: 01012345678).' : 'Please enter a valid 11-digit Egyptian phone number starting with 01 (e.g., 01012345678).', 'error');
@@ -751,8 +732,6 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
 
                 try {
                     const username = email.split('@')[0];
-
-                    // department is already the real Folders.Id.
                     const deptId = parseInt(department, 10);
                     const dept = departments.find(d => String(d.id) === String(department));
 
@@ -779,8 +758,7 @@ document.querySelectorAll('.delete-user-btn').forEach(btn => {
         }
     }
 
-    // Departments and roles must be in hand before anything renders: both the
-    // list filter and the create form are built from them.
+    // Load departments and roles first
     await loadOrgData();
     initUsersList();
 });
