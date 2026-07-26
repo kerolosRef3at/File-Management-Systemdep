@@ -761,6 +761,12 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+@keyframes chipPop {
+    0% { transform: scale(0.92); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
 .chip-btn {
     background: var(--white);
     border: 1px solid var(--border-color);
@@ -770,21 +776,45 @@
     font-size: 0.8rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), 
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+                background-color 0.2s ease, 
+                border-color 0.2s ease,
+                color 0.2s ease;
+    display: inline-flex;
     align-items: center;
     gap: 6px;
+    user-select: none;
+    outline: none;
 }
 
 .chip-btn:hover {
-    border-color: var(--primary-dark);
-    color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    filter: brightness(0.97);
+}
+
+.chip-btn:active {
+    transform: scale(0.92) translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    filter: brightness(0.92);
 }
 
 .chip-btn.active {
     background: var(--primary-dark);
     color: var(--white);
     border-color: var(--primary-dark);
+    animation: chipPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+.chip-btn.active:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.3);
+}
+
+.chip-btn.active:active {
+    transform: scale(0.94);
 }
 
 /* نقاط الألوان للعمليات */

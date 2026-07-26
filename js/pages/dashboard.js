@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let pollingInterval = null;
 
     const lang = getCurrentLang();
+    const isAr = lang === 'ar';
     const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
     // --- Load (or reload) the whole dashboard for the current window --------

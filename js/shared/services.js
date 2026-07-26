@@ -567,7 +567,6 @@ export function showProgressWidget(items = [], type = 'download') {
         const titleText = isDone 
             ? (isAr ? `تم اكتمال تنزيل ${completed} ملف(ات)` : `${completed} downloads complete`)
             : (isAr ? `جاري تنزيل ${total - completed} ملف(ات)...` : `Downloading ${total - completed} file(s)...`);
-        const isCollapsed = widget.dataset.collapsed === 'true';
         const isMaximized = widget.dataset.maximized === 'true';
 
         let filesHtml = '';

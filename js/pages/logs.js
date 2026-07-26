@@ -82,25 +82,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="logs-filters-container">
             <div class="chips-wrapper" id="actionChips" style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border-color);">
                 <button class="chip-btn active" data-action="all">${t('logs_all')}</button>
-                <button class="chip-btn" data-action="Login"><span class="action-dot dot-blue"></span> ${t('logs_login')}</button>
-                <button class="chip-btn" data-action="Logout"><span class="action-dot dot-blue"></span> ${t('logs_logout')}</button>
-                <button class="chip-btn" data-action="Add File"><span class="action-dot dot-green"></span> ${t('logs_add_file')}</button>
-                <button class="chip-btn" data-action="Delete File"><span class="action-dot dot-red"></span> ${t('logs_delete_file')}</button>
-                <button class="chip-btn" data-action="Create Folder"><span class="action-dot dot-green"></span> ${t('logs_create_folder')}</button>
-                <button class="chip-btn" data-action="CreateCourse"><span class="action-dot dot-green"></span> ${t('logs_create_course')}</button>
-                <button class="chip-btn" data-action="UpdateCourse"><span class="action-dot dot-blue"></span> ${t('logs_update_course')}</button>
-                <button class="chip-btn" data-action="DeleteCourse"><span class="action-dot dot-red"></span> ${t('logs_delete_course')}</button>
-                <button class="chip-btn" data-action="SaveDraft"><span class="action-dot dot-orange"></span> ${t('logs_save_draft')}</button>
-                <button class="chip-btn" data-action="Upload Video"><span class="action-dot dot-purple"></span> ${t('logs_upload_video')}</button>
-                <button class="chip-btn" data-action="Download"><span class="action-dot dot-cyan"></span> ${t('logs_download')}</button>
-                <button class="chip-btn" data-action="Download Course"><span class="action-dot dot-purple"></span> ${t('logs_download_course')}</button>
-                <button class="chip-btn" data-action="Add User"><span class="action-dot dot-cyan"></span> ${t('logs_add_user')}</button>
-                <button class="chip-btn" data-action="Delete User"><span class="action-dot dot-red"></span> ${t('logs_delete_user')}</button>
-                <button class="chip-btn" data-action="Change Password"><span class="action-dot dot-orange"></span> ${t('logs_change_pw')}</button>
-                <button class="chip-btn" data-action="Update Profile"><span class="action-dot dot-blue"></span> ${t('logs_update_profile')}</button>
-                <button class="chip-btn" data-action="Create Course"><span class="action-dot dot-purple"></span> ${t('logs_create_course')}</button>
-                <button class="chip-btn" data-action="Update Course"><span class="action-dot dot-orange"></span> ${t('logs_update_course')}</button>
-                <button class="chip-btn" data-action="Delete Course"><span class="action-dot dot-red"></span> ${t('logs_delete_course')}</button>
+                <button class="chip-btn" data-action="Login" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;"><span class="action-dot" style="background-color:#1d4ed8;"></span> ${t('logs_login')}</button>
+                <button class="chip-btn" data-action="Logout" style="background:#f1f5f9; color:#475569; border:1px solid #cbd5e1;"><span class="action-dot" style="background-color:#475569;"></span> ${t('logs_logout')}</button>
+                <button class="chip-btn" data-action="Add File" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;"><span class="action-dot" style="background-color:#047857;"></span> ${t('logs_add_file')}</button>
+                <button class="chip-btn" data-action="Delete File" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;"><span class="action-dot" style="background-color:#b91c1c;"></span> ${t('logs_delete_file')}</button>
+                <button class="chip-btn" data-action="Create Folder" style="background:#f0fdfa; color:#0f766e; border:1px solid #99f6e4;"><span class="action-dot" style="background-color:#0f766e;"></span> ${t('logs_create_folder')}</button>
+                <button class="chip-btn" data-action="Create Course" style="background:#f7fee7; color:#4d7c0f; border:1px solid #d9f99d;"><span class="action-dot" style="background-color:#4d7c0f;"></span> ${t('logs_create_course')}</button>
+                <button class="chip-btn" data-action="Update Course" style="background:#f0f9ff; color:#0369a1; border:1px solid #bae6fd;"><span class="action-dot" style="background-color:#0369a1;"></span> ${t('logs_update_course')}</button>
+                <button class="chip-btn" data-action="Delete Course" style="background:#fff1f2; color:#991b1b; border:1px solid #fecdd3;"><span class="action-dot" style="background-color:#991b1b;"></span> ${t('logs_delete_course')}</button>
+                <button class="chip-btn" data-action="SaveDraft" style="background:#fffbeb; color:#b45309; border:1px solid #fde68a;"><span class="action-dot" style="background-color:#b45309;"></span> ${t('logs_save_draft')}</button>
+                <button class="chip-btn" data-action="Upload Video" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe;"><span class="action-dot" style="background-color:#6d28d9;"></span> ${t('logs_upload_video')}</button>
+                <button class="chip-btn" data-action="Download" style="background:#ecfeff; color:#0e7490; border:1px solid #a5f3fc;"><span class="action-dot" style="background-color:#0e7490;"></span> ${t('logs_download')}</button>
+                <button class="chip-btn" data-action="Download Course" style="background:#fdf4ff; color:#a21caf; border:1px solid #f5d0fe;"><span class="action-dot" style="background-color:#a21caf;"></span> ${t('logs_download_course')}</button>
+                <button class="chip-btn" data-action="Add User" style="background:#e6fffa; color:#0d9488; border:1px solid #99f6e4;"><span class="action-dot" style="background-color:#0d9488;"></span> ${t('logs_add_user')}</button>
+                <button class="chip-btn" data-action="Delete User" style="background:#fff7ed; color:#c2410c; border:1px solid #ffedd5;"><span class="action-dot" style="background-color:#c2410c;"></span> ${t('logs_delete_user')}</button>
+                <button class="chip-btn" data-action="Change Password" style="background:#fefce8; color:#a16207; border:1px solid #fef08a;"><span class="action-dot" style="background-color:#a16207;"></span> ${t('logs_change_pw')}</button>
+                <button class="chip-btn" data-action="Update Profile" style="background:#fdf2f8; color:#be185d; border:1px solid #fbcfe8;"><span class="action-dot" style="background-color:#be185d;"></span> ${t('logs_update_profile')}</button>
             </div>
 
             <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
@@ -211,19 +208,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         return 'role-me';
     }
 
-    function getActionDotColor(action) {
-        if (!action) return 'dot-blue';
-        const lowerAction = String(action).toLowerCase().replace(/\s+/g, '');
-        if (lowerAction.includes('login') || lowerAction.includes('logout') || lowerAction.includes('updateprofile')) return 'dot-blue';
-        if (lowerAction.includes('addfile') || lowerAction.includes('createcourse') || lowerAction.includes('createfolder')) return 'dot-green';
-        if (lowerAction.includes('updatecourse') || lowerAction.includes('editcourse')) return 'dot-orange';
-        if (lowerAction.includes('delete') || lowerAction.includes('remove')) return 'dot-red';
-        if (lowerAction.includes('password')) return 'dot-orange';
-if (lowerAction.includes('downloadcourse')) return 'dot-purple';
-if (lowerAction.includes('download')) return 'dot-cyan';
-if (lowerAction.includes('upload') || lowerAction.includes('course')) return 'dot-purple';
-        if (lowerAction.includes('add') || lowerAction.includes('createuser')) return 'dot-cyan';
-        return 'dot-blue';
+    const ACTION_PALETTE = {
+        'login':            { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' }, // Blue
+        'logout':           { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }, // Slate Gray
+        'add file':         { bg: '#ecfdf5', text: '#047857', border: '#a7f3d0' }, // Mint Green
+        'delete file':      { bg: '#fef2f2', text: '#b91c1c', border: '#fecaca' }, // Light Red
+        'create folder':    { bg: '#f0fdfa', text: '#0f766e', border: '#99f6e4' }, // Forest Teal
+        'create course':    { bg: '#f7fee7', text: '#4d7c0f', border: '#d9f99d' }, // Lime Green
+        'createcourse':     { bg: '#f7fee7', text: '#4d7c0f', border: '#d9f99d' },
+        'update course':    { bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' }, // Sky Blue
+        'updatecourse':     { bg: '#f0f9ff', text: '#0369a1', border: '#bae6fd' },
+        'delete course':    { bg: '#fff1f2', text: '#991b1b', border: '#fecdd3' }, // Deep Red
+        'deletecourse':     { bg: '#fff1f2', text: '#991b1b', border: '#fecdd3' },
+        'save draft':       { bg: '#fffbeb', text: '#b45309', border: '#fde68a' }, // Amber Orange
+        'savedraft':        { bg: '#fffbeb', text: '#b45309', border: '#fde68a' },
+        'upload video':     { bg: '#f5f3ff', text: '#6d28d9', border: '#ddd6fe' }, // Purple
+        'download':         { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc' }, // Cyan
+        'download course':  { bg: '#fdf4ff', text: '#a21caf', border: '#f5d0fe' }, // Fuchsia
+        'add user':         { bg: '#e6fffa', text: '#0d9488', border: '#99f6e4' }, // Dark Teal
+        'delete user':      { bg: '#fff7ed', text: '#c2410c', border: '#ffedd5' }, // Coral Orange
+        'change password':  { bg: '#fefce8', text: '#a16207', border: '#fef08a' }, // Gold Yellow
+        'update profile':   { bg: '#fdf2f8', text: '#be185d', border: '#fbcfe8' }  // Pink
+    };
+
+    function getActionColor(action) {
+        if (!action) return { bg: '#eff6ff', text: '#1d4ed8', border: '#bfdbfe' };
+        const key = String(action).trim().toLowerCase();
+        if (ACTION_PALETTE[key]) return ACTION_PALETTE[key];
+        
+        let hash = 0;
+        for (let i = 0; i < key.length; i++) {
+            hash = key.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash) % 360;
+        return {
+            bg: `hsl(${hue}, 85%, 96%)`,
+            text: `hsl(${hue}, 75%, 35%)`,
+            border: `hsl(${hue}, 70%, 85%)`
+        };
     }
 
     function renderLogs(logsToRender) {
@@ -255,6 +277,8 @@ if (lowerAction.includes('upload') || lowerAction.includes('course')) return 'do
             const formattedTime = escapeHtml(local)
                 .replace(' ', '<br><span style="color:var(--text-gray); font-weight:normal; font-size:0.8rem;">') + '</span>';
 
+            const actColor = getActionColor(log.action);
+
             tr.innerHTML = `
                 <td style="padding: 15px 20px;">
                     <div style="display:flex; align-items:center; gap:12px; overflow:hidden;">
@@ -275,11 +299,12 @@ flex-shrink:0; width:30px; height:30px; border-radius:50%; background-color:var(
     </span>
 </td>
 
-<td style="font-weight:600; color:var(--primary-dark); word-break:break-word; overflow-wrap:anywhere;">
-    <span class="action-dot ${getActionDotColor(log.action)}"
-        style="width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:8px; flex-shrink:0;">
+<td>
+    <span class="action-badge"
+        style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-flex; align-items:center; gap:6px; background-color:${actColor.bg}; color:${actColor.text}; border:1px solid ${actColor.border};">
+        <span style="width:6px; height:6px; border-radius:50%; background-color:${actColor.text}; display:inline-block; flex-shrink:0;"></span>
+        ${escapeHtml(log.action)}
     </span>
-    ${escapeHtml(log.action)}
 </td>
 
 <td style="color:var(--text-gray); word-break:break-word; overflow-wrap:anywhere;">
@@ -333,16 +358,38 @@ flex-shrink:0; width:30px; height:30px; border-radius:50%; background-color:var(
     // ============================================
 
     // Action chips
-    document.querySelectorAll('.chip-btn').forEach(chip => {
+    document.querySelectorAll('#actionChips .chip-btn').forEach(chip => {
         chip.addEventListener('click', (e) => {
-            // Skip if it's a range button
-            if (chip.classList.contains('range-btn')) return;
-            
-            document.querySelectorAll('.chip-btn').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('#actionChips .chip-btn').forEach(c => {
+                c.classList.remove('active');
+                const act = c.getAttribute('data-action');
+                if (act === 'all') {
+                    c.style.backgroundColor = '';
+                    c.style.color = '';
+                    c.style.borderColor = '';
+                } else {
+                    const col = getActionColor(act);
+                    c.style.backgroundColor = col.bg;
+                    c.style.color = col.text;
+                    c.style.borderColor = col.border;
+                }
+            });
+
             const targetChip = e.currentTarget;
             targetChip.classList.add('active');
+            const targetAction = targetChip.getAttribute('data-action');
+            if (targetAction === 'all') {
+                targetChip.style.backgroundColor = 'var(--primary-dark)';
+                targetChip.style.color = 'var(--white)';
+                targetChip.style.borderColor = 'var(--primary-dark)';
+            } else {
+                const col = getActionColor(targetAction);
+                targetChip.style.backgroundColor = col.text;
+                targetChip.style.color = '#ffffff';
+                targetChip.style.borderColor = col.text;
+            }
 
-            currentActionFilter = targetChip.getAttribute('data-action');
+            currentActionFilter = targetAction;
             applyFilters();
         });
     });
