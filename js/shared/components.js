@@ -1,4 +1,5 @@
 import { authService } from './services.js';
+import { escapeHTML } from './utils.js';
 
 /**
  * Generates and inserts skeleton loaders into the DOM.
@@ -121,6 +122,8 @@ export function showAlert(container, message, type = 'success') {
     el.style.color = color;
     el.style.border = border;
 
+    const safeMessage = escapeHTML(message);
+
     el.innerHTML = `
         <div style="display:flex; align-items:flex-start; gap:12px; flex:1; text-align: ${isArabic ? 'right' : 'left'};">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px;">
@@ -128,7 +131,7 @@ export function showAlert(container, message, type = 'success') {
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <div style="flex:1; line-height: 1.6;">${message}</div>
+            <div style="flex:1; line-height: 1.6;">${safeMessage}</div>
         </div>
         <button type="button" class="alert-close-btn" style="background:none; border:none; color:inherit; font-size:1.4rem; cursor:pointer; font-weight:bold; line-height:1; padding: 0 6px; flex-shrink:0; margin-${isArabic ? 'right' : 'left'}: 8px;">&times;</button>
     `;
