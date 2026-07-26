@@ -65,10 +65,8 @@ export async function fetchAPI(endpoint, options = {}) {
             if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
                 throw new Error('Invalid credentials');
             }
-        }
 
-    throw new Error('Unauthorized (401)');
-
+            throw new Error('Unauthorized (401)');
         }
 
         // معالجة 403 Forbidden

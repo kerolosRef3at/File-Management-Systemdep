@@ -1,0 +1,347 @@
+خطة فحص أمني شاملة - AITU File Management System
+Complete Security Assessment and Hardening Plan
+تنبيه حرج: هذه الخطة مصممة ليتم تنفيذها بالكامل من A to Z. لا تتوقف حتى تنتهي من كل المراحل.
+
+معلومات المشروع
+البند	التفاصيل
+اسم المشروع	AITU File Management System
+النوع	Frontend-Only SPA مع Backend API خارجي
+Backend API	https://filesystemapi.runasp.net (ASP.NET)
+المسار	c:\Users\Eng Fares\Documents\GitHub\File-Management-Systemdep
+اللغات	HTML, CSS, Vanilla JavaScript (ES Modules)
+التوثيق	JWT Bearer Tokens مخزنة في localStorage
+الأدوار	Supervisor, IT Manager, EL Manager, Mechanical Manager, Public User
+خريطة الملفات المطلوب فحصها
+JavaScript Core (الملفات الأساسية - افحصها أولاً)
+js/shared/api.js - HTTP client, token handling, fetchAPI
+js/shared/auth.js - protectPage, hasRole, getCurrentUser, logout
+js/shared/services.js - authService, fileService, folderService, userService (1921 سطر)
+js/shared/mockData.js - Mock users with hardcoded passwords, hydrateDepartments
+js/shared/components.js - showConfirmModal, showAlert, shared UI
+js/shared/layout.js - renderLayout, sidebar, innerHTML injection
+js/shared/jssharedi18n.js - translations, getCurrentLang
+js/shared/assets.js - asset paths
+JavaScript Pages (صفحات التطبيق)
+js/pages/login.js - Login form, credential handling
+js/pages/forgot-password.js - Password recovery
+js/pages/otp.js - OTP verification
+js/pages/reset-password.js - Password reset + first login flow
+js/pages/dashboard.js - Admin dashboard, charts
+js/pages/repository.js - File repository, upload/download/delete (2058 سطر)
+js/pages/courses.js - Courses CRUD
+js/pages/course-details.js - Course details + download bundle
+js/pages/create-course.js - Course creation form
+js/pages/users.js - User management (Supervisor only)
+js/pages/logs.js - Audit logs viewer
+js/pages/profile.js - Profile settings + password change
+js/pages/upload-resources.js - File upload with progress
+HTML Pages
+index.html, login.html, forgot-password.html, otp.html, reset-password.html, dashboard.html, repository.html, courses.html, course-details.html, create-course.html, upload-resources.html, users.html, logs.html, profile.html, 403.html
+
+CSS Files
+css/style.css, css/components.css, css/repository.css, css/courses.css, css/dashboard.css, css/upload-resources.css, css/rtl.css
+
+المرحلة 1: كشف الثغرات الحرجة (CRITICAL VULNERABILITIES)
+1.1 Hardcoded Credentials (CWE-798) — CRITICAL
+الملف: js/shared/mockData.js سطر 9
+
+javascript
+
+// الكود المصاب:
+{ id: 6, username: "aitu.localadmin", email: "admin@aitu.local", phone: "01011223344", role: "Supervisor", joined: "2026-06-27", isProtected: true, password: "Admin123", name: "aitu.localadmin" },
+المشكلة: كلمة سر Admin123 مكتوبة بشكل واضح في الكود المنشور. أي شخص يفتح DevTools يقدر يشوفها.
+
+المطلوب:
+
+افتح js/shared/mockData.js
+احذف حقل password: "Admin123" من السطر 9
+تأكد أنه لا يوجد أي password field في أي عنصر من mockUsers
+1.2 Fallback Authentication Bypass (CWE-287) — CRITICAL
+الملف: js/shared/services.js سطور 80-131
+
+javascript
+
+// الكود المصاب:
+// Seamless fallback authentication when API endpoint is unavailable
+const allKnownUsers = [
+    ...(mock.mockUsers || []),
+    ...JSON.parse(localStorage.getItem('aitu_created_users') || '[]')
+];
+const matchedUser = allKnownUsers.find(u =>
+    String(u.username || '').toLowerCase() === String(username || '').toLowerCase()
+);
+// ... يقبل أي باسورد ويعمل login!
+المشكلة: لو الـ API مش متاح، النظام بيقبل أي يوزرنيم وأي باسورد! وبيعمل JWT مزيف ويخلي اليوزر يدخل كـ Supervisor.
+
+المطلوب:
+
+افتح js/shared/services.js
+في دالة login() (سطر 57-131)، عدّل الـ fallback بحيث:
+لو الـ API فشل، يظهر رسالة خطأ بدل ما يعمل login وهمي
+احذف كل الكود من سطر 80 إلى 130 واستبدله بـ:
+javascript
+
+// If API is unreachable, deny login
+throw new Error('Server is currently unavailable. Please try again later.');
+1.3 Password Verification Always Returns True (CWE-287) — CRITICAL
+الملف: js/shared/services.js سطر 149
+
+javascript
+
+// الكود المصاب:
+return String(password).trim().length >= 3;  // أي باسورد 3 حروف = صحيح!
+المشكلة: دالة verifyPassword() لو الـ API فشل بترجع true لأي باسورد طوله 3 حروف أو أكثر. ده معناه إن عمليات الحذف المحمية بالباسورد مش محمية فعلا.
+
+المطلوب: في دالة verifyPassword() (سطر 133-150)، غيّر الـ fallback:
+
+javascript
+
+async verifyPassword(password) {
+    if (!password || String(password).trim() === '') return false;
+    const currentUser = this.getCurrentUser();
+    const username = currentUser?.username || localStorage.getItem('aitu_username') || '';
+    if (!username) return false;
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        const res = await fetchAPI('/api/Auth/verify-password', {
+            method: 'POST',
+            body: JSON.stringify({ username, password }),
+            signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (res && (res.success || res.valid || res.status === 200)) return true;
+        return false;
+    } catch (e) {
+        // If API is unavailable, deny verification for security
+        console.error('Password verification failed - API unreachable');
+        return false;
+    }
+},
+1.4 JWT Token in localStorage (CWE-922) — HIGH
+الملف: js/shared/api.js سطر 10 + js/shared/services.js سطور 70-73
+
+javascript
+
+// مواقع متعددة:
+localStorage.setItem('aitu_token', res.token);
+const token = localStorage.getItem('aitu_token');
+المشكلة: تخزين JWT في localStorage يعرضه لهجمات XSS. أي سكربت على الصفحة يقدر يسرق التوكن.
+
+المطلوب:
+
+أنشئ ملف جديد js/shared/tokenStore.js يحتوي على دوال مركزية لإدارة التوكن مع طبقة obfuscation بسيطة
+عدّل js/shared/api.js ليستخدم getToken() من tokenStore.js بدل localStorage.getItem('aitu_token') المباشر
+عدّل js/shared/services.js ليستخدم setToken() و removeToken() بدل localStorage المباشر
+ملاحظة: هذا التعديل اختياري لأنه يتطلب تعديل ملفات كثيرة. الأولوية للثغرات الأعلى أولا.
+
+المرحلة 2: ثغرات XSS (Cross-Site Scripting)
+2.1 DOM-Based XSS via innerHTML (CWE-79) — HIGH
+الملفات المصابة (كلها تستخدم innerHTML مع بيانات من API بدون تنظيف):
+
+الملف	عدد استخدامات innerHTML التقريبي
+js/pages/repository.js	50+
+js/pages/courses.js	30+
+js/pages/dashboard.js	25+
+js/pages/users.js	20+
+js/pages/create-course.js	20+
+js/shared/layout.js	15+
+js/shared/services.js	10+
+js/shared/components.js	10+
+المطلوب:
+
+أنشئ دالة escapeHTML في js/shared/utils.js:
+javascript
+
+export function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+ابحث في كل ملفات JS عن أي innerHTML أو template literal يحتوي على بيانات ديناميكية مثل file.name, user.username, dept.name, course.title وغيرها
+لف كل قيمة ديناميكية بـ escapeHTML()
+الأماكن الحرجة في كل ملف:
+
+js/pages/repository.js: كل مكان فيه file.name أو folder.name, renderFileCard(), renderFileRow(), renderDeptCard(), breadcrumb
+js/pages/courses.js: course.title, course.description, course.author.name
+js/pages/users.js: user.username, user.email, user.phone, user.role
+js/pages/dashboard.js: doc.name, event.user, event.action, event.target
+js/shared/layout.js: user.name, user.email, user.role في sidebar و header
+js/shared/components.js: showAlert() و showConfirmModal()
+2.2 XSS via onclick Attribute Injection (CWE-79) — HIGH
+الملف: js/shared/auth.js سطر 79
+
+javascript
+
+// الكود المصاب:
+repoNavRight.innerHTML = `
+    <button class="repo-login-btn" onclick="window.location.href='${portalUrl}'"...>
+`;
+المطلوب: غيّر الكود ليستخدم addEventListener بدل onclick inline.
+
+المرحلة 3: أمان الملفات (File Security)
+3.1 No Client-Side File Type Validation (CWE-434) — HIGH
+الملف: js/pages/upload-resources.js + js/pages/repository.js
+
+المطلوب:
+
+أضف validation للأنواع المسموحة قبل إرسال الملف للـ API
+
+أنشئ دالة validateFile(file) تتحقق من:
+
+الامتدادات المسموحة (.pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .dwg, .jpg, .png, .mp4, .zip, etc.)
+الامتدادات المحظورة (.exe, .bat, .cmd, .sh, .ps1, .vbs, .js, .msi, .dll, .scr, .php, .asp, .aspx, .jsp)
+Double extension attacks (مثل file.pdf.exe)
+حجم الملف الأقصى (500MB)
+رفض الملفات الفارغة
+استخدم validateFile() قبل كل عملية رفع
+
+3.2 Path Traversal in File Names (CWE-22) — MEDIUM
+المطلوب: أضف دالة sanitizeFileName تزيل أي path traversal مثل .., /, \ من أسماء الملفات.
+
+المرحلة 4: أمان المصادقة والجلسات (Auth and Session Security)
+4.1 No JWT Expiry Validation on Client (CWE-613) — HIGH
+الملف: js/shared/services.js — getCurrentUser()
+
+المشكلة: الكود بيفك الـ JWT ويقرأ البيانات بدون ما يتحقق من صلاحية التوكن (exp claim).
+
+المطلوب: في دالة getCurrentUser() أضف تحقق من exp claim:
+
+javascript
+
+// Check token expiry
+if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+    console.warn('Token expired, clearing session');
+    this.logout();
+    return null;
+}
+4.2 Incomplete Logout (CWE-613) — MEDIUM
+الملف: js/shared/services.js سطور 152-159
+
+المشكلة: الـ logout بيمسح aitu_token و aitu_refresh_token بس، لكن بيسيب بيانات حساسة مثل aitu_role, aitu_username, aitu_must_change_password, aitu_user_email_, aitu_user_phone_
+
+المطلوب: عدّل logout() لتمسح كل مفاتيح localStorage اللي بتبدأ بـ aitu_ وكمان تعمل sessionStorage.clear()
+
+4.3 Role Check Bypass in protectPage (CWE-863) — HIGH
+الملف: js/shared/auth.js سطور 33-61
+
+المشكلة: دالة protectPage() بتتحقق من وجود التوكن وهل اليوزر محتاج يغير باسورد، لكن مش بتتحقق من الأدوار المسموحة allowedRoles! الباراميتر موجود بس مش بيتستخدم.
+
+المطلوب: أضف بعد التحقق من وجود التوكن واليوزر:
+
+javascript
+
+// CHECK ROLE PERMISSIONS
+if (allowedRoles.length > 0 && !hasRole(allowedRoles)) {
+    if (loader) loader.remove();
+    window.location.href = '403.html';
+    return false;
+}
+4.4 No Brute Force Protection on Login (CWE-307) — MEDIUM
+المطلوب: أضف rate limiting على مستوى الـ client في js/pages/login.js:
+
+MAX_ATTEMPTS = 5
+LOCKOUT_DURATION = 5 دقائق
+دالة checkLockout() للتحقق من حالة القفل
+دالة recordFailedAttempt() لتسجيل المحاولات الفاشلة
+دالة clearAttempts() لمسح المحاولات عند النجاح
+المرحلة 5: Security Headers (HTML Pages)
+5.1 Missing Security Meta Tags — MEDIUM
+المطلوب لكل ملفات HTML:
+
+أضف في head كل ملف HTML:
+
+html
+
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://filesystemapi.runasp.net;">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+الملفات: index.html, login.html, forgot-password.html, otp.html, reset-password.html, dashboard.html, repository.html, courses.html, course-details.html, create-course.html, upload-resources.html, users.html, logs.html, profile.html, 403.html
+
+المرحلة 6: Input Validation and Sanitization
+6.1 No Input Sanitization on User Creation (CWE-20) — MEDIUM
+الملف: js/pages/users.js
+
+المطلوب: أضف دوال sanitizeInput(), validateEmail(), validatePhone(), validateUsername() واستخدمهم قبل إنشاء أي مستخدم.
+
+6.2 Folder/Department Name Injection (CWE-79) — MEDIUM
+الملف: js/pages/repository.js
+
+المطلوب: أضف دالة sanitizeFolderName() تزيل الحروف الخطيرة من أسماء المجلدات والأقسام.
+
+المرحلة 7: أمان الشبكة والاتصال (Network Security)
+7.1 Console Logging Sensitive Data (CWE-532) — MEDIUM
+الملف: js/shared/api.js سطور 49, 54
+
+المطلوب:
+
+أنشئ logger مركزي في js/shared/logger.js يتحقق من بيئة التشغيل
+في Production يوقف كل console.log/warn/error
+استبدل كل console.log/warn/error في api.js و services.js بالـ logger
+7.2 No Request Origin Validation — LOW
+المطلوب: أضف headers مخصصة في api.js:
+
+javascript
+
+'X-Requested-With': 'XMLHttpRequest',
+'X-Client-Version': '1.0.0'
+المرحلة 8: أمان صفحة الـ 403
+8.1 403 Page Can Be Bypassed (CWE-863) — MEDIUM
+المطلوب: أضف في 403.html سكربت يمنع الـ back button من الرجوع للصفحة المحمية.
+
+المرحلة 9: التحقق والاختبار
+بعد تنفيذ كل الإصلاحات أعلاه، قم بالآتي:
+
+#	الاختبار	الحالة المتوقعة
+1	افتح DevTools وابحث عن Admin123 في Sources	لا يوجد
+2	أوقف الـ API وحاول تسجيل الدخول	رسالة خطأ - لا يسمح بالدخول
+3	أدخل script tag كاسم ملف	يظهر كنص عادي بدون تنفيذ
+4	أدخل ../../etc/passwd كاسم مجلد	يتم تنظيف الاسم
+5	حاول رفع ملف .exe	يتم رفض الملف
+6	حاول رفع ملف image.jpg.exe	يتم رفض الملف (double extension)
+7	افتح users.html كـ Public User	يتم توجيهك لـ 403.html
+8	تحقق أن الـ logout بيمسح كل بيانات aitu_	localStorage فاضي تماما
+9	اعمل login بباسورد غلط 5 مرات	يتم قفل الحساب 5 دقائق
+10	تحقق من Security Headers في كل صفحة HTML	كل الـ meta tags موجودة
+المرحلة 10: ارفع التعديلات على GitHub
+bash
+
+git add .
+git commit -m "Security Hardening: Fix critical auth bypass, XSS, credential exposure, role checks, file validation, session management, and add security headers"
+git push origin main
+تقرير الأمان النهائي
+Security Score المتوقع
+الحالة	التقييم
+قبل الإصلاحات	25/100 (ثغرات حرجة متعددة)
+بعد الإصلاحات	75-80/100 (آمن للنشر مع Backend محمي)
+ملاحظة مهمة
+هذا المشروع هو Frontend فقط. الأمان الحقيقي يعتمد بشكل كبير على الـ Backend API (filesystemapi.runasp.net). تأكد أن الـ Backend يطبق:
+
+Rate Limiting
+Input Validation
+SQL Injection Prevention (Parameterized Queries)
+File Type Validation on Server
+Proper CORS Configuration
+Password Hashing (BCrypt/Argon2)
+JWT Signature Verification
+Role-based Authorization on every endpoint
+ترتيب الأولويات (Priority Order)
+الأولوية	الثغرة	الملف الرئيسي
+1 CRITICAL	Fallback Auth Bypass	services.js
+2 CRITICAL	Hardcoded Password	mockData.js
+3 CRITICAL	Password Verify Always True	services.js
+4 HIGH	Role Check Missing in protectPage	auth.js
+5 HIGH	XSS via innerHTML (all pages)	كل ملفات JS
+6 HIGH	File Upload Validation	upload-resources.js, repository.js
+7 HIGH	JWT Expiry Check	services.js
+8 MEDIUM	Incomplete Logout	services.js
+9 MEDIUM	Security Headers	كل ملفات HTML
+10 MEDIUM	Console Logging	api.js, services.js
+11 MEDIUM	Brute Force Protection	login.js
+12 MEDIUM	Input Validation Functions	users.js, repository.js
