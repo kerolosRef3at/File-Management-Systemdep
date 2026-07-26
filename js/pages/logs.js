@@ -118,15 +118,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     <table class="data-table" style="width: 100%; min-width: 640px; table-layout: fixed;">
         <thead style="background: #f8fafc;">
             <tr>
-                <th style="padding: 15px 20px; width: 20%;">${t('logs_col_admin')}</th>
-                <th style="width: 14%;">${t('logs_col_role')}</th>
-                <th style="width: 16%;">${t('logs_col_action')}</th>
-                <th style="width: 34%;">${t('logs_col_target')}</th>
-                <th style="width: 16%;">${t('logs_col_datetime')}</th>
+                <th style="padding: 15px 20px; width: 17%;">${t('logs_col_admin')}</th>
+                <th style="width: 12%;">${t('logs_col_role')}</th>
+                <th style="width: 14%;">${t('logs_col_action')}</th>
+                <th style="width: 27%;">${t('logs_col_target')}</th>
+                <th style="width: 15%;">IP Address</th>
+                <th style="width: 15%;">${t('logs_col_datetime')}</th>
                     </tr>
                 </thead>
                 <tbody id="logsTableBody">
-                    <tr><td colspan="5" style="text-align: center; padding: 20px;">${t('loader_text')}</td></tr>
+                    <tr><td colspan="6" style="text-align: center; padding: 20px;">${t('loader_text')}</td></tr>
                 </tbody>
             </table>
         </div>
@@ -144,13 +145,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             const action = String(log.action || log.actionType || log.event || 'System Action');
             const target = String(log.target || log.details || log.description || '-');
             const datetime = String(log.datetime || log.timestamp || log.created_at || log.date || new Date().toISOString().replace('T', ' ').substring(0, 19));
+            const ipAddress = String(log.ipAddress || log.ip || log.ip_address || '-');
             return {
                 id: log.id || index + 1,
                 admin,
                 role,
                 action,
                 target,
-                datetime
+                datetime,
+                ipAddress
             };
         });
     }
@@ -188,7 +191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             if (seq !== loadSeq) return;     // stale failure, ignore
             showAlert(alertsContainer, error.message || 'Failed to fetch system logs.', 'error');
-            logsTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load logs from server.</td></tr>';
+            logsTableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load logs from server.</td></tr>';
         } finally {
             if (seq === loadSeq) {
                 const loader = document.getElementById('global-page-loader');
@@ -205,6 +208,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (r.includes('supervisor')) return 'role-supervisor';
         if (r.includes('it')) return 'role-it';
         if (r.includes('el')) return 'role-el';
+        if (r.includes('public')) return 'role-public';
         return 'role-me';
     }
 
@@ -262,7 +266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const hint = currentRange === 'all'
                 ? message
                 : `${message} <br><span style="font-size:0.85rem;">${t('logs_widen_hint')}</span>`;
-            logsTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px; color:var(--text-gray);">${hint}</td></tr>`;
+            logsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color:var(--text-gray);">${hint}</td></tr>`;
             return;
         }
 
@@ -309,6 +313,10 @@ flex-shrink:0; width:30px; height:30px; border-radius:50%; background-color:var(
 
 <td style="color:var(--text-gray); word-break:break-word; overflow-wrap:anywhere;">
     ${escapeHtml(log.target)}
+</td>
+
+<td style="font-size:0.8rem; color:var(--text-gray); font-family:monospace;">
+    ${escapeHtml(log.ipAddress || '-')}
 </td>
 
 <td style="font-size:0.85rem; font-weight:600; color:var(--primary-dark); line-height:1.2; word-break:break-word;">
@@ -449,12 +457,13 @@ flex-shrink:0; width:30px; height:30px; border-radius:50%; background-color:var(
                 showAlert(alertsContainer, 'No log records available to export.', 'warning');
                 return;
             }
-            const headers = ['Admin', 'Role', 'Action', 'Target', 'Date Time'];
+            const headers = ['Admin', 'Role', 'Action', 'Target', 'IP Address', 'Date Time'];
             const rows = allLogs.map(l => [
                 `"${String(l.admin || '').replace(/"/g, '""')}"`,
                 `"${String(l.role || '').replace(/"/g, '""')}"`,
                 `"${String(l.action || '').replace(/"/g, '""')}"`,
                 `"${String(l.target || '').replace(/"/g, '""')}"`,
+                `"${String(l.ipAddress || '').replace(/"/g, '""')}"`,
                 `"${String(l.datetime || '').replace(/"/g, '""')}"`
             ]);
             const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');

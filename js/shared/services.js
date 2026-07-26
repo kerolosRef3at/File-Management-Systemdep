@@ -1608,6 +1608,40 @@ export const logService = {
 };
 
 // ==========================================
+// 5b. Public (Guest) Log Service
+// ==========================================
+// For actions taken WITHOUT a login (e.g. downloading a repository file or
+// course from repository.html as a public visitor). This hits a separate
+// AllowAnonymous endpoint -- the server fills in IP/User-Agent/"Public User"
+// itself from the request, so we only ever send action + target here.
+export const publicLogService = {
+    async logGuestAction(action, target) {
+        try {
+            await fetchAPI('/api/Admin/logs/public', {
+                method: 'POST',
+                skip401Redirect: true,
+                body: JSON.stringify({ action, target: target || '' })
+            });
+        } catch (err) {
+            // Never let logging failures block the actual download/action
+            console.warn('Guest log failed:', err);
+        }
+    }
+};
+
+// Convenience wrapper: call this from any download/view handler on a
+// public-facing page (repository.html, course pages, etc.) instead of
+// branching on getCurrentUser() at every call site yourself.
+export async function logAction(action, target) {
+    const user = authService.getCurrentUser();
+    if (user) {
+        await logService.addLog(user.username, user.role, action, target);
+    } else {
+        await publicLogService.logGuestAction(action, target);
+    }
+}
+
+// ==========================================
 // 6. User Profile Settings Service
 // ==========================================
 export const profileService = {
