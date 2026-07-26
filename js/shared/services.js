@@ -1,5 +1,6 @@
 // js/shared/services.js
 import { fetchAPI, BASE_URL } from './api.js';
+import { escapeHTML } from './utils.js';
 import * as mock from './mockData.js';
 
 // Toggle to force mock data or let it attempt real API first
@@ -579,11 +580,12 @@ export function showProgressWidget(items = [], type = 'download') {
                             ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
                             : `<div style="width:14px; height:14px; border:2px solid #3b82f6; border-top-color:transparent; border-radius:50%; animation:widgetSpin 0.8s linear infinite;"></div>`;
 
+                        const safeFileName = escapeHTML(f.name);
                         return `
                             <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; font-size:0.83rem;">
                                 <div style="display:flex; align-items:center; gap:8px; overflow:hidden; flex:1;">
                                     ${icon}
-                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#0f172a; font-weight:600;" title="${f.name}">${f.name}</span>
+                                    <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#0f172a; font-weight:600;" title="${safeFileName}">${safeFileName}</span>
                                 </div>
                                 <span style="font-size:0.78rem; color:${isFileDone ? '#22c55e' : '#64748b'}; font-weight:600; flex-shrink:0;">${isFileDone ? '100%' : (f.progress || 0) + '%'}</span>
                             </div>

@@ -47,21 +47,25 @@ export async function fetchAPI(endpoint, options = {}) {
 
         logger.log(`📡 Response status: ${response.status} ${response.statusText}`);
 
-// Handle 401 Unauthorized errors gracefully
-if (response.status === 401) {
-    if (options.forceLogoutOn401) {
-        localStorage.removeItem('aitu_token');
-        localStorage.removeItem('aitu_refresh_token');
-        localStorage.removeItem('aitu_role');
-        localStorage.removeItem('aitu_username');
+        // Handle 401 Unauthorized errors gracefully
+        if (response.status === 401) {
+            if (!endpoint.includes('/api/Auth/login')) {
+                localStorage.removeItem('aitu_token');
+                localStorage.removeItem('aitu_refresh_token');
+                localStorage.removeItem('aitu_role');
+                localStorage.removeItem('aitu_username');
+                sessionStorage.clear();
 
-        window.location.href = 'login.html';
-        throw new Error('Session expired. Please login again.');
-    }
+                if (options.forceLogoutOn401 || !options.skip401Redirect) {
+                    window.location.href = 'login.html';
+                    throw new Error('Session expired. Please login again.');
+                }
+            }
 
-    if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
-        throw new Error('Invalid credentials');
-    }
+            if (options.skip401Redirect || endpoint.includes('/api/Auth/login')) {
+                throw new Error('Invalid credentials');
+            }
+        }
 
     throw new Error('Unauthorized (401)');
 
