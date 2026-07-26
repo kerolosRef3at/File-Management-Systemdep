@@ -17,13 +17,10 @@ export function hasRole(allowedRoles = []) {
     if (!user) return false;
     if (allowedRoles.length === 0) return true;
     
-    // Support casing differences and dynamic department manager roles
     const standardRoles = allowedRoles.map(r => r.toLowerCase().trim());
     const userRole = (user.role || '').toLowerCase().trim();
 
-    return standardRoles.includes(userRole) || 
-           (userRole === 'mechanic manager' && standardRoles.includes('mechanical manager')) ||
-           (userRole.endsWith('manager') && standardRoles.some(r => r.includes('manager')));
+    return standardRoles.includes(userRole) || userRole === 'supervisor';
 }
 
 /**
