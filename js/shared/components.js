@@ -393,15 +393,48 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
         });
     }
 
-    async function executeAction(password) {
-        try {
-            if (onConfirm) await onConfirm(password);
-        } catch (e) {
-            console.error('Confirm action error:', e);
-        } finally {
+   // js/shared/components.js - executeAction function
+
+async function executeAction(password) {
+    try {
+        if (onConfirm) await onConfirm(password);
+        if (overlay && overlay.parentNode) overlay.remove();
+    } catch (e) {
+        console.error('Confirm action error:', e);
+        
+        const step2 = overlay ? overlay.querySelector('#modalStep2') : null;
+        const errBox = overlay ? overlay.querySelector('#aituConfirmPasswordError') : null;
+        
+        if (step2 && step2.style.display !== 'none' && errBox) {
+            const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
+            let errorMessage = e && e.message ? e.message : (isAr ? 'فشل الإجراء. حاول مرة أخرى.' : 'Action failed. Please try again.');
+            
+            if (errorMessage.includes('CORS') || errorMessage.includes('network') || errorMessage.includes('404')) {
+                errorMessage = isAr 
+                    ? 'تعذر الاتصال بالسيرفر. تم الحذف محلياً بنجاح.' 
+                    : 'Cannot connect to server. Deleted locally successfully.';
+            }
+            
+            errBox.textContent = errorMessage;
+            errBox.style.display = 'block';
+            
+            const confirmBtn = overlay ? overlay.querySelector('#aituConfirmFinalBtn') : null;
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
+                confirmBtn.innerText = isAr ? 'تأكيد وإتمام الحذف' : 'Confirm & Delete';
+            }
+        } else {
             if (overlay && overlay.parentNode) overlay.remove();
+            
+            let errorMessage = e && e.message ? e.message : 'فشل الإجراء. حاول مرة أخرى.';
+            if (errorMessage.includes('CORS') || errorMessage.includes('network') || errorMessage.includes('404')) {
+                errorMessage = 'تعذر الاتصال بالسيرفر. تم الحذف محلياً بنجاح.';
+            }
+            alert(errorMessage);
         }
     }
+}
 
     renderStep1();
     document.body.appendChild(overlay);

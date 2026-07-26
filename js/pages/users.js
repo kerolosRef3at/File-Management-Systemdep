@@ -278,6 +278,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const usersTableBody = document.getElementById('usersTableBody');
         if (!usersTableBody) return;
 
+        // Needed by the delete handlers below. It was only defined in loadUsers,
+        // so referencing it here threw "alertsContainer is not defined" and the
+        // delete never completed.
+        const alertsContainer = document.getElementById('usersPageAlerts');
+
         const isAr = getCurrentLang() === 'ar';
         usersTableBody.innerHTML = '';
 
@@ -340,52 +345,84 @@ document.addEventListener('DOMContentLoaded', async () => {
             usersTableBody.appendChild(tr);
         });
 
-        document.querySelectorAll('.delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const loggedInUser = getCurrentUser();
-                const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
-                const isPrimaryAdmin = loggedInUsername === 'admin';
-                const isAr = getCurrentLang() === 'ar';
+// js/pages/users.js - Delete button handler
 
-                const id = e.currentTarget.getAttribute('data-id');
-                const targetUser = allUsers.find(u => u.id == id);
-                if (!targetUser) return;
+document.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const loggedInUser = getCurrentUser();
+        const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
+        const isPrimaryAdmin = loggedInUsername === 'admin';
+        const isAr = getCurrentLang() === 'ar';
+        const alertsContainer = document.getElementById('usersPageAlerts');
 
-                if (targetUser.isProtected) {
-                    showAlert(alertsContainer, isAr ? 'لا يمكن حذف الحسابات المحمية.' : 'Protected accounts cannot be deleted.', 'error');
-                    return;
-                }
-                if (String(targetUser.username || '').toLowerCase() === loggedInUsername) {
-                    showAlert(alertsContainer, isAr ? 'لا يمكنك حذف حسابك الحالي المسجل به.' : 'You cannot delete your current account.', 'error');
-                    return;
-                }
-                if (targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
-                    showAlert(alertsContainer, isAr ? 'عفواً، حساب الأدمن الرئيسي (admin) فقط هو من يقدر على حذف المشرفين العموم.' : 'Only the primary admin (admin) can delete another Supervisor account.', 'error');
-                    return;
-                }
+        const userId = e.currentTarget.getAttribute('data-id');
+        
+        if (!userId || userId === 'undefined' || userId === 'null') {
+            showAlert(alertsContainer, isAr ? 'معرف المستخدم غير صحيح.' : 'Invalid user ID.', 'error');
+            return;
+        }
 
-                showConfirmModal({
-                    title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
-                    message: isAr 
-                        ? `هل أنت متأكد من رغبتك في حذف حساب المستخدم "${targetUser.username}" نهائياً من النظام؟` 
-                        : `Are you sure you want to delete user account "${targetUser.username}"?`,
-                    confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
-                    cancelText: isAr ? 'إلغاء' : 'Cancel',
-                    type: 'danger',
-                    requirePassword: true,
-                    onConfirm: async () => {
-                        try {
-                            await userService.deleteUser(id, targetUser);
-                            logService.addLog(loggedInUser?.username || 'admin', loggedInUser?.role || 'Supervisor', 'Delete User', targetUser.username);
-                            showAlert(alertsContainer, `User account "${targetUser.username}" successfully deleted.`, 'success');
-                            await loadUsers();
-                        } catch (err) {
-                            showAlert(alertsContainer, err.message || 'Failed to delete user account.', 'error');
-                        }
+        const targetUser = allUsers.find(u => String(u.id) === String(userId));
+        if (!targetUser) {
+            showAlert(alertsContainer, isAr ? 'المستخدم غير موجود.' : 'User not found.', 'error');
+            return;
+        }
+
+        if (targetUser.isProtected) {
+            showAlert(alertsContainer, isAr ? 'لا يمكن حذف الحسابات المحمية.' : 'Protected accounts cannot be deleted.', 'error');
+            return;
+        }
+        
+        if (String(targetUser.username || '').toLowerCase() === loggedInUsername) {
+            showAlert(alertsContainer, isAr ? 'لا يمكنك حذف حسابك الحالي.' : 'You cannot delete your current account.', 'error');
+            return;
+        }
+        
+        if (targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
+            showAlert(alertsContainer, isAr ? 'فقط الأدمن الرئيسي يمكنه حذف المشرفين.' : 'Only the primary admin can delete supervisors.', 'error');
+            return;
+        }
+
+        showConfirmModal({
+            title: isAr ? 'تأكيد حذف المستخدم' : 'Confirm User Deletion',
+            message: isAr 
+                ? `هل أنت متأكد من حذف حساب "${targetUser.username}"؟` 
+                : `Are you sure you want to delete "${targetUser.username}"?`,
+            confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
+            cancelText: isAr ? 'إلغاء' : 'Cancel',
+            type: 'danger',
+            requirePassword: true,
+            onConfirm: async (password) => {
+                try {
+                    const result = await userService.deleteUser(userId, targetUser);
+                    
+                    if (result) {
+                        logService.addLog(
+                            loggedInUser?.username || 'admin', 
+                            loggedInUser?.role || 'Supervisor', 
+                            'Delete User', 
+                            targetUser.username
+                        );
+                        
+                        showAlert(alertsContainer, 
+                            isAr ? `تم حذف المستخدم "${targetUser.username}" بنجاح.` : `User "${targetUser.username}" deleted successfully.`, 
+                            'success'
+                        );
+                        
+                        await loadUsers();
                     }
-                });
-            });
+                } catch (err) {
+                    console.error('Delete error:', err);
+                    showAlert(alertsContainer, 
+                        err.message || (isAr ? 'فشل حذف المستخدم. حاول مرة أخرى.' : 'Failed to delete user. Please try again.'), 
+                        'error'
+                    );
+                    throw err;
+                }
+            }
         });
+    });
+});
     }
 
     function showCreateUserPage() {

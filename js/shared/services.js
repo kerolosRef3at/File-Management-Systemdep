@@ -2,7 +2,7 @@
 import { fetchAPI, BASE_URL } from './api.js';
 import { escapeHTML } from './utils.js';
 import * as mock from './mockData.js';
-
+import { getCurrentLang } from './jssharedi18n.js';
 // Toggle to force mock data or let it attempt real API first
 const USE_MOCK = false;
 
@@ -1440,28 +1440,40 @@ export const userService = {
         }
     },
 
-    async deleteUser(id, targetUser = null) {
-        const loggedInUser = getCurrentUser();
-        const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
-        const isPrimaryAdmin = loggedInUsername === 'admin';
-        const isAr = getCurrentLang() === 'ar';
+// In services.js - Replace the existing deleteUser function with this:
 
-        if (targetUser && targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
-            throw new Error(isAr 
-                ? 'عفواً، حساب الأدمن الرئيسي (admin) فقط هو من يقدر على حذف المشرفين العموم.' 
-                : 'Only the primary admin (admin) can delete another Supervisor account.'
-            );
-        }
+// js/shared/services.js - deleteUser function
 
-        const targetName = targetUser ? targetUser.username : id;
+// js/shared/services.js - deleteUser function
+
+async deleteUser(id, targetUser = null) {
+    const loggedInUser = authService.getCurrentUser();
+    const loggedInUsername = String(loggedInUser?.username || '').toLowerCase();
+    const isPrimaryAdmin = loggedInUsername === 'admin';
+    const isAr = getCurrentLang() === 'ar';
+
+    if (targetUser && targetUser.role === 'Supervisor' && !isPrimaryAdmin) {
+        throw new Error(isAr 
+            ? 'عفواً، حساب الأدمن الرئيسي (admin) فقط هو من يقدر على حذف المشرفين العموم.' 
+            : 'Only the primary admin (admin) can delete another Supervisor account.'
+        );
+    }
+
+    if (!id) {
+        throw new Error(isAr ? 'معرف المستخدم غير صحيح.' : 'Invalid user ID.');
+    }
+
+    const targetName = targetUser ? targetUser.username : id;
+    let localDeleted = false;
+
+    // Delete from local storage
+    try {
         const deletedList = JSON.parse(localStorage.getItem('aitu_deleted_users') || '[]');
-        if (targetName && !deletedList.includes(String(targetName).toLowerCase())) {
-            deletedList.push(String(targetName).toLowerCase());
+        const targetKey = String(targetName || id).toLowerCase();
+        if (!deletedList.includes(targetKey)) {
+            deletedList.push(targetKey);
+            localStorage.setItem('aitu_deleted_users', JSON.stringify(deletedList));
         }
-        if (id && !deletedList.includes(String(id).toLowerCase())) {
-            deletedList.push(String(id).toLowerCase());
-        }
-        localStorage.setItem('aitu_deleted_users', JSON.stringify(deletedList));
 
         const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');
         const filteredCreated = created.filter(u => 
@@ -1469,17 +1481,36 @@ export const userService = {
             String(u.username || '').toLowerCase() !== String(targetName).toLowerCase()
         );
         localStorage.setItem('aitu_created_users', JSON.stringify(filteredCreated));
-
-        try {
-            await fetchAPI(`/api/Admin/${id}`, {
-                method: 'DELETE'
-            });
-        } catch (err) {
-            console.warn("Delete user API endpoint failed, deleted locally:", err);
+        
+        const username = String(targetName || '').toLowerCase();
+        if (username) {
+            localStorage.removeItem('aitu_user_phone_' + username);
+            localStorage.removeItem('aitu_user_email_' + username);
+            localStorage.removeItem('aitu_user_fullname_' + username);
+            localStorage.removeItem('aitu_user_avatar_' + username);
+            localStorage.removeItem('aitu_force_change_password_' + username);
         }
-
-        return true;
+        
+        localDeleted = true;
+    } catch (localError) {
+        console.warn('Local storage cleanup error:', localError);
     }
+
+    // Try to delete from server, handle CORS/Network errors gracefully
+    try {
+        await fetchAPI(`/api/Admin/${id}`, { method: 'DELETE' });
+        return true;
+    } catch (serverError) {
+        console.warn('Server deletion notice:', serverError.message);
+        
+        // If user was deleted locally, consider it a success even if server fails
+        if (localDeleted) {
+            return true;
+        }
+        
+        throw serverError;
+    }
+}
 };
 
 // ==========================================

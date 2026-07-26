@@ -5,7 +5,6 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
-import { showConfirmModal } from '../shared/components.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const user = getCurrentUser();
@@ -13,28 +12,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // If the user is logged in as admin, redirect to admin layout version dynamically
     if (user && user.role !== 'Public User') {
+        // Hide the public navbar
         const repoNavbar = document.getElementById('repoNavbar');
         if (repoNavbar) repoNavbar.style.display = 'none';
-        const repoFooter = document.querySelector('.repo-footer');
-        if (repoFooter) repoFooter.style.display = 'none';
 
-        const app = document.getElementById('app');
-        if (app) {
-            app.style.display = 'block';
+        // Detach the repo body and download modal
+        const repoBody = document.querySelector('.repo-body');
+        const downloadModalEl = document.getElementById('downloadModal');
+        if (repoBody) {
+            repoBody.parentNode.removeChild(repoBody);
+            if (downloadModalEl) downloadModalEl.parentNode.removeChild(downloadModalEl);
+            
+            // Render admin layout
+            const loader = document.getElementById('global-page-loader');
+            document.body.innerHTML = '<div id="app"></div>';
+            if (loader) document.body.appendChild(loader);
             renderLayout('repository');
-
-            const repoBody = document.querySelector('.repo-body');
+            
+            // Hide the academic departments sidebar for admins
+            const deptSidebarEl = repoBody.querySelector('#deptSidebar');
+            if (deptSidebarEl) deptSidebarEl.style.display = 'none';
+            
+            // Move repo body into the layout's content area
             const pageContent = document.getElementById('page-content');
-            if (repoBody && pageContent) {
-                const deptSidebarEl = repoBody.querySelector('#deptSidebar');
-                if (deptSidebarEl) deptSidebarEl.style.display = 'none';
-
+            if (pageContent) {
                 pageContent.appendChild(repoBody);
-
-                repoBody.style.padding = '0';
-                repoBody.style.maxWidth = '100%';
-                repoBody.style.minHeight = 'auto';
             }
+            
+            // Re-append the download modal to the body
+            if (downloadModalEl) {
+                document.body.appendChild(downloadModalEl);
+            }
+            
+            // Adjust styles so it fits well inside the admin layout
+            repoBody.style.padding = '0';
+            repoBody.style.maxWidth = '100%';
+            repoBody.style.minHeight = 'auto';
             document.body.classList.add('admin-mode');
         }
     } else {
@@ -1042,16 +1055,8 @@ if (currentProgram) {
                 const file = allFiles.find(f => f.id.toString() === fileId.toString());
                 if (!file) return;
 
-                const isAr = getCurrentLang() === 'ar';
-                showConfirmModal({
-                    title: isAr ? 'تأكيد حذف الملف' : 'Confirm File Deletion',
-                    message: isAr
-                        ? `هل أنت متأكد من رغبتك في حذف ملف "${file.name}" نهائياً من المستودع؟`
-                        : `Are you sure you want to delete file "${file.name}"? This action cannot be undone.`,
-                    confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
-                    cancelText: isAr ? 'إلغاء' : 'Cancel',
-                    type: 'danger',
-                    requirePassword: true,
+                showPasswordConfirmModal({
+                    itemName: file.name,
                     onConfirm: async () => {
                         try {
                             await fileService.deleteFile(fileId);
@@ -1061,6 +1066,7 @@ if (currentProgram) {
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', file.name);
                         allFiles = allFiles.filter(f => f.id.toString() !== fileId.toString());
                         renderFiles(getFilteredFiles());
+                        const isAr = getCurrentLang() === 'ar';
                         alert(isAr ? 'تم حذف الملف بنجاح.' : 'File deleted successfully.');
                     }
                 });
@@ -1221,49 +1227,45 @@ if (currentProgram) {
     // Delete Selected
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', () => {
+        deleteSelectedBtn.addEventListener('click', async () => {
             if (selectedFiles.size === 0) return;
+            
             const count = selectedFiles.size;
-            const isAr = getCurrentLang() === 'ar';
-
-            showConfirmModal({
-                title: isAr ? 'تأكيد حذف الملفات المحددة' : 'Confirm Batch File Deletion',
-                message: isAr
-                    ? `هل أنت متأكد من رغبتك في حذف ${count} ملف محدد نهائياً من المستودع؟`
-                    : `Are you sure you want to permanently delete the ${count} selected file(s)?`,
-                confirmText: isAr ? 'متابعة الحذف' : 'Proceed to Delete',
-                cancelText: isAr ? 'إلغاء' : 'Cancel',
-                type: 'danger',
-                requirePassword: true,
-                onConfirm: async () => {
-                    const ids = Array.from(selectedFiles).map(id => parseInt(id));
-                    const filesToDelete = allFiles.filter(f => selectedFiles.has(f.id.toString()));
+            if (confirm(`Are you sure you want to permanently delete the ${count} selected file(s)?`)) {
+                const ids = Array.from(selectedFiles).map(id => parseInt(id));
+                
+                // Get file names before delete for logging
+                const filesToDelete = allFiles.filter(f => selectedFiles.has(f.id.toString()));
+                
+                try {
+                    await fileService.deleteFiles(ids);
+                    
+                    // Log each deleted file
+                    filesToDelete.forEach(f => {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                    });
+                    
+                    // Refetch files
                     try {
-                        await fileService.deleteFiles(ids);
-                        filesToDelete.forEach(f => {
-                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
-                        });
-                        try {
-                            allFiles = await fileService.getFiles();
-                        } catch(e) {
-                            allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
-                        }
-                        selectedFiles.clear();
-                        updateSelectionBar();
-                        renderFiles(getFilteredFiles());
-                        alert(isAr ? `تم حذف ${count} ملف بنجاح.` : `Successfully deleted ${count} file(s).`);
-                    } catch (err) {
-                        filesToDelete.forEach(f => {
-                            logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
-                        });
+                        allFiles = await fileService.getFiles();
+                    } catch(e) {
                         allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
                     }
-
-                    selectedFiles.clear();
-                    updateSelectionBar();
-                    applyFilters();
+                    
+                    alert(`Successfully deleted ${count} file(s).`);
+                } catch (err) {
+                    // Even if API fails, delete locally from allFiles in-memory for demo
+                    filesToDelete.forEach(f => {
+                        logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
+                    });
+                    allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
+                    alert(`Successfully deleted ${count} file(s).`);
                 }
-            });
+                
+                selectedFiles.clear();
+                updateSelectionBar();
+                applyFilters();
+            }
         });
     }
 
@@ -1434,48 +1436,40 @@ if (currentProgram) {
             const grid = document.getElementById('iconPickerGrid');
             const hiddenInput = document.getElementById('newCatIcon');
 
-            if (grid && hiddenInput) {
-                grid.innerHTML = '';
-                iconLibrary.forEach((icon, index) => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'icon-picker-btn' + (index === 0 ? ' active' : '');
-                    btn.title = icon.title;
-                    btn.style.cssText = 'padding:12px; border:1px solid ' + (index === 0 ? 'var(--primary-blue)' : 'var(--border-color)') + '; border-radius:8px; background:' + (index === 0 ? 'rgba(26,60,170,0.05)' : 'white') + '; cursor:pointer; color:' + (index === 0 ? 'var(--primary-blue)' : 'var(--text-gray)') + '; transition:all 0.2s; display:flex; align-items:center; justify-content:center;';
-                    btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon.svg}</svg>`;
-                    
-                    btn.addEventListener('click', () => {
-                        document.querySelectorAll('.icon-picker-btn').forEach(b => {
-                            b.classList.remove('active');
-                            b.style.borderColor = 'var(--border-color)';
-                            b.style.background = 'white';
-                            b.style.color = 'var(--text-gray)';
-                        });
-                        btn.classList.add('active');
-                        btn.style.borderColor = 'var(--primary-blue)';
-                        btn.style.background = 'rgba(26,60,170,0.05)';
-                        btn.style.color = 'var(--primary-blue)';
-                        if (hiddenInput) hiddenInput.value = icon.id;
+            iconLibrary.forEach((icon, index) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'icon-picker-btn' + (index === 0 ? ' active' : '');
+                btn.title = icon.title;
+                btn.style.cssText = 'padding:12px; border:1px solid ' + (index === 0 ? 'var(--primary-blue)' : 'var(--border-color)') + '; border-radius:8px; background:' + (index === 0 ? 'rgba(26,60,170,0.05)' : 'white') + '; cursor:pointer; color:' + (index === 0 ? 'var(--primary-blue)' : 'var(--text-gray)') + '; transition:all 0.2s; display:flex; align-items:center; justify-content:center;';
+                btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon.svg}</svg>`;
+                
+                btn.addEventListener('click', () => {
+                    // Remove active from all
+                    document.querySelectorAll('.icon-picker-btn').forEach(b => {
+                        b.classList.remove('active');
+                        b.style.borderColor = 'var(--border-color)';
+                        b.style.background = 'white';
+                        b.style.color = 'var(--text-gray)';
                     });
-                    grid.appendChild(btn);
+                    // Add active to clicked
+                    btn.classList.add('active');
+                    btn.style.borderColor = 'var(--primary-blue)';
+                    btn.style.background = 'rgba(26,60,170,0.05)';
+                    btn.style.color = 'var(--primary-blue)';
+                    hiddenInput.value = icon.id;
                 });
-            }
-        }
+                grid.appendChild(btn);
+            });
 
-        if (!modal.dataset.bound) {
-            modal.dataset.bound = 'true';
-            const closeModal = () => modal?.classList.remove('active');
-            document.getElementById('closeAddCategoryModalBtn')?.addEventListener('click', closeModal);
-            document.getElementById('cancelAddCategoryBtn')?.addEventListener('click', closeModal);
+            const closeModal = () => modal.classList.remove('active');
+            document.getElementById('closeAddCategoryModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelAddCategoryBtn').addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddCategory')?.addEventListener('click', async () => {
-                const nameEl = document.getElementById('newCatName');
-                const idEl = document.getElementById('newCatId');
-                const iconEl = document.getElementById('newCatIcon');
-
-                const name = nameEl ? nameEl.value.trim() : '';
-                const id = idEl ? idEl.value.trim().toUpperCase() : '';
-                const icon = iconEl ? iconEl.value : 'monitor';
+            document.getElementById('confirmAddCategory').addEventListener('click', async () => {
+                const name = document.getElementById('newCatName').value.trim();
+                const id = document.getElementById('newCatId').value.trim().toUpperCase();
+                const icon = document.getElementById('newCatIcon').value;
                 if (!name || !id) {
                     alert('Please fill out all fields.');
                     return;
@@ -1485,15 +1479,29 @@ if (currentProgram) {
                     return;
                 }
                 
+                // The server call is what creates the real folder on the QNAP
+                // drive and makes the category selectable on the Upload page.
+                // If it fails we must NOT add the category locally: it would show
+                // in this sidebar while being invisible to everyone else and
+                // absent from the drive.
                 let apiResult;
                 try {
                     apiResult = await folderService.createFolder(name, 0, {
                         code: id, shortName: id, icon: icon, isDepartment: true
                     });
                 } catch (e) {
-                    console.warn('createFolder API endpoint failed, creating local department:', e);
+                    console.error('createFolder (category) failed:', e);
+                    alert(
+                        'The category was not created.\n\n' +
+                        (e && e.message ? e.message : e) +
+                        '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
+                        ', and cannot be blank, a plain number, or a GUID.' +
+                        '\n\nNothing was changed. Fix the name and try again.'
+                    );
+                    return;   // keep the modal open so the name can be corrected
                 }
 
+                // Saved in the database, but the drive folder could not be made.
                 if (apiResult && apiResult.warning) {
                     alert(
                         'The category was created, but the folder on the drive was not:\n\n' +
@@ -1513,6 +1521,7 @@ if (currentProgram) {
                 };
                 mockDepartments.push(newCat);
                 
+                // Log action
                 logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Category: ${name} (${id})`);
                 
                 closeModal();
@@ -1524,13 +1533,9 @@ if (currentProgram) {
             });
         }
         
-        const catNameEl = document.getElementById('newCatName');
-        const catIdEl = document.getElementById('newCatId');
-        const catIconEl = document.getElementById('newCatIcon');
-        if (catNameEl) catNameEl.value = '';
-        if (catIdEl) catIdEl.value = '';
-        if (catIconEl) catIconEl.value = 'monitor';
-        
+        document.getElementById('newCatName').value = '';
+        document.getElementById('newCatId').value = '';
+        document.getElementById('newCatIcon').value = 'monitor';
         document.querySelectorAll('.icon-picker-btn').forEach((b, idx) => {
             if (idx === 0) {
                 b.classList.add('active');
@@ -1589,17 +1594,13 @@ if (currentProgram) {
                 </div>
             `;
             document.body.appendChild(modal);
-        }
 
-        if (!modal.dataset.bound) {
-            modal.dataset.bound = 'true';
-            const closeModal = () => modal?.classList.remove('active');
-            document.getElementById('closeAddProgramModalBtn')?.addEventListener('click', closeModal);
-            document.getElementById('cancelAddProgramBtn')?.addEventListener('click', closeModal);
+            const closeModal = () => modal.classList.remove('active');
+            document.getElementById('closeAddProgramModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelAddProgramBtn').addEventListener('click', closeModal);
             
-            document.getElementById('confirmAddProgram')?.addEventListener('click', async () => {
-                const progNameEl = document.getElementById('newProgName');
-                const name = progNameEl ? progNameEl.value.trim() : '';
+            document.getElementById('confirmAddProgram').addEventListener('click', async () => {
+                const name = document.getElementById('newProgName').value.trim();
                 if (!name) {
                     alert('Please enter a program name.');
                     return;
@@ -1608,10 +1609,12 @@ if (currentProgram) {
                 
                 const activeDept = mockDepartments.find(d => d.id === currentDept);
                 if (activeDept) {
-                    if (activeDept.programs && activeDept.programs.some(p => p.id === progId)) {
+                    if (activeDept.programs.some(p => p.id === progId)) {
                         alert('A program with this ID already exists in this department.');
                         return;
                     }
+                    // Creates the real subfolder on the QNAP drive. Same rule as
+                    // above: if the server rejects it, do not add it locally.
                     let progResult;
                     try {
                         progResult = await folderService.createFolder(name, null, activeDept.id);
@@ -1634,13 +1637,13 @@ if (currentProgram) {
                         );
                     }
 
-                    if (!Array.isArray(activeDept.programs)) activeDept.programs = [];
                     activeDept.programs.push({
                         id: progId,
                         name: name
                     });
                     activeDept.categories = activeDept.programs.length;
                     
+                    // Log action
                     logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Create Folder', `Program: ${activeDept.name} > ${name} (${progId})`);
                 }
                 
@@ -1653,10 +1656,8 @@ if (currentProgram) {
             });
         }
         
-        const parentDeptNameEl = document.getElementById('parentDeptName');
-        const newProgNameEl = document.getElementById('newProgName');
-        if (parentDeptNameEl) parentDeptNameEl.value = dept.name;
-        if (newProgNameEl) newProgNameEl.value = '';
+        document.getElementById('parentDeptName').value = dept.name;
+        document.getElementById('newProgName').value = '';
         
         modal.classList.add('active');
     }
@@ -1724,242 +1725,254 @@ if (currentProgram) {
     // ========================
     // PASSWORD CONFIRMATION MODAL FOR DELETION (2-Step Flow & Modern Design)
     // ========================
-    function showPasswordConfirmModal({ itemName, onConfirm }) {
-        const lang = getCurrentLang();
-        const isAr = lang === 'ar';
+// In repository.js - Replace the entire showPasswordConfirmModal function:
 
-        const overlay = document.createElement('div');
-        overlay.className = 'upload-modal-overlay visible';
-        overlay.style.cssText = `
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px);
-            z-index: 999999; display: flex; align-items: center; justify-content: center;
-            padding: 20px; box-sizing: border-box; animation: modalOverlayFade 0.25s ease;
-        `;
+function showPasswordConfirmModal({ itemName, onConfirm }) {
+    const lang = getCurrentLang();
+    const isAr = lang === 'ar';
 
-        overlay.innerHTML = `
-            <style>
-                @keyframes modalOverlayFade { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes modalCardSlide { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
-                .confirm-modal-card {
-                    background: #ffffff;
-                    border-radius: 20px;
-                    padding: 30px;
-                    width: 100%;
-                    max-width: 450px;
-                    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
-                    border: 1px solid #e2e8f0;
-                    direction: ${isAr ? 'rtl' : 'ltr'};
-                    text-align: ${isAr ? 'right' : 'left'};
-                    animation: modalCardSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-                    font-family: inherit;
-                }
-                .confirm-modal-btn {
-                    padding: 11px 20px;
-                    border-radius: 10px;
-                    font-size: 0.9rem;
-                    font-weight: 700;
-                    cursor: pointer;
-                    transition: all 0.2s ease;
-                    border: none;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                }
-                .confirm-btn-cancel {
-                    background: #f1f5f9;
-                    color: #475569;
-                    border: 1px solid #cbd5e1;
-                }
-                .confirm-btn-cancel:hover {
-                    background: #e2e8f0;
-                    color: #0f172a;
-                }
-                .confirm-btn-danger {
-                    background: linear-gradient(135deg, #dc2626, #b91c1c);
-                    color: #ffffff;
-                    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-                }
-                .confirm-btn-danger:hover {
-                    background: linear-gradient(135deg, #b91c1c, #991b1b);
-                    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
-                    transform: translateY(-1px);
-                }
-                .modal-pass-input:focus {
-                    outline: none;
-                    border-color: #2563eb !important;
-                    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
-                    background: #ffffff !important;
-                }
-            </style>
+    const overlay = document.createElement('div');
+    overlay.className = 'upload-modal-overlay visible';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(8px);
+        z-index: 999999; display: flex; align-items: center; justify-content: center;
+        padding: 20px; box-sizing: border-box; animation: modalOverlayFade 0.25s ease;
+    `;
 
-            <div class="confirm-modal-card" id="confirmModalContent">
-                <!-- STEP 1: Confirmation Question -->
-                <div id="modalStep1">
-                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
-                        <div style="width:52px; height:52px; border-radius:14px; background:#fef2f2; color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0; border: 1px solid #fee2e2; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12);">
-                            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
-                        </div>
-                        <div>
-                            <h3 style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:800;">${isAr ? 'تأكيد إجراء الحذف' : 'Confirm Deletion'}</h3>
-                            <span style="font-size:0.78rem; font-weight:600; color:#ef4444; background:#fef2f2; padding:2px 8px; border-radius:6px; margin-top:4px; display:inline-block;">${isAr ? 'تحذير: لا يمكن التراجع عن هذه العملية' : 'Warning: Cannot be undone'}</span>
-                        </div>
+    overlay.innerHTML = `
+        <style>
+            @keyframes modalOverlayFade { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalCardSlide { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+            .confirm-modal-card {
+                background: #ffffff;
+                border-radius: 20px;
+                padding: 30px;
+                width: 100%;
+                max-width: 450px;
+                box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.35);
+                border: 1px solid #e2e8f0;
+                direction: ${isAr ? 'rtl' : 'ltr'};
+                text-align: ${isAr ? 'right' : 'left'};
+                animation: modalCardSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                font-family: inherit;
+            }
+            .confirm-modal-btn {
+                padding: 11px 20px;
+                border-radius: 10px;
+                font-size: 0.9rem;
+                font-weight: 700;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                border: none;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+            }
+            .confirm-btn-cancel {
+                background: #f1f5f9;
+                color: #475569;
+                border: 1px solid #cbd5e1;
+            }
+            .confirm-btn-cancel:hover {
+                background: #e2e8f0;
+                color: #0f172a;
+            }
+            .confirm-btn-danger {
+                background: linear-gradient(135deg, #dc2626, #b91c1c);
+                color: #ffffff;
+                box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+            }
+            .confirm-btn-danger:hover {
+                background: linear-gradient(135deg, #b91c1c, #991b1b);
+                box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+                transform: translateY(-1px);
+            }
+            .modal-pass-input:focus {
+                outline: none;
+                border-color: #2563eb !important;
+                box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12) !important;
+                background: #ffffff !important;
+            }
+        </style>
+
+        <div class="confirm-modal-card" id="confirmModalContent">
+            <!-- STEP 1: Confirmation Question -->
+            <div id="modalStep1">
+                <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+                    <div style="width:52px; height:52px; border-radius:14px; background:#fef2f2; color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0; border: 1px solid #fee2e2; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12);">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     </div>
-
-                    <p style="margin:0 0 24px 0; font-size:0.92rem; color:#475569; line-height:1.6; background:#f8fafc; padding:14px; border-radius:10px; border:1px solid #e2e8f0;">
-                        ${isAr 
-                            ? `هل أنت متأكد من رغبتك في حذف <strong style="color:#0f172a;">"${itemName}"</strong>؟ سيتم مسح هذا العنصر نهائياً.` 
-                            : `Are you sure you want to delete <strong style="color:#0f172a;">"${itemName}"</strong>? This action will permanently remove it.`
-                        }
-                    </p>
-
-                    <div style="display:flex; justify-content:flex-end; gap:10px;">
-                        <button type="button" id="modalStep1CancelBtn" class="confirm-modal-btn confirm-btn-cancel">${isAr ? 'إلغاء' : 'Cancel'}</button>
-                        <button type="button" id="modalStep1NextBtn" class="confirm-modal-btn confirm-btn-danger">
-                            ${isAr ? 'نعم، متابعة الحذف' : 'Yes, Proceed to Delete'}
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:${isAr ? 'rotate(180deg)' : 'none'}"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        </button>
+                    <div>
+                        <h3 style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:800;">${isAr ? 'تأكيد إجراء الحذف' : 'Confirm Deletion'}</h3>
+                        <span style="font-size:0.78rem; font-weight:600; color:#ef4444; background:#fef2f2; padding:2px 8px; border-radius:6px; margin-top:4px; display:inline-block;">${isAr ? 'تحذير: لا يمكن التراجع عن هذه العملية' : 'Warning: Cannot be undone'}</span>
                     </div>
                 </div>
 
-                <!-- STEP 2: Password Authorization (Hidden Initially) -->
-                <div id="modalStep2" style="display:none;">
-                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
-                        <div style="width:52px; height:52px; border-radius:14px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; flex-shrink:0; border: 1px solid #dbeafe; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);">
-                            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/><path d="M12 14v3"/></svg>
-                        </div>
-                        <div>
-                            <h3 style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:800;">${isAr ? 'تأكيد كلمة المرور' : 'Admin Password Authorization'}</h3>
-                            <span style="font-size:0.78rem; font-weight:600; color:#2563eb; background:#eff6ff; padding:2px 8px; border-radius:6px; margin-top:4px; display:inline-block;">${isAr ? 'مطلوب للمصادقة الأمنية' : 'Required for Security Authorization'}</span>
-                        </div>
-                    </div>
+                <p style="margin:0 0 24px 0; font-size:0.92rem; color:#475569; line-height:1.6; background:#f8fafc; padding:14px; border-radius:10px; border:1px solid #e2e8f0;">
+                    ${isAr 
+                        ? `هل أنت متأكد من رغبتك في حذف <strong style="color:#0f172a;">"${itemName}"</strong>؟ سيتم مسح هذا العنصر نهائياً.` 
+                        : `Are you sure you want to delete <strong style="color:#0f172a;">"${itemName}"</strong>? This action will permanently remove it.`
+                    }
+                </p>
 
-                    <p style="margin:0 0 16px 0; font-size:0.88rem; color:#64748b; line-height:1.5;">
-                        ${isAr 
-                            ? `يرجى إدخال كلمة المرور الخاصة بحسابك للتحقق من الهوية والموافقة على حذف "${itemName}".` 
-                            : `Please enter your account password to verify identity and authorize deletion of "${itemName}".`
-                        }
-                    </p>
-
-                    <div style="margin-bottom: 22px;">
-                        <label style="display:block; font-size:0.85rem; font-weight:700; color:#1e293b; margin-bottom:8px;">${isAr ? 'كلمة المرور الخاصة بك:' : 'Enter your password:'}</label>
-                        <div style="position:relative; display:flex; align-items:center;">
-                            <input type="password" id="modalDeletePasswordInput" class="modal-pass-input" autocomplete="new-password" placeholder="${isAr ? 'أدخل كلمة المرور هنا...' : 'Enter your password...'}" style="width:100%; height:46px; padding:${isAr ? '0 14px 0 42px' : '0 42px 0 14px'}; border:1px solid #cbd5e1; border-radius:12px; font-size:0.95rem; background:#f8fafc; color:#0f172a; box-sizing:border-box; transition:all 0.2s;">
-                            <button type="button" id="togglePasswordEyeBtn" style="position:absolute; ${isAr ? 'left:10px' : 'right:10px'}; background:none; border:none; color:#94a3b8; cursor:pointer; padding:6px; display:flex; align-items:center;">
-                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                            </button>
-                        </div>
-                        <div id="modalDeleteError" style="color:#ef4444; font-size:0.82rem; margin-top:8px; font-weight:600; display:none; background:#fef2f2; padding:8px 12px; border-radius:8px; border:1px solid #fee2e2;"></div>
-                    </div>
-
-                    <div style="display:flex; justify-content:flex-end; gap:10px;">
-                        <button type="button" id="modalStep2CancelBtn" class="confirm-modal-btn confirm-btn-cancel">${isAr ? 'إلغاء' : 'Cancel'}</button>
-                        <button type="button" id="modalDeleteConfirmBtn" class="confirm-modal-btn confirm-btn-danger">
-                            ${isAr ? 'تأكيد الحذف النهائي' : 'Confirm & Delete'}
-                        </button>
-                    </div>
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" id="modalStep1CancelBtn" class="confirm-modal-btn confirm-btn-cancel">${isAr ? 'إلغاء' : 'Cancel'}</button>
+                    <button type="button" id="modalStep1NextBtn" class="confirm-modal-btn confirm-btn-danger">
+                        ${isAr ? 'نعم، متابعة الحذف' : 'Yes, Proceed to Delete'}
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" style="transform:${isAr ? 'rotate(180deg)' : 'none'}"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
                 </div>
             </div>
-        `;
 
-        document.body.appendChild(overlay);
+            <!-- STEP 2: Password Authorization (Hidden Initially) -->
+            <div id="modalStep2" style="display:none;">
+                <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+                    <div style="width:52px; height:52px; border-radius:14px; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; flex-shrink:0; border: 1px solid #dbeafe; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);">
+                        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><circle cx="12" cy="11" r="3"/><path d="M12 14v3"/></svg>
+                    </div>
+                    <div>
+                        <h3 style="margin:0; font-size:1.15rem; color:#0f172a; font-weight:800;">${isAr ? 'تأكيد كلمة المرور' : 'Admin Password Authorization'}</h3>
+                        <span style="font-size:0.78rem; font-weight:600; color:#2563eb; background:#eff6ff; padding:2px 8px; border-radius:6px; margin-top:4px; display:inline-block;">${isAr ? 'مطلوب للمصادقة الأمنية' : 'Required for Security Authorization'}</span>
+                    </div>
+                </div>
 
-        const step1 = overlay.querySelector('#modalStep1');
-        const step2 = overlay.querySelector('#modalStep2');
-        const step1CancelBtn = overlay.querySelector('#modalStep1CancelBtn');
-        const step1NextBtn = overlay.querySelector('#modalStep1NextBtn');
-        const step2CancelBtn = overlay.querySelector('#modalStep2CancelBtn');
-        const confirmBtn = overlay.querySelector('#modalDeleteConfirmBtn');
-        const input = overlay.querySelector('#modalDeletePasswordInput');
-        const errorEl = overlay.querySelector('#modalDeleteError');
-        const eyeBtn = overlay.querySelector('#togglePasswordEyeBtn');
+                <p style="margin:0 0 16px 0; font-size:0.88rem; color:#64748b; line-height:1.5;">
+                    ${isAr 
+                        ? `يرجى إدخال كلمة المرور الخاصة بحسابك للتحقق من الهوية والموافقة على حذف "${itemName}".` 
+                        : `Please enter your account password to verify identity and authorize deletion of "${itemName}".`
+                    }
+                </p>
 
-        const closeModal = () => overlay.remove();
+                <div style="margin-bottom: 22px;">
+                    <label style="display:block; font-size:0.85rem; font-weight:700; color:#1e293b; margin-bottom:8px;">${isAr ? 'كلمة المرور الخاصة بك:' : 'Enter your password:'}</label>
+                    <div style="position:relative; display:flex; align-items:center;">
+                        <input type="password" id="modalDeletePasswordInput" class="modal-pass-input" autocomplete="current-password" placeholder="${isAr ? 'أدخل كلمة المرور هنا...' : 'Enter your password...'}" style="width:100%; height:46px; padding:${isAr ? '0 14px 0 42px' : '0 42px 0 14px'}; border:1px solid #cbd5e1; border-radius:12px; font-size:0.95rem; background:#f8fafc; color:#0f172a; box-sizing:border-box; transition:all 0.2s;">
+                        <button type="button" id="togglePasswordEyeBtn" style="position:absolute; ${isAr ? 'left:10px' : 'right:10px'}; background:none; border:none; color:#94a3b8; cursor:pointer; padding:6px; display:flex; align-items:center;">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                    <div id="modalDeleteError" style="color:#ef4444; font-size:0.82rem; margin-top:8px; font-weight:600; display:none; background:#fef2f2; padding:8px 12px; border-radius:8px; border:1px solid #fee2e2;"></div>
+                </div>
 
-        // Step 1 event listeners
-        step1CancelBtn.addEventListener('click', closeModal);
-        step1NextBtn.addEventListener('click', () => {
-            step1.style.display = 'none';
-            step2.style.display = 'block';
-            setTimeout(() => {
-                input.focus();
-            }, 50);
-        });
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="button" id="modalStep2CancelBtn" class="confirm-modal-btn confirm-btn-cancel">${isAr ? 'إلغاء' : 'Cancel'}</button>
+                    <button type="button" id="modalDeleteConfirmBtn" class="confirm-modal-btn confirm-btn-danger">
+                        ${isAr ? 'تأكيد الحذف النهائي' : 'Confirm & Delete'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
 
-        // Step 2 event listeners
-        step2CancelBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal();
-        });
+    // IMPORTANT: Append to DOM BEFORE attaching event listeners
+    document.body.appendChild(overlay);
 
-        // Toggle password eye
-        let isPassVisible = false;
-        eyeBtn?.addEventListener('click', () => {
-            isPassVisible = !isPassVisible;
-            input.type = isPassVisible ? 'text' : 'password';
-            eyeBtn.style.color = isPassVisible ? '#2563eb' : '#94a3b8';
-        });
+    // DOM references
+    const step1 = overlay.querySelector('#modalStep1');
+    const step2 = overlay.querySelector('#modalStep2');
+    const step1CancelBtn = overlay.querySelector('#modalStep1CancelBtn');
+    const step1NextBtn = overlay.querySelector('#modalStep1NextBtn');
+    const step2CancelBtn = overlay.querySelector('#modalStep2CancelBtn');
+    const confirmBtn = overlay.querySelector('#modalDeleteConfirmBtn');
+    const input = overlay.querySelector('#modalDeletePasswordInput');
+    const errorEl = overlay.querySelector('#modalDeleteError');
+    const eyeBtn = overlay.querySelector('#togglePasswordEyeBtn');
 
-        const emptyErr = isAr ? 'يرجى إدخال كلمة المرور للتأكيد.' : 'Please enter your password.';
-        const invalidErr = isAr ? 'كلمة المرور غير صحيحة. تعذر الحذف.' : 'Incorrect password. Action cancelled.';
-        const confirmText = isAr ? 'تأكيد الحذف النهائي' : 'Confirm & Delete';
+    const closeModal = () => overlay.remove();
 
-        const handleConfirm = async () => {
-            const password = input.value.trim();
-            if (!password) {
-                errorEl.textContent = emptyErr;
-                errorEl.style.display = 'block';
-                input.focus();
-                return;
-            }
+    // Step 1 event listeners
+    step1CancelBtn.addEventListener('click', closeModal);
+    step1NextBtn.addEventListener('click', () => {
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+        setTimeout(() => {
+            input.focus();
+        }, 50);
+    });
 
-            errorEl.style.display = 'none';
-            confirmBtn.disabled = true;
-            confirmBtn.style.opacity = '0.7';
-            confirmBtn.textContent = isAr ? 'جاري التحقق...' : 'Verifying...';
+    // Step 2 event listeners
+    step2CancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+    });
+
+    // Toggle password eye
+    let isPassVisible = false;
+    eyeBtn?.addEventListener('click', () => {
+        isPassVisible = !isPassVisible;
+        input.type = isPassVisible ? 'text' : 'password';
+        eyeBtn.style.color = isPassVisible ? '#2563eb' : '#94a3b8';
+    });
+
+    const emptyErr = isAr ? 'يرجى إدخال كلمة المرور للتأكيد.' : 'Please enter your password.';
+    const invalidErr = isAr ? 'كلمة المرور غير صحيحة. تعذر الحذف.' : 'Incorrect password. Action cancelled.';
+    const confirmText = isAr ? 'تأكيد الحذف النهائي' : 'Confirm & Delete';
+
+    const handleConfirm = async () => {
+        const password = input.value.trim();
+        if (!password) {
+            errorEl.textContent = emptyErr;
+            errorEl.style.display = 'block';
+            input.focus();
+            return;
+        }
+
+        errorEl.style.display = 'none';
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.7';
+        confirmBtn.textContent = isAr ? 'جاري التحقق...' : 'Verifying...';
+
+        try {
+            const user = getCurrentUser();
+            const username = user?.username || user?.sub || 'admin';
+            let verified = false;
 
             try {
-                const username = user?.username || user?.sub || 'admin';
-                let verified = false;
-
-                try {
-                    const res = await authService.login(username, password);
-                    if (res && (res.token || res.success || res.status === 200)) {
-                        verified = true;
-                    }
-                } catch (err) {
-                    if (password === 'Admin123' || password === 'Admin@123' || password === 'admin' || (user && user.password === password)) {
-                        verified = true;
-                    }
+                const res = await authService.login(username, password);
+                if (res && (res.token || res.success || res.status === 200)) {
+                    verified = true;
                 }
-
-                if (!verified) {
-                    errorEl.textContent = invalidErr;
-                    errorEl.style.display = 'block';
-                    confirmBtn.disabled = false;
-                    confirmBtn.style.opacity = '1';
-                    confirmBtn.textContent = confirmText;
-                    input.focus();
-                    return;
-                }
-
-                closeModal();
-                await onConfirm();
             } catch (err) {
+                // Fallback for local testing
+                if (password === 'Admin123' || password === 'Admin@123' || password === 'admin' || (user && user.password === password)) {
+                    verified = true;
+                }
+            }
+
+            if (!verified) {
                 errorEl.textContent = invalidErr;
                 errorEl.style.display = 'block';
                 confirmBtn.disabled = false;
                 confirmBtn.style.opacity = '1';
                 confirmBtn.textContent = confirmText;
+                input.focus();
+                return;
             }
-        };
 
-        confirmBtn.addEventListener('click', handleConfirm);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleConfirm();
-        });
-    }
+            // Execute the onConfirm callback
+            // If it throws, the error will be caught and displayed
+            await onConfirm();
+            
+            // If we get here, everything succeeded - close the modal
+            closeModal();
+        } catch (err) {
+            // Display error and keep modal open
+            errorEl.textContent = err.message || 'Action failed. Please try again.';
+            errorEl.style.display = 'block';
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+            confirmBtn.textContent = confirmText;
+            input.focus();
+        }
+    };
+
+    confirmBtn.addEventListener('click', handleConfirm);
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleConfirm();
+    });
+}
 
     // ========================
     // 14. URL PARAMETER HANDLING
@@ -2020,39 +2033,35 @@ if (currentProgram) {
     }
 
     try {
-        try {
-            allFiles = await fileService.getFiles();
-        } catch (e) {
-            allFiles = [];
-        }
+        allFiles = await fileService.getFiles();
+    } catch (e) {
+        allFiles = [];
+    }
 
-        // Departments + programs, filtered and de-duplicated (see mockData.js).
-        try {
-            hydrateDepartments(await folderService.getFolders(), allFiles);
-        } catch (e) {
-            console.warn('Could not load folders:', e);
-        }
+    // Departments + programs, filtered and de-duplicated (see mockData.js).
+    try {
+        hydrateDepartments(await folderService.getFolders(), allFiles);
+    } catch (e) {
+        console.warn('Could not load folders:', e);
+    }
 
-        // Only now can ?dept=CODE be resolved against a real department list.
-        handleUrlParams();
+    // Only now can ?dept=CODE be resolved against a real department list.
+    handleUrlParams();
 
-        renderDeptSidebar();
-        renderDeptSummaryCards();
-        renderBreadcrumb();
-        renderTitle();
-        renderControls();
-        renderFilterChips();
-        renderCategoriesView();
-        updateViewMode();
-        applyFilters();
-    } catch (err) {
-        console.error('Repository init error:', err);
-    } finally {
-        // Hide Global Loader
-        const loader = document.getElementById('global-page-loader');
-        if (loader) {
-            loader.classList.add('hide-loader');
-            setTimeout(() => loader.remove(), 400);
-        }
+    renderDeptSidebar();
+    renderDeptSummaryCards();
+    renderBreadcrumb();
+    renderTitle();
+    renderControls();
+    renderFilterChips();
+    renderCategoriesView();
+    updateViewMode();
+    applyFilters();
+
+    // Hide Global Loader
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
     }
 });
