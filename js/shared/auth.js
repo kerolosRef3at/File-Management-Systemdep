@@ -48,6 +48,13 @@ export function protectPage(allowedRoles = []) {
         return false;
     }
 
+    // Check role permissions
+    if (allowedRoles && allowedRoles.length > 0 && !hasRole(allowedRoles)) {
+        if (loader) loader.remove();
+        window.location.href = '403.html';
+        return false;
+    }
+
     const mustChangePw = localStorage.getItem('aitu_must_change_password') === 'true' ||
                          (user.username && localStorage.getItem('aitu_force_change_password_' + user.username.toLowerCase()) === 'true');
 
@@ -76,9 +83,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (repoNavRight && user) {
         const portalUrl = user.role === 'Public User' ? 'repository.html' : 'dashboard.html';
         repoNavRight.innerHTML = `
-            <button class="repo-login-btn" style="background:var(--primary-blue); color:white; font-weight:600;" onclick="window.location.href='${portalUrl}'">Go to Portal</button>
+            <button class="repo-login-btn" id="goToPortalBtn" style="background:var(--primary-blue); color:white; font-weight:600;">Go to Portal</button>
             <button class="repo-login-btn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:600;" id="publicLogoutBtn">Logout</button>
         `;
+        const goToPortalBtn = document.getElementById('goToPortalBtn');
+        if (goToPortalBtn) {
+            goToPortalBtn.addEventListener('click', () => {
+                window.location.href = portalUrl;
+            });
+        }
         const logoutBtn = document.getElementById('publicLogoutBtn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {

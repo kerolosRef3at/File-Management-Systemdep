@@ -4,6 +4,7 @@ import { userService, logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert, showConfirmModal } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
+import { escapeHTML } from '../shared/utils.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Guards access: Users Page is strictly restricted to Supervisor role
@@ -318,18 +319,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="user-cell" style="display:flex; align-items:center; gap:12px;">
                         <div class="user-avatar" style="
                             width: 36px; height: 36px; border-radius: 50%; background-color: var(--primary-dark); color: var(--white); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem;
-                        ">${initial}</div>
+                        ">${escapeHTML(initial)}</div>
                         <div class="user-details">
                             <h5 style="font-size:0.95rem; color:var(--primary-dark); margin:0; display:flex; align-items:center; gap:8px;">
-                                ${user.username} ${protectedBadge}
+                                ${escapeHTML(user.username)} ${protectedBadge}
                             </h5>
-                            <span style="font-size:0.8rem; color:var(--text-gray);">${user.email}</span>
+                            <span style="font-size:0.8rem; color:var(--text-gray);">${escapeHTML(user.email)}</span>
                         </div>
                     </div>
                 </td>
-                <td><span class="role-badge ${getRoleBadgeClass(user.role)}" style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block;">${getRoleDisplay(user.role)}</span></td>
-                <td style="color: var(--text-gray); font-size: 0.9rem;">${user.phone || 'N/A'}</td>
-                <td style="color: var(--text-gray); font-size: 0.9rem;">${user.joined}</td>
+                <td><span class="role-badge ${getRoleBadgeClass(user.role)}" style="padding:4px 12px; border-radius:12px; font-size:0.75rem; font-weight:600; display:inline-block;">${escapeHTML(getRoleDisplay(user.role))}</span></td>
+                <td style="color: var(--text-gray); font-size: 0.9rem;">${escapeHTML(user.phone || 'N/A')}</td>
+                <td style="color: var(--text-gray); font-size: 0.9rem;">${escapeHTML(user.joined)}</td>
                 <td>
                     <button class="action-btn delete-user-btn" data-id="${user.id}" title="${deleteTitle}" ${deleteDisabled} style="background:none; border:none; cursor:${canDelete ? 'pointer' : 'not-allowed'}; color:var(--text-gray); transition:0.3s;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>

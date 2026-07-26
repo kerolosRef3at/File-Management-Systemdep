@@ -2,6 +2,39 @@
 import { authService, logService } from '../shared/services.js';
 import { showAlert } from '../shared/components.js';
 
+const LOGIN_ATTEMPTS_KEY = 'aitu_login_attempts';
+const LOGIN_LOCKOUT_KEY = 'aitu_login_lockout';
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function checkLockout() {
+    const lockoutUntil = parseInt(localStorage.getItem(LOGIN_LOCKOUT_KEY) || '0', 10);
+    if (lockoutUntil > Date.now()) {
+        const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
+        return { locked: true, remaining };
+    }
+    localStorage.removeItem(LOGIN_LOCKOUT_KEY);
+    return { locked: false };
+}
+
+function recordFailedAttempt() {
+    let attempts = parseInt(localStorage.getItem(LOGIN_ATTEMPTS_KEY) || '0', 10);
+    attempts++;
+    localStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts));
+    
+    if (attempts >= MAX_ATTEMPTS) {
+        localStorage.setItem(LOGIN_LOCKOUT_KEY, String(Date.now() + LOCKOUT_DURATION));
+        localStorage.setItem(LOGIN_ATTEMPTS_KEY, '0');
+        return true;
+    }
+    return false;
+}
+
+function clearAttempts() {
+    localStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+    localStorage.removeItem(LOGIN_LOCKOUT_KEY);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Hide global loader if present
     const loader = document.getElementById('global-page-loader');
@@ -52,6 +85,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertContainer.style.display = 'none';
             }
 
+            const lockoutStatus = checkLockout();
+            if (lockoutStatus.locked) {
+                showAlert(alertContainer, `Too many failed login attempts. Please wait ${lockoutStatus.remaining} seconds before trying again.`, 'error');
+                return;
+            }
+
             const usernameValue = usernameInput.value.trim();
             const passwordValue = passwordInput.value;
 
@@ -84,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await authService.login(usernameValue, passwordValue);
                 
                 if (response && response.token) {
+                    clearAttempts();
                     localStorage.setItem('aitu_token', response.token);
                     localStorage.setItem('aitu_role', response.role);
                     localStorage.setItem('aitu_username', response.username);
@@ -109,7 +149,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             } catch (error) {
-                showAlert(alertContainer, error.message || 'Login failed. Please check credentials.', 'error');
+                const isNowLocked = recordFailedAttempt();
+                if (isNowLocked) {
+                    showAlert(alertContainer, 'Too many failed attempts. Account login locked for 5 minutes.', 'error');
+                } else {
+                    showAlert(alertContainer, error.message || 'Login failed. Please check credentials.', 'error');
+                }
             } finally {
                 submitBtn.innerText = originalBtnText;
                 submitBtn.disabled = false;

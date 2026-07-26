@@ -1,10 +1,7 @@
 // js/shared/api.js
+import logger from './logger.js';
 
-
-
-// لو عايز كل حاجة على السيرفر
 export const BASE_URL = 'https://filesystemapi.runasp.net';
-
 
 export async function fetchAPI(endpoint, options = {}) {
     const token = localStorage.getItem('aitu_token');
@@ -12,19 +9,18 @@ export async function fetchAPI(endpoint, options = {}) {
     const defaultOptions = {
         headers: {
             'Content-Type': 'application/json',
-            // 🔥 منع الـ Cache على جميع الطلبات
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
-            'Expires': '0'
+            'Expires': '0',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Client-Version': '1.0.0'
         }
     };
 
-    // إضافة Authorization إذا وجد
     if (token) {
         defaultOptions.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // دمج الخيارات
     const mergedOptions = {
         ...defaultOptions,
         ...options,
@@ -34,24 +30,22 @@ export async function fetchAPI(endpoint, options = {}) {
         }
     };
 
-    // إزالة Content-Type إذا كان body من نوع FormData (لرفع الملفات)
     if (options.body && options.body instanceof FormData) {
         delete mergedOptions.headers['Content-Type'];
     }
 
-    // إضافة timeout إذا لم يكن موجوداً
-    const timeout = options.timeout || 30000; // 30 ثانية افتراضياً
+    const timeout = options.timeout || 30000;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     mergedOptions.signal = controller.signal;
 
     try {
-        console.log(`🌐 ${mergedOptions.method || 'GET'} ${endpoint}`);
+        logger.log(`🌐 ${mergedOptions.method || 'GET'} ${endpoint}`);
         
-const response = await fetch(`${BASE_URL}${endpoint}`, mergedOptions);
-clearTimeout(timeoutId);
+        const response = await fetch(`${BASE_URL}${endpoint}`, mergedOptions);
+        clearTimeout(timeoutId);
 
-console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+        logger.log(`📡 Response status: ${response.status} ${response.statusText}`);
 
 // Handle 401 Unauthorized errors gracefully
 if (response.status === 401) {

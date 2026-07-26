@@ -3,6 +3,7 @@ import { getCurrentUser } from '../shared/auth.js';
 import { fileService, logService, folderService } from '../shared/services.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
+import { escapeHTML, sanitizeFileName, validateFile } from '../shared/utils.js';
 
 /**
  * Opens the Upload Resources modal on top of the current page.
@@ -521,18 +522,22 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
 
     function handleFiles(files) {
         files.forEach(file => {
-            const ext = '.' + file.name.split('.').pop().toLowerCase();
-            if (!ACCEPTED_TYPES.includes(ext)) return;
-            if (file.size > MAX_FILE_SIZE) return;
+            const validation = validateFile(file);
+            if (!validation.valid) {
+                alert(`File "${file.name}" rejected:\n` + validation.errors.join('\n'));
+                return;
+            }
+
+            const cleanName = sanitizeFileName(file.name);
 
             fileQueue.push({
                 id: nextFileId++,
-                name: file.name,
+                name: cleanName,
                 size: file.size,
                 file: file,
                 status: 'draft',
                 progress: 0,
-                title: file.name.split('.')[0],
+                title: cleanName.split('.')[0],
                 abortController: null
             });
         });

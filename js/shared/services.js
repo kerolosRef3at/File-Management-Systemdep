@@ -57,7 +57,7 @@ export const authService = {
     async login(username, password) {
         try {
             const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), 2500);
+            const timer = setTimeout(() => controller.abort(), 10000);
 
             const res = await fetchAPI('/api/Auth/login', {
                 method: 'POST',
@@ -73,67 +73,19 @@ export const authService = {
                 if (res.username || username) localStorage.setItem('aitu_username', res.username || username);
                 return res;
             }
+            throw new Error('Invalid login credentials.');
         } catch (err) {
-            console.warn("Login API endpoint unreachable or error, using fallback authentication:", err);
+            console.error("Login failed:", err);
+            throw new Error(err.message || 'Server is currently unavailable. Please try again later.');
         }
-
-        // Seamless fallback authentication when API endpoint is unavailable
-        const allKnownUsers = [
-            ...(mock.mockUsers || []),
-            ...JSON.parse(localStorage.getItem('aitu_created_users') || '[]')
-        ];
-        const matchedUser = allKnownUsers.find(u => 
-            String(u.username || '').toLowerCase() === String(username || '').toLowerCase() ||
-            String(u.email || '').toLowerCase() === String(username || '').toLowerCase()
-        );
-
-        let lowerName = String(username || '').toLowerCase();
-        let userRole = 'Supervisor';
-        if (matchedUser && matchedUser.role) {
-            userRole = matchedUser.role;
-        } else if (lowerName.includes('admin') || lowerName.includes('super') || lowerName.includes('fares')) {
-            userRole = 'Supervisor';
-        } else if (/\s+manager$/i.test(username)) {
-            userRole = username;
-        } else {
-            userRole = 'IT Manager';
-        }
-
-        const resolvedUsername = matchedUser ? matchedUser.username : (username || 'admin');
-        const userEmail = matchedUser ? matchedUser.email : (resolvedUsername.includes('@') ? resolvedUsername : `${resolvedUsername}@aitu.edu.eg`);
-        const userName = matchedUser ? (matchedUser.name || matchedUser.username) : resolvedUsername;
-
-        const mustChangePw = (matchedUser && matchedUser.mustChangePassword) ||
-                             localStorage.getItem('aitu_force_change_password_' + resolvedUsername.toLowerCase()) === 'true';
-
-        const mockToken = generateMockJWT({ 
-            username: resolvedUsername, 
-            role: userRole, 
-            email: userEmail,
-            name: userName
-        });
-
-        const fallbackRes = {
-            token: mockToken,
-            role: userRole,
-            username: resolvedUsername,
-            mustChangePassword: mustChangePw
-        };
-
-        if (mustChangePw) {
-            localStorage.setItem('aitu_must_change_password', 'true');
-        }
-
-        localStorage.setItem('aitu_token', fallbackRes.token);
-        localStorage.setItem('aitu_role', fallbackRes.role);
-        localStorage.setItem('aitu_username', fallbackRes.username);
-        return fallbackRes;
     },
 
     async verifyPassword(password) {
         if (!password || String(password).trim() === '') return false;
         const currentUser = this.getCurrentUser();
-        const username = currentUser?.username || localStorage.getItem('aitu_username') || 'admin';
+        const username = currentUser?.username || localStorage.getItem('aitu_username') || '';
+        if (!username) return false;
+
         try {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), 4000);
@@ -144,9 +96,11 @@ export const authService = {
             });
             clearTimeout(timer);
             if (res && (res.success || res.valid || res.status === 200)) return true;
-        } catch (e) { }
-
-        return String(password).trim().length >= 3;
+            return false;
+        } catch (e) {
+            console.error('Password verification failed - API unreachable:', e);
+            return false;
+        }
     },
 
     logout() {
@@ -154,23 +108,31 @@ export const authService = {
         if (user) {
             logService.addLog(user.username, user.role, "Logout", "System");
         }
-        localStorage.removeItem('aitu_token');
-        localStorage.removeItem('aitu_refresh_token');
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('aitu_')) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        sessionStorage.clear();
     },
 
     getCurrentUser() {
         const token = localStorage.getItem('aitu_token');
         if (!token) return null;
         let decoded = decodeJWT(token);
+        if (decoded && decoded.exp) {
+            const now = Math.floor(Date.now() / 1000);
+            if (decoded.exp < now) {
+                console.warn('JWT session expired. Logging out.');
+                this.logout();
+                return null;
+            }
+        }
         if (!decoded) {
-            const fallbackRole = localStorage.getItem('aitu_role') || 'Supervisor';
-            const fallbackUser = localStorage.getItem('aitu_username') || 'admin';
-            decoded = {
-                sub: fallbackUser,
-                role: fallbackRole,
-                email: `${fallbackUser}@aitu.edu.eg`,
-                name: fallbackUser
-            };
+            return null;
         }
 
         // ✅ جيب الـ role من الـ claim الصح
