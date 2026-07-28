@@ -1,15 +1,6 @@
 // js/shared/mockData.js
 
-export const mockUsers = [
-    { id: 1, username: "admin", email: "admin@university.edu", phone: "01012345678", role: "Supervisor", joined: "2025-01-15", isProtected: true, name: "admin" },
-    { id: 2, username: "j.carter", email: "j.carter@university.edu", phone: "01123456789", role: "IT Manager", joined: "2025-03-22", isProtected: false, name: "j.carter" },
-    { id: 3, username: "m.silva", email: "m.silva@university.edu", phone: "01234567890", role: "EL Manager", joined: "2025-04-10", isProtected: false, name: "m.silva" },
-    { id: 4, username: "r.hayes", email: "r.hayes@university.edu", phone: "01545678901", role: "Mechanical Manager", joined: "2025-05-27", isProtected: false, name: "r.hayes" },
-    { id: 5, username: "k.nguyen", email: "k.nguyen@university.edu", phone: "01098765432", role: "IT Manager", joined: "2025-07-18", isProtected: false, name: "k.nguyen" },
-    { id: 6, username: "aitu.localadmin", email: "admin@aitu.local", phone: "01011223344", role: "Supervisor", joined: "2026-06-27", isProtected: true, name: "aitu.localadmin" },
-    { id: 7, username: "faresdiaa2005", email: "faresdiaa2005@gmail.com", phone: "01555191529", role: "Supervisor", joined: "2026-07-21", isProtected: true, name: "fares diaa" },
-    { id: 8, username: "fares", email: "fares@aitu.edu.eg", phone: "01555191529", role: "Supervisor", joined: "2026-07-21", isProtected: true, name: "fares diaa" }
-];
+export const mockUsers = [];
 
 // The department list. Deliberately EMPTY at module scope.
 //

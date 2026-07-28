@@ -683,13 +683,7 @@ export function showProgressWidget(items = [], type = 'download') {
 // ==========================================
 // 2. File Repository Service
 // ==========================================
-const defaultFallbackFiles = [
-    { id: 1, name: 'Computer Networks & Protocols Lecture Notes.pdf', type: 'PDF', version: 'v1.0', size: '4.2 MB', dept: 'IT', deptId: 'IT', downloads: 128, uploadDate: '2026-07-01', program: 'it-net' },
-    { id: 2, name: 'Database Systems Laboratory Work.docx', type: 'DOCX', version: 'v1.2', size: '2.8 MB', dept: 'IT', deptId: 'IT', downloads: 95, uploadDate: '2026-07-05', program: 'it-db' },
-    { id: 3, name: 'Embedded Systems Microcontrollers Guide.pdf', type: 'PDF', version: 'v2.0', size: '8.5 MB', dept: 'EL', deptId: 'EL', downloads: 210, uploadDate: '2026-07-10', program: 'el-embed' },
-    { id: 4, name: 'Power Electronics Experiments & Circuits.pptx', type: 'PPTX', version: 'v1.0', size: '15.1 MB', dept: 'EL', deptId: 'EL', downloads: 140, uploadDate: '2026-07-12', program: 'el-power' },
-    { id: 5, name: 'Mechanical CAD Blueprints & Manuals.zip', type: 'ZIP', version: 'v3.1', size: '45.0 MB', dept: 'ME', deptId: 'ME', downloads: 320, uploadDate: '2026-07-15', program: 'me-cad' }
-];
+const defaultFallbackFiles = [];
 
 export const fileService = {
  async getFiles(dept = null, search = null) {
@@ -701,7 +695,7 @@ export const fileService = {
         if (params.length > 0) url += '?' + params.join('&');
 
         const backendFiles = await fetchAPI(url);
-        if (Array.isArray(backendFiles) && backendFiles.length > 0) {
+        if (Array.isArray(backendFiles)) {
             return backendFiles.map(f => {
                 const deptId = getDeptId(f.dept);
                 return {
@@ -720,9 +714,9 @@ export const fileService = {
             });
         }
     } catch (err) {
-        console.warn("API failed to get files, using fallback repository files:", err);
+        console.warn("API failed to get files:", err);
     }
-    return defaultFallbackFiles;
+    return [];
 },
 
     // Upload a course thumbnail image; returns { url } to store instead of base64.
@@ -1043,11 +1037,7 @@ export const fileService = {
 // ==========================================
 // 3. Folder Management Service
 // ==========================================
-const defaultFallbackFolders = [
-    { id: 101, name: 'Information Technology', isDepartment: true, code: 'IT', shortName: 'IT', label: 'Information Technology', icon: 'monitor' },
-    { id: 102, name: 'Electrical Engineering', isDepartment: true, code: 'EL', shortName: 'EL', label: 'Electrical Engineering', icon: 'zap' },
-    { id: 103, name: 'Mechanical Engineering', isDepartment: true, code: 'ME', shortName: 'ME', label: 'Mechanical Engineering', icon: 'settings' }
-];
+const defaultFallbackFolders = [];
 
 export const folderService = {
     async getFolders() {
@@ -1073,16 +1063,12 @@ export const folderService = {
             const res = await fetchAPI('/api/Folders', { signal: controller.signal });
             clearTimeout(timer);
 
-            if (Array.isArray(res) && res.length > 0) {
+            if (Array.isArray(res)) {
                 liveFolders = res;
             }
         } catch (err) {
             console.warn("API getFolders failed:", err);
-            liveFolders = defaultFallbackFolders;
-        }
-
-        if (!Array.isArray(liveFolders) || liveFolders.length === 0) {
-            liveFolders = defaultFallbackFolders;
+            liveFolders = [];
         }
 
         const createdLocal = JSON.parse(localStorage.getItem('aitu_created_folders') || '[]');
@@ -1353,11 +1339,7 @@ export const userService = {
             }
         } catch (e) {}
 
-        return [
-            { id: 101, name: 'Information Technology', code: 'IT', icon: 'monitor' },
-            { id: 102, name: 'Electrical Engineering', code: 'EL', icon: 'zap' },
-            { id: 103, name: 'Mechanical Engineering', code: 'ME', icon: 'settings' }
-        ];
+        return [];
     },
 
     async getRoles() {
@@ -1392,7 +1374,6 @@ export const userService = {
         }
 
         const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');
-        const baseMock = mock.mockUsers || [];
         const deletedList = (JSON.parse(localStorage.getItem('aitu_deleted_users') || '[]')).map(x => String(x).toLowerCase());
 
         const allCombined = [];
@@ -1410,7 +1391,6 @@ export const userService = {
 
         apiUsers.forEach(addUser);
         created.forEach(addUser);
-        baseMock.forEach(addUser);
 
         return allCombined;
     },

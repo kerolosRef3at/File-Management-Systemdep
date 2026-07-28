@@ -1935,10 +1935,7 @@ function showPasswordConfirmModal({ itemName, onConfirm }) {
                     verified = true;
                 }
             } catch (err) {
-                // Fallback for local testing
-                if (password === 'Admin123' || password === 'Admin@123' || password === 'admin' || (user && user.password === password)) {
-                    verified = true;
-                }
+                console.warn('Password verification via login API failed:', err);
             }
 
             if (!verified) {
