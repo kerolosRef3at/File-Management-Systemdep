@@ -68,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderDashboard(content, {
                 stats,
                 downloads: m.downloadVelocity || [],
+                courseDownloads: m.courseVelocity || [],
+                programVelocity: m.programVelocity || [],
                 resourceMix: m.resourceMix || {},
                 programDownloads: m.programDownloads || {},
                 documents: (m.highImpactDocuments || []).slice(0, 5),
@@ -121,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // --- Main render ---
-    function renderDashboard(container, { stats, downloads, resourceMix, programDownloads, documents, events }) {
+    function renderDashboard(container, { stats, downloads, courseDownloads, programVelocity, resourceMix, programDownloads, documents, events }) {
         const user = getCurrentUser();
         const rawUserDisplayName = user ? (user.name || user.username) : 'User';
         const userDisplayName = String(rawUserDisplayName || '').includes('@') ? String(rawUserDisplayName).split('@')[0] : rawUserDisplayName;
@@ -161,11 +163,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <!-- Charts Row -->
             <div class="dash-charts-row">
-                <!-- Download Velocity -->
+                <!-- Download Velocity (Combined Multi-Line Chart) -->
                 <div class="dash-chart-card">
-                    <div class="dash-chart-header">
-                        <h3 class="dash-chart-title">${t('dash_download_velocity')}</h3>
-                        <div style="display:flex;align-items:center;gap:8px;">
+                    <div class="dash-chart-header" style="flex-wrap:wrap; gap:12px;">
+                        <div>
+                            <h3 class="dash-chart-title">${t('dash_download_velocity')}</h3>
+                            <div style="display:flex; align-items:center; gap:16px; margin-top:6px; font-size:12px; font-weight:600;">
+                                <span style="display:flex; align-items:center; gap:6px; color:#e63946;">
+                                    <span style="width:10px; height:10px; border-radius:50%; background:#e63946; display:inline-block;"></span>
+                                    ${t('dash_course_downloads_velocity')}
+                                </span>
+                                <span style="display:flex; align-items:center; gap:6px; color:#1A3CAA;">
+                                    <span style="width:10px; height:10px; border-radius:50%; background:#1A3CAA; display:inline-block;"></span>
+                                    ${t('dash_program_downloads_velocity')}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px; margin-left:auto;">
                             <select id="chartYearSelect" class="dash-year-select" style="font-size:13px; font-weight:700; color:#1a3caa; background:#f4f6fb; border:1px solid #e8ecf4; border-radius:8px; padding:4px 10px; cursor:pointer; outline:none; transition:all 0.2s;">
                                 <option value="2026" ${currentYear === 2026 ? 'selected' : ''}>2026</option>
                                 <option value="2025" ${currentYear === 2025 ? 'selected' : ''}>2025</option>
@@ -188,7 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </div>
                     </div>
                     <div class="dash-velocity-chart" id="velocityChartContainer">
-                        ${renderVelocityChartSVG(downloads)}
+                        ${renderMultiVelocityChartSVG(courseDownloads, programVelocity, isAr ? 'الكورسات' : 'Courses', isAr ? 'البرامج والمكتبة' : 'Programs', '#e63946', '#1A3CAA')}
                     </div>
                 </div>
 
@@ -315,20 +329,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
     }
 
-    // --- Velocity Chart SVG ---
-    function renderVelocityChartSVG(data) {
-        if (!data || !data.length) return '<div style="color:#6B7A99;text-align:center;padding:40px;">No data available</div>';
+    // --- Multi-Line Velocity Chart SVG ---
+    function renderMultiVelocityChartSVG(series1Data, series2Data, label1 = 'Courses', label2 = 'Programs', color1 = '#e63946', color2 = '#1A3CAA') {
+        let data1 = Array.isArray(series1Data) ? series1Data : [];
+        let data2 = Array.isArray(series2Data) ? series2Data : [];
+
+        if (!data1.length && !data2.length) {
+            return '<div style="color:#6B7A99;text-align:center;padding:40px;">No data available</div>';
+        }
+
+        let months = [];
+        if (data1.length) months = data1.map(d => d.month);
+        else if (data2.length) months = data2.map(d => d.month);
+
+        const counts1 = months.map((m, idx) => (data1[idx] && typeof data1[idx].count === 'number') ? data1[idx].count : 0);
+        const counts2 = months.map((m, idx) => (data2[idx] && typeof data2[idx].count === 'number') ? data2[idx].count : 0);
+
+        const allCounts = [...counts1, ...counts2];
+        const rawMin = Math.min(...allCounts, 0);
+        const rawMax = Math.max(...allCounts, 1);
 
         const W = 700, H = 300;
         const padL = 55, padR = 20, padT = 20, padB = 75;
         const chartW = W - padL - padR;
         const chartH = H - padT - padB;
 
-        const counts = data.map(d => d.count);
-        const rawMin = Math.min(...counts);
-        const rawMax = Math.max(...counts);
-
-        // ---- Dynamic "nice" Y-axis scaling ----
         function niceNum(val, round) {
             if (val <= 0) return 1;
             const exp = Math.floor(Math.log10(val));
@@ -365,29 +390,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             yTickCount = Math.round((maxVal - minVal) / tickStep);
         }
         const range = maxVal - minVal || 1;
+        const xStep = months.length > 1 ? chartW / (months.length - 1) : chartW;
 
-        const xStep = data.length > 1 ? chartW / (data.length - 1) : chartW;
-
-        const points = data.map((d, i) => {
-            const x = padL + (data.length > 1 ? i * xStep : chartW / 2);
-            const y = padT + chartH - ((d.count - minVal) / range) * chartH;
-            return { x, y, ...d };
+        const points1 = months.map((m, i) => {
+            const x = padL + (months.length > 1 ? i * xStep : chartW / 2);
+            const count = counts1[i];
+            const y = padT + chartH - ((count - minVal) / range) * chartH;
+            return { x, y, month: m, count };
         });
 
-        // Build smooth path (cubic bezier)
-        let pathD = 'M ' + points[0].x + ' ' + points[0].y;
-        for (let i = 1; i < points.length; i++) {
-            const cpX1 = points[i-1].x + xStep * 0.4;
-            const cpY1 = points[i-1].y;
-            const cpX2 = points[i].x - xStep * 0.4;
-            const cpY2 = points[i].y;
-            pathD += ' C ' + cpX1 + ' ' + cpY1 + ', ' + cpX2 + ' ' + cpY2 + ', ' + points[i].x + ' ' + points[i].y;
+        const points2 = months.map((m, i) => {
+            const x = padL + (months.length > 1 ? i * xStep : chartW / 2);
+            const count = counts2[i];
+            const y = padT + chartH - ((count - minVal) / range) * chartH;
+            return { x, y, month: m, count };
+        });
+
+        function buildBezierPath(pts) {
+            if (!pts || !pts.length) return '';
+            let pathD = 'M ' + pts[0].x + ' ' + pts[0].y;
+            for (let i = 1; i < pts.length; i++) {
+                const cpX1 = pts[i-1].x + xStep * 0.4;
+                const cpY1 = pts[i-1].y;
+                const cpX2 = pts[i].x - xStep * 0.4;
+                const cpY2 = pts[i].y;
+                pathD += ' C ' + cpX1 + ' ' + cpY1 + ', ' + cpX2 + ' ' + cpY2 + ', ' + pts[i].x + ' ' + pts[i].y;
+            }
+            return pathD;
         }
 
-        // Area path
-        const areaD = pathD + ' L ' + points[points.length-1].x + ' ' + (padT + chartH) + ' L ' + points[0].x + ' ' + (padT + chartH) + ' Z';
+        const pathD1 = buildBezierPath(points1);
+        const pathD2 = buildBezierPath(points2);
 
-        // Y-axis ticks (dynamic)
+        const areaD1 = pathD1 ? (pathD1 + ' L ' + points1[points1.length-1].x + ' ' + (padT + chartH) + ' L ' + points1[0].x + ' ' + (padT + chartH) + ' Z') : '';
+        const areaD2 = pathD2 ? (pathD2 + ' L ' + points2[points2.length-1].x + ' ' + (padT + chartH) + ' L ' + points2[0].x + ' ' + (padT + chartH) + ' Z') : '';
+
         let yTicks = '';
         for (let i = 0; i <= yTickCount; i++) {
             const val = minVal + tickStep * i;
@@ -396,42 +433,53 @@ document.addEventListener('DOMContentLoaded', async () => {
             yTicks += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="end" font-family="system-ui">' + formatNumber(Math.round(val)) + '</text>';
         }
 
-        // X-axis labels
         let xLabels = '';
-        const shouldRotate = data.length > 8;
+        const shouldRotate = months.length > 8;
         const xLabelY = padT + chartH + (shouldRotate ? 26 : 22);
-        const targetLabels = Math.min(data.length, 12);
-        const labelSkip = Math.max(1, Math.ceil(data.length / targetLabels));
+        const targetLabels = Math.min(months.length, 12);
+        const labelSkip = Math.max(1, Math.ceil(months.length / targetLabels));
 
-        points.forEach((p, i) => {
-            if (data.length > 12 && i !== 0 && i !== points.length - 1 && i % labelSkip !== 0) return;
+        months.forEach((m, i) => {
+            const x = padL + (months.length > 1 ? i * xStep : chartW / 2);
+            if (months.length > 12 && i !== 0 && i !== months.length - 1 && i % labelSkip !== 0) return;
             if (shouldRotate) {
-                xLabels += '<text x="' + (p.x - 2) + '" y="' + xLabelY + '" fill="#6B7A99" font-size="10" font-weight="500" text-anchor="end" font-family="system-ui" transform="rotate(-30,' + (p.x - 2) + ',' + xLabelY + ')">' + p.month + '</text>';
+                xLabels += '<text x="' + (x - 2) + '" y="' + xLabelY + '" fill="#6B7A99" font-size="10" font-weight="500" text-anchor="end" font-family="system-ui" transform="rotate(-30,' + (x - 2) + ',' + xLabelY + ')">' + m + '</text>';
             } else {
-                xLabels += '<text x="' + p.x + '" y="' + xLabelY + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui">' + p.month + '</text>';
+                xLabels += '<text x="' + x + '" y="' + xLabelY + '" fill="#6B7A99" font-size="11" font-weight="500" text-anchor="middle" font-family="system-ui">' + m + '</text>';
             }
         });
 
-        // Dots
-        let dots = '';
-        // If too many points, show dots only on labeled positions + hover line approach
-        const showAllDots = data.length <= 20;
-        points.forEach((p, i) => {
+        let dots1 = '';
+        const showAllDots = months.length <= 20;
+        points1.forEach((p) => {
             const r = showAllDots ? '4' : '3';
-            dots += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="#1A3CAA" stroke="#fff" stroke-width="2" style="cursor:pointer" opacity="' + (showAllDots ? '1' : '0.8') + '"><title>' + p.month + ': ' + formatNumber(p.count) + ' downloads</title></circle>';
+            dots1 += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + color1 + '" stroke="#fff" stroke-width="2" style="cursor:pointer"><title>' + label1 + ' (' + p.month + '): ' + formatNumber(p.count) + ' downloads</title></circle>';
         });
+
+        let dots2 = '';
+        points2.forEach((p) => {
+            const r = showAllDots ? '4' : '3';
+            dots2 += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + color2 + '" stroke="#fff" stroke-width="2" style="cursor:pointer"><title>' + label2 + ' (' + p.month + '): ' + formatNumber(p.count) + ' downloads</title></circle>';
+        });
+
+        const gradId1 = 'areaGrad_c1_' + Math.random().toString(36).substring(2, 8);
+        const gradId2 = 'areaGrad_c2_' + Math.random().toString(36).substring(2, 8);
 
         return '<svg viewBox="0 0 ' + W + ' ' + H + '">' +
             '<defs>' +
-            '<linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1A3CAA" stop-opacity="0.15"/><stop offset="100%" stop-color="#1A3CAA" stop-opacity="0"/></linearGradient>' +
+            '<linearGradient id="' + gradId1 + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + color1 + '" stop-opacity="0.18"/><stop offset="100%" stop-color="' + color1 + '" stop-opacity="0"/></linearGradient>' +
+            '<linearGradient id="' + gradId2 + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + color2 + '" stop-opacity="0.15"/><stop offset="100%" stop-color="' + color2 + '" stop-opacity="0"/></linearGradient>' +
             '<clipPath id="chartClip"><rect x="0" y="0" width="' + W + '" height="' + H + '" class="chart-clip-rect"/></clipPath>' +
             '</defs>' +
             yTicks +
             '<g clip-path="url(#chartClip)">' +
-            '<path d="' + areaD + '" fill="url(#areaGrad)"/>' +
-            '<path d="' + pathD + '" fill="none" stroke="#1A3CAA" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '<path d="' + areaD1 + '" fill="url(#' + gradId1 + ')"/>' +
+            '<path d="' + pathD1 + '" fill="none" stroke="' + color1 + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+            '<path d="' + areaD2 + '" fill="url(#' + gradId2 + ')"/>' +
+            '<path d="' + pathD2 + '" fill="none" stroke="' + color2 + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
             '</g>' +
-            dots +
+            dots1 +
+            dots2 +
             xLabels +
             '</svg>';
     }
@@ -709,8 +757,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (container) {
             container.innerHTML = '<div class="dash-skeleton" style="height:240px;border-radius:8px;"></div>';
             try {
-                const downloads = await dashboardService.getDownloads(currentYear);
-                container.innerHTML = renderVelocityChartSVG(downloads);
+                const courseDl = await dashboardService.getCourseDownloads(currentYear);
+                const progDl = await dashboardService.getProgramDownloadsVelocity(currentYear);
+                const isAr = getCurrentLang() === 'ar';
+                const label1 = isAr ? 'الكورسات' : 'Courses';
+                const label2 = isAr ? 'البرامج والمكتبة' : 'Programs';
+                container.innerHTML = renderMultiVelocityChartSVG(courseDl, progDl, label1, label2, '#e63946', '#1A3CAA');
             } catch (err) {
                 container.innerHTML = '<div style="color:#E63946;text-align:center;padding:40px;">Failed to load chart data</div>';
             }

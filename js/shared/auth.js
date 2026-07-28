@@ -52,8 +52,11 @@ export function protectPage(allowedRoles = []) {
         return false;
     }
 
+    const unameLower = user.username ? String(user.username).toLowerCase() : '';
     const mustChangePw = localStorage.getItem('aitu_must_change_password') === 'true' ||
-                         (user.username && localStorage.getItem('aitu_force_change_password_' + user.username.toLowerCase()) === 'true');
+                         user.mustChangePassword === true ||
+                         (unameLower && localStorage.getItem('aitu_force_change_password_' + unameLower) === 'true') ||
+                         (unameLower && localStorage.getItem('aitu_must_change_password_' + unameLower) === 'true');
 
     const currentPage = (window.location.pathname.split('/').pop() || '').toLowerCase();
     if (mustChangePw && currentPage !== 'reset-password.html') {

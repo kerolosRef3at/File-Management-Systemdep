@@ -1024,10 +1024,6 @@ if (currentProgram) {
                 const file = allFiles.find(f => f.id.toString() === fileId.toString());
                 if (file) {
                     const isAr = getCurrentLang() === 'ar';
-                    showDownloadToast(
-                        isAr ? 'جاري بدء التحميل...' : 'Starting Download...',
-                        isAr ? `سيتم تحميل ملف "${file.name}" الآن.` : `File "${file.name}" will start downloading now.`
-                    );
 
                     // Uncheck if selected
                     if (selectedFiles.has(fileId.toString())) {
@@ -1036,11 +1032,23 @@ if (currentProgram) {
                     }
 
                     try {
-                        await fileService.downloadFile(fileId, file.name, file);
-                        file.downloads = (file.downloads || 0) + 1;
-                        renderFiles(getFilteredFiles());
+                        const res = await fileService.downloadFile(fileId, file.name, file);
+                        if (res && res.success) {
+                            showDownloadToast(
+                                isAr ? 'بدء التحميل...' : 'Starting Download...',
+                                isAr ? `جاري تحميل ملف "${res.name || file.name}".` : `File "${res.name || file.name}" will start downloading now.`,
+                                false
+                            );
+                            file.downloads = (file.downloads || 0) + 1;
+                            renderFiles(getFilteredFiles());
+                        }
                     } catch (err) {
                         console.error('Download error:', err);
+                        showDownloadToast(
+                            isAr ? 'خطأ في التحميل' : 'Download Error',
+                            isAr ? `تعذر جلب الملف "${file.name}" من السيرفر (${err.message || 'خطأ في الاتصال'}).` : `Could not fetch "${file.name}" from server (${err.message || 'Network error'}).`,
+                            true
+                        );
                     }
                 }
             });
@@ -1326,10 +1334,6 @@ if (currentProgram) {
         hideDownloadModal();
 
         const isAr = getCurrentLang() === 'ar';
-        showDownloadToast(
-            isAr ? 'تم بدء تحميل الملفات المحددة' : 'Download Started',
-            isAr ? `جاري تجهيز وتحميل الحزمة (${count} ملفات)...` : `Downloading bundle containing ${count} file(s)...`
-        );
 
         // Clear selection and uncheck items
         selectedFiles.clear();
@@ -1337,16 +1341,39 @@ if (currentProgram) {
         renderFiles(getFilteredFiles());
 
         try {
-            await fileService.downloadZip(ids);
+            const res = await fileService.downloadZip(ids);
+            if (res && res.success) {
+                showDownloadToast(
+                    isAr ? 'بدء التحميل...' : 'Starting Download...',
+                    isAr ? `جاري تحميل الحزمة (${count} ملفات)...` : `Downloading bundle containing ${count} file(s)...`,
+                    false
+                );
+            }
         } catch (err) {
-            // The zip failed. Downloading each file in a tight loop used to drop
-            // large ones (the browser cancels rapid parallel navigations, so the
-            // video died while the small PDF slipped through). Space them out so
-            // each download actually starts.
             console.warn('Zip failed, falling back to individual downloads:', err);
+            let downloadedCount = 0;
             for (let i = 0; i < selectedList.length; i++) {
                 const f = selectedList[i];
-                setTimeout(() => fileService.downloadFile(f.id, f.name, f), i * 1500);
+                try {
+                    const r = await fileService.downloadFile(f.id, f.name, f);
+                    if (r && r.success) downloadedCount++;
+                } catch (e) {
+                    console.error(`Failed to download ${f.name}:`, e);
+                }
+            }
+
+            if (downloadedCount > 0) {
+                showDownloadToast(
+                    isAr ? 'بدء التحميل...' : 'Starting Download...',
+                    isAr ? `تم بدء تحميل ${downloadedCount} ملف من الحزمة.` : `Started downloading ${downloadedCount} file(s) from bundle.`,
+                    false
+                );
+            } else {
+                showDownloadToast(
+                    isAr ? 'خطأ في التحميل' : 'Download Error',
+                    isAr ? 'تعذر جلب الملفات المحددة من السيرفر.' : 'Could not fetch the selected files from the server.',
+                    true
+                );
             }
         }
     });
@@ -1665,7 +1692,7 @@ if (currentProgram) {
     // ========================
     // DOWNLOAD TOAST VISUAL FEEDBACK
     // ========================
-    function showDownloadToast(title, message) {
+    function showDownloadToast(title, message, isError = false) {
         const isAr = getCurrentLang() === 'ar';
         const existing = document.getElementById('downloadToastNotification');
         if (existing) existing.remove();
@@ -1677,7 +1704,7 @@ if (currentProgram) {
             bottom: 24px;
             ${isAr ? 'left: 24px;' : 'right: 24px;'}
             z-index: 999999;
-            background: #08305b;
+            background: ${isError ? '#450a0a' : '#08305b'};
             color: white;
             padding: 14px 20px;
             border-radius: 12px;
@@ -1688,8 +1715,16 @@ if (currentProgram) {
             direction: ${isAr ? 'rtl' : 'ltr'};
             font-family: inherit;
             animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid ${isError ? '#ef4444' : 'rgba(255,255,255,0.1)'};
         `;
+
+        const iconHtml = isError
+            ? `<div style="width:36px; height:36px; border-radius:50%; background:rgba(239,68,68,0.2); color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+               </div>`
+            : `<div style="width:36px; height:36px; border-radius:50%; background:rgba(34,197,94,0.18); color:#22c55e; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+               </div>`;
 
         toast.innerHTML = `
             <style>
@@ -1702,12 +1737,10 @@ if (currentProgram) {
                     to { transform: translateY(20px); opacity: 0; }
                 }
             </style>
-            <div style="width:36px; height:36px; border-radius:50%; background:rgba(34,197,94,0.18); color:#22c55e; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            </div>
+            ${iconHtml}
             <div>
-                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 2px;">${title}</div>
-                <div style="font-size: 0.82rem; color: #cbd5e1;">${message}</div>
+                <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 2px;">${escapeHTML(title)}</div>
+                <div style="font-size: 0.82rem; color: #cbd5e1;">${escapeHTML(message)}</div>
             </div>
         `;
 

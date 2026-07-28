@@ -504,7 +504,9 @@ initBackgroundUploadTracker();
 // =========================================
 // GLOBAL DOWNLOAD / UPLOAD PROGRESS WIDGET
 // =========================================
-export function showProgressWidget(items = [], type = 'download') {
+export function showProgressWidget(items = [], type = 'upload') {
+    if (type === 'download') return;
+
     const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
     let widget = document.getElementById('floatingGlobalWidget');
     if (!widget) {
@@ -530,12 +532,12 @@ export function showProgressWidget(items = [], type = 'download') {
         let overallProg = 0;
         if (total > 0) {
             const sum = queue.reduce((acc, f) => acc + (f.progress || 0), 0);
-        overallProg = Math.round(sum / total);
+            overallProg = Math.round(sum / total);
         }
 
         const titleText = isDone 
-            ? (isAr ? `تم اكتمال تنزيل ${completed} ملف(ات)` : `${completed} downloads complete`)
-            : (isAr ? `جاري تنزيل ${total - completed} ملف(ات)...` : `Downloading ${total - completed} file(s)...`);
+            ? (isAr ? `تم اكتمال رفع ${completed} ملف(ات)` : `${completed} uploads complete`)
+            : (isAr ? `جاري رفع ${total - completed} ملف(ات)...` : `Uploading ${total - completed} file(s)...`);
         const isMaximized = widget.dataset.maximized === 'true';
 
         let filesHtml = '';
@@ -939,7 +941,6 @@ export const fileService = {
 
     async downloadFile(id, filename, fileObj = null) {
         try {
-            showProgressWidget([filename || 'Academic Resource']);
 
             // Two kinds of "file" exist in this app:
             //  - repository files: a numeric id -> /api/Files/download/{id}
@@ -1692,7 +1693,7 @@ export const profileService = {
     }
 };
 
-async function getLiveAggregates(targetYear = null) {
+async function getLiveAggregates(targetYear = null, daysWindow = null) {
     let files = [];
     let courses = [];
     let folders = [];
@@ -1752,36 +1753,100 @@ async function getLiveAggregates(targetYear = null) {
     }));
 
     const monthsList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const nowYear = new Date().getFullYear();
-    const selYear = Number(targetYear) || nowYear;
-    const isCurrentYear = selYear === nowYear;
-    const maxMonthIdx = isCurrentYear ? new Date().getMonth() : 11;
+    const now = new Date();
+    const nowYear = now.getFullYear();
 
+    const courseVelocityMap = {};
+    const programVelocityMap = {};
     const downloadVelocityMap = {};
-    monthsList.slice(0, Math.max(6, maxMonthIdx + 1)).forEach(m => downloadVelocityMap[m] = 0);
 
-    logs.forEach(l => {
-        const dt = l.datetime || l.timestamp;
-        if (dt) {
-            const d = new Date(dt);
-            if (!isNaN(d.getTime()) && (targetYear == null || d.getFullYear() === selYear)) {
-                const mName = monthsList[d.getMonth()];
-                if (downloadVelocityMap[mName] !== undefined) {
-                    downloadVelocityMap[mName] += 1;
-                }
+    const timeKeys = [];
+    const numDays = Number(daysWindow);
+
+    function toLocalDateStr(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+    }
+
+    if (numDays > 0 && numDays <= 90) {
+        // Daily timeline (e.g. Last 7 Days, Last 30 Days)
+        for (let i = numDays - 1; i >= 0; i--) {
+            const d = new Date(now.getTime() - i * 24 * 3600 * 1000);
+            const label = `${d.getDate()} ${monthsList[d.getMonth()]}`;
+            const dateStr = toLocalDateStr(d);
+            timeKeys.push({ label, dateStr });
+            courseVelocityMap[label] = 0;
+            programVelocityMap[label] = 0;
+            downloadVelocityMap[label] = 0;
+        }
+    } else {
+        // Monthly timeline
+        const selYear = Number(targetYear) || nowYear;
+        const isCurrentYear = selYear === nowYear;
+        const maxMonthIdx = isCurrentYear ? now.getMonth() : 11;
+        monthsList.slice(0, Math.max(6, maxMonthIdx + 1)).forEach(m => {
+            timeKeys.push({ label: m, monthIdx: monthsList.indexOf(m) });
+            courseVelocityMap[m] = 0;
+            programVelocityMap[m] = 0;
+            downloadVelocityMap[m] = 0;
+        });
+    }
+
+    function matchKey(dtString) {
+        if (!dtString) return null;
+        const d = new Date(dtString);
+        if (isNaN(d.getTime())) return null;
+
+        if (numDays > 0 && numDays <= 90) {
+            const dateStr = toLocalDateStr(d);
+            const found = timeKeys.find(k => k.dateStr === dateStr);
+            return found ? found.label : null;
+        } else {
+            const selYear = Number(targetYear) || nowYear;
+            if (d.getFullYear() === selYear) {
+                return monthsList[d.getMonth()];
             }
+        }
+        return null;
+    }
+
+    // Repository & Program files downloads
+    files.forEach(f => {
+        const dl = Number(f.downloads) || 0;
+        const k = matchKey(f.uploadDate || f.createdAt || f.created_at);
+        if (k && programVelocityMap[k] !== undefined) {
+            programVelocityMap[k] += dl;
+            downloadVelocityMap[k] += dl;
         }
     });
 
-    files.forEach(f => {
-        const dl = Number(f.downloads) || 0;
-        const dt = f.uploadDate || f.createdAt || f.created_at;
-        if (dt) {
-            const d = new Date(dt);
-            if (!isNaN(d.getTime()) && (targetYear == null || d.getFullYear() === selYear)) {
-                const mName = monthsList[d.getMonth()];
-                if (downloadVelocityMap[mName] !== undefined) {
-                    downloadVelocityMap[mName] += dl;
+    // Courses downloads
+    courses.forEach(c => {
+        const dl = Number(c.downloads) || Number(c.downloadCount) || 0;
+        const k = matchKey(c.createdAt || c.uploadDate || c.created_at);
+        if (k && courseVelocityMap[k] !== undefined) {
+            courseVelocityMap[k] += dl;
+            downloadVelocityMap[k] += dl;
+        }
+    });
+
+    // Logs activity
+    logs.forEach(l => {
+        const k = matchKey(l.datetime || l.timestamp);
+        if (k) {
+            const actionText = String(l.action || '').toLowerCase();
+            const targetText = String(l.target || '').toLowerCase();
+            if (actionText.includes('course') || targetText.includes('course')) {
+                if (courseVelocityMap[k] !== undefined) {
+                    courseVelocityMap[k] += 1;
+                    downloadVelocityMap[k] += 1;
+                }
+            } else {
+                if (programVelocityMap[k] !== undefined) {
+                    programVelocityMap[k] += 1;
+                    downloadVelocityMap[k] += 1;
                 }
             }
         }
@@ -1790,6 +1855,16 @@ async function getLiveAggregates(targetYear = null) {
     const downloadVelocity = Object.keys(downloadVelocityMap).map(m => ({
         month: m,
         count: downloadVelocityMap[m]
+    }));
+
+    const courseVelocity = Object.keys(courseVelocityMap).map(m => ({
+        month: m,
+        count: courseVelocityMap[m]
+    }));
+
+    const programVelocity = Object.keys(programVelocityMap).map(m => ({
+        month: m,
+        count: programVelocityMap[m]
     }));
 
     return {
@@ -1804,6 +1879,8 @@ async function getLiveAggregates(targetYear = null) {
         resourceMix,
         programDownloads,
         downloadVelocity,
+        courseVelocity,
+        programVelocity,
         highImpactDocuments,
         recentEvents
     };
@@ -1819,16 +1896,24 @@ export const dashboardService = {
     // per load and the window was never sent. Call this once, pass the result
     // to the render functions.
     async getMetrics(days = 30) {
+        let apiData = null;
         try {
-            const apiData = await fetchAPI(`/api/Dashboard/metrics?days=${days}`);
-            if (apiData && typeof apiData === 'object' && (apiData.totalFiles !== undefined || apiData.totalCourses !== undefined || apiData.resourceMix)) {
-                return apiData;
-            }
+            apiData = await fetchAPI(`/api/Dashboard/metrics?days=${days}`);
         } catch (err) {
             console.warn("Dashboard metrics API fallback:", err);
         }
 
-        const live = await getLiveAggregates();
+        const live = await getLiveAggregates(null, days);
+
+        if (apiData && typeof apiData === 'object' && (apiData.totalFiles !== undefined || apiData.totalCourses !== undefined || apiData.resourceMix)) {
+            return {
+                ...apiData,
+                downloadVelocity: live.downloadVelocity,
+                courseVelocity: live.courseVelocity,
+                programVelocity: live.programVelocity
+            };
+        }
+
         return {
             totalFiles: live.totalFiles,
             totalCourses: live.totalCourses,
@@ -1839,6 +1924,8 @@ export const dashboardService = {
             pendingTasks: 0,
             netActivity: "Active",
             downloadVelocity: live.downloadVelocity,
+            courseVelocity: live.courseVelocity,
+            programVelocity: live.programVelocity,
             resourceMix: live.resourceMix,
             programDownloads: live.programDownloads,
             highImpactDocuments: live.highImpactDocuments,
@@ -1872,16 +1959,35 @@ export const dashboardService = {
     },
 
     async getDownloads(year) {
-        const selectedYear = Number(year) || new Date().getFullYear();
+        const nowYear = new Date().getFullYear();
+        const selectedYear = Number(year) || nowYear;
+
+        if (selectedYear !== nowYear) {
+            const live = await getLiveAggregates(selectedYear);
+            return live.downloadVelocity;
+        }
+
         try {
             const data = await fetchAPI(`/api/Dashboard/metrics?year=${selectedYear}`);
-            if (Array.isArray(data.downloadVelocity) && data.downloadVelocity.length > 0) {
+            if (data && Array.isArray(data.downloadVelocity) && data.downloadVelocity.length > 0) {
                 return data.downloadVelocity;
             }
         } catch (err) {}
 
         const live = await getLiveAggregates(selectedYear);
         return live.downloadVelocity;
+    },
+
+    async getCourseDownloads(year) {
+        const selectedYear = Number(year) || new Date().getFullYear();
+        const live = await getLiveAggregates(selectedYear);
+        return live.courseVelocity;
+    },
+
+    async getProgramDownloadsVelocity(year) {
+        const selectedYear = Number(year) || new Date().getFullYear();
+        const live = await getLiveAggregates(selectedYear);
+        return live.programVelocity;
     },
 
     async getResourceMix() {

@@ -121,10 +121,14 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                                     <option value="admin">${t('cc_vis_admin')}</option>
                                 </select>
                             </div>
-                            <div class="cc-form-group" style="display:flex;align-items:flex-end;padding-bottom:8px;">
+                            <div class="cc-form-group" style="display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding-bottom:8px;">
                                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;font-weight:500;">
                                     <input type="checkbox" id="ccGuestDownloads" checked style="accent-color:var(--primary-blue);width:16px;height:16px;">
                                     ${t('cc_allow_guest_downloads')}
+                                </label>
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.88rem;font-weight:500;">
+                                    <input type="checkbox" id="ccIsCertified" checked style="accent-color:var(--primary-blue);width:16px;height:16px;">
+                                    ${isAr ? 'عرض شارة "مناهج AITU المعتمدة"' : 'Show "AITU Certified Materials" Badge'}
                                 </label>
                             </div>
                         </div>
@@ -689,6 +693,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         const description = document.getElementById('ccDescription')?.value.trim() || '';
         const visibility = document.getElementById('ccVisibility')?.value || 'public';
         const guestDownloads = document.getElementById('ccGuestDownloads')?.checked ?? true;
+        const isCertified = document.getElementById('ccIsCertified')?.checked ?? true;
 
         if (!title) {
             showAlert(alertsEl, isAr ? 'يرجى إدخال عنوان الكورس.' : 'Please enter a course title.', 'error');
@@ -855,6 +860,8 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 img: thumbnailDataUrl || '',
                 visibility,
                 guestDownloads,
+                isCertified,
+                certified: isCertified,
                 status: targetStatus,
                 size: formatFileSize(totalBytes),
                 author: {
@@ -949,6 +956,9 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
             const guestCheckbox = document.getElementById('ccGuestDownloads');
             if (guestCheckbox) guestCheckbox.checked = course.guestDownloads !== false;
+
+            const certifiedCheckbox = document.getElementById('ccIsCertified');
+            if (certifiedCheckbox) certifiedCheckbox.checked = course.isCertified !== false && course.certified !== false;
 
             // Image Preview
             if (course.img) {

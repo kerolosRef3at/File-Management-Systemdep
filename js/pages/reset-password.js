@@ -123,10 +123,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.removeItem('aitu_must_change_password');
                     localStorage.removeItem('aitu_first_login_username');
                     if (targetUsername) {
-                        localStorage.removeItem('aitu_force_change_password_' + targetUsername.toLowerCase());
+                        const unameLower = String(targetUsername).toLowerCase();
+                        localStorage.removeItem('aitu_force_change_password_' + unameLower);
+                        localStorage.removeItem('aitu_must_change_password_' + unameLower);
 
                         const created = JSON.parse(localStorage.getItem('aitu_created_users') || '[]');
-                        const target = created.find(u => String(u.username || '').toLowerCase() === String(targetUsername).toLowerCase());
+                        const target = created.find(u => String(u.username || '').toLowerCase() === unameLower);
                         if (target) {
                             target.mustChangePassword = false;
                             localStorage.setItem('aitu_created_users', JSON.stringify(created));

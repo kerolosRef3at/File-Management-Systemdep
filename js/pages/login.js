@@ -131,8 +131,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Log login event
                     logService.addLog(response.username, response.role, 'Login', 'Admin Portal');
 
-                    const forcePw = response.mustChangePassword || 
-                                    localStorage.getItem('aitu_force_change_password_' + response.username.toLowerCase()) === 'true';
+                    const unameLower = String(response.username || usernameValue).toLowerCase();
+                    const forcePw = response.mustChangePassword === true ||
+                                    response.mustChangePassword === 'true' ||
+                                    localStorage.getItem('aitu_force_change_password_' + unameLower) === 'true' ||
+                                    localStorage.getItem('aitu_must_change_password_' + unameLower) === 'true';
 
                     if (forcePw) {
                         localStorage.setItem('aitu_must_change_password', 'true');

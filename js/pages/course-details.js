@@ -2,6 +2,7 @@
 import {
     courseService,
     fileService,
+    userService,
     logService,
     showProgressWidget,
     applyCachedImage
@@ -119,26 +120,69 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Calculate dynamic Content Types based on actual files/lessons
         const typesSet = new Set();
+
+        const processFileItem = (item) => {
+            if (!item) return;
+            const fileName = String(item.file || item.fileName || item.name || item.title || '').trim();
+            const extMatch = fileName.match(/\.([a-zA-Z0-9]+)(?:[?#].*)?$/);
+            const ext = extMatch ? extMatch[1].toUpperCase() : '';
+
+            const rawType = String(item.type || '').trim().toUpperCase();
+
+            if (ext) {
+                if (['MP4', 'MKV', 'AVI', 'MOV', 'WEBM'].includes(ext)) {
+                    typesSet.add('VIDEO');
+                } else if (['PDF'].includes(ext)) {
+                    typesSet.add('PDF');
+                } else if (['PPTX', 'PPT'].includes(ext)) {
+                    typesSet.add('PPTX');
+                } else if (['DOCX', 'DOC'].includes(ext)) {
+                    typesSet.add('DOCX');
+                } else if (['XLSX', 'XLS', 'CSV'].includes(ext)) {
+                    typesSet.add('XLSX');
+                } else if (['ZIP', 'RAR', '7Z', 'TAR', 'GZ'].includes(ext)) {
+                    typesSet.add('ZIP');
+                } else if (['IPYNB', 'PY'].includes(ext)) {
+                    typesSet.add('IPYNB');
+                } else {
+                    typesSet.add(ext);
+                }
+            } else if (rawType) {
+                if (['VIDEO', 'MP4', 'MOVIE'].includes(rawType)) {
+                    typesSet.add('VIDEO');
+                } else if (['PDF'].includes(rawType)) {
+                    typesSet.add('PDF');
+                } else if (['PPTX', 'PPT', 'PRESENTATION'].includes(rawType)) {
+                    typesSet.add('PPTX');
+                } else if (['DOCX', 'DOC', 'DOCUMENT'].includes(rawType)) {
+                    typesSet.add('DOCX');
+                } else if (['ZIP', 'RAR', 'ARCHIVE'].includes(rawType)) {
+                    typesSet.add('ZIP');
+                } else {
+                    typesSet.add(rawType);
+                }
+            }
+        };
+
         if (Array.isArray(course.modules)) {
             course.modules.forEach(m => {
                 if (Array.isArray(m.lessons)) {
-                    m.lessons.forEach(l => {
-                        if (l.type) typesSet.add(String(l.type).toUpperCase());
-                        else if (l.file) {
-                            const ext = l.file.split('.').pop()?.toUpperCase();
-                            if (ext && ext.length <= 5) typesSet.add(ext);
-                        }
-                    });
+                    m.lessons.forEach(processFileItem);
+                }
+                if (Array.isArray(m.resources)) {
+                    m.resources.forEach(processFileItem);
                 }
             });
         }
         if (Array.isArray(course.resources)) {
-            course.resources.forEach(r => {
-                if (r.type) typesSet.add(String(r.type).toUpperCase());
-            });
+            course.resources.forEach(processFileItem);
         }
+        if (Array.isArray(course.lessons)) {
+            course.lessons.forEach(processFileItem);
+        }
+
         if (typesSet.size === 0) {
-            typesSet.add('PDF');
+            typesSet.add('DEFAULT');
         }
 
         const formatTypeLabel = (t) => {
@@ -146,16 +190,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 case 'PDF': return isAr ? 'أدلة PDF' : 'PDF Guides';
                 case 'PPTX':
                 case 'PPT': return isAr ? 'عروض تقديمية PPTX' : 'PPTX Presentations';
+                case 'DOCX':
                 case 'DOC':
-                case 'DOCX': return isAr ? 'مستندات Word' : 'Word Documents';
-                case 'XLS':
-                case 'XLSX': return isAr ? 'جداول Excel' : 'Excel Spreadsheets';
+                case 'DOCUMENT': return isAr ? 'مستندات Word' : 'Word Documents';
+                case 'XLSX':
+                case 'XLS': return isAr ? 'جداول Excel' : 'Excel Spreadsheets';
                 case 'ZIP':
-                case 'RAR': return isAr ? 'ملفات مضغوطة ZIP' : 'ZIP Archives';
-                case 'MP4':
-                case 'VIDEO': return isAr ? 'محاضرات فيديو' : 'Video Lectures';
-                case 'PY':
-                case 'IPYNB': return isAr ? 'أكواد Jupyter Notebooks' : 'Jupyter Notebooks';
+                case 'RAR':
+                case 'ARCHIVE': return isAr ? 'ملفات مضغوطة ZIP' : 'ZIP Archives';
+                case 'VIDEO':
+                case 'MP4': return isAr ? 'محاضرات فيديو' : 'Video Lectures';
+                case 'IPYNB':
+                case 'PY': return isAr ? 'أكواد Jupyter Notebooks' : 'Jupyter Notebooks';
+                case 'DEFAULT': return isAr ? 'مستندات وأدلة تعليمية' : 'Educational Documents & Guides';
                 default: return t;
             }
         };
@@ -177,10 +224,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <div>
                     <h1>${escapeHtml(course.title)}</h1>
                     <div class="course-detail-badges">
+                        ${(course.isCertified !== false && course.certified !== false) ? `
                         <span class="cd-badge-certified">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             ${isAr ? 'مناهج AITU المعتمدة' : 'AITU Certified Materials'}
                         </span>
+                        ` : ''}
                         <span class="cd-meta-text">${isAr ? 'مصدر مؤرشف' : 'Archived Resource'}</span>
                         <span class="cd-meta-dot"></span>
                         <span class="cd-meta-text">${isAr ? 'آخر تحديث' : 'Last updated'} ${course.lastUpdated || 'N/A'}</span>
@@ -496,6 +545,15 @@ deleteCourseBtn.addEventListener('click', () => {
             });
         });
 
+        // Author profile modal click
+        const authorLink = document.querySelector('.author-profile-link');
+        if (authorLink) {
+            authorLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showAuthorProfileModal(course.author, course);
+            });
+        }
+
     } catch (error) {
         const lang = getCurrentLang();
         const isAr = lang === 'ar';
@@ -507,6 +565,101 @@ deleteCourseBtn.addEventListener('click', () => {
             loader.classList.add('hide-loader');
             setTimeout(() => loader.remove(), 400);
         }
+    }
+
+    // ============================
+    // AUTHOR PROFILE MODAL LOGIC
+    // ============================
+    async function showAuthorProfileModal(author, course) {
+        const lang = getCurrentLang();
+        const isAr = lang === 'ar';
+        const authorName = author?.name || (isAr ? 'محاضر بـ AITU' : 'AITU Instructor');
+        const authorRole = author?.title || author?.role || (isAr ? 'عضو هيئة التدريس' : 'Faculty Member');
+        const authorBio = author?.bio || (isAr
+            ? 'معد ومطور المناهج الدراسية المعتمدة بجهد أكاديمي متميز في جامعة AITU.'
+            : 'Curriculum author & academic content manager contributing to AITU accredited courses.');
+
+        let matchingUser = null;
+        try {
+            const users = await userService.getUsers();
+            matchingUser = users.find(u =>
+                String(u.username || u.name || '').toLowerCase() === authorName.toLowerCase() ||
+                String(u.email || '').toLowerCase().includes(authorName.toLowerCase())
+            );
+        } catch(e) {}
+
+        const email = matchingUser?.email || `${authorName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'author'}@aitu.edu.eg`;
+        const department = matchingUser?.department || course?.dept || (isAr ? 'القسم الأكاديمي' : 'Academic Department');
+        const avatarInitials = authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'A';
+
+        let modal = document.getElementById('authorProfileModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'authorProfileModal';
+            document.body.appendChild(modal);
+        }
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.6);display:none;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);padding:16px;box-sizing:border-box;';
+
+        modal.innerHTML = `
+            <div class="cd-modal" style="max-width: 480px; width: 100%; padding: 28px; border-radius: 16px; background: #ffffff; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: modalFadeIn 0.25s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
+                    <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b;">
+                        ${isAr ? 'الملف الشخصي للمحاضر' : 'Faculty Member Profile'}
+                    </h3>
+                    <button type="button" id="closeAuthorModal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; line-height: 1;">&times;</button>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #1e3a8a, #3b82f6); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; font-weight: 700; margin: 0 auto 12px; box-shadow: 0 6px 16px rgba(30,58,138,0.25);">
+                        ${avatarInitials}
+                    </div>
+                    <h2 style="margin: 0 0 4px; font-size: 1.25rem; font-weight: 700; color: #0f172a;">${escapeHtml(authorName)}</h2>
+                    <div style="display: inline-block; background: #eff6ff; color: #1d4ed8; font-size: 0.82rem; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid #bfdbfe;">
+                        ${escapeHtml(authorRole)}
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #64748b; font-weight: 500;">${isAr ? 'القسم الأكاديمي:' : 'Department:'}</span>
+                        <strong style="color: #1e293b;">${escapeHtml(String(department).toUpperCase())}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #64748b; font-weight: 500;">${isAr ? 'البريد الإلكتروني:' : 'Email Address:'}</span>
+                        <strong style="color: #1e293b; font-family: monospace; font-size: 0.85rem;">${escapeHtml(email)}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #64748b; font-weight: 500;">${isAr ? 'حالة الحساب:' : 'Account Status:'}</span>
+                        <span style="color: #15803d; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            ${isAr ? 'نشط ومعتمد' : 'Active & Verified'}
+                        </span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 24px;">
+                    <h4 style="margin: 0 0 6px; font-size: 0.88rem; font-weight: 600; color: #475569;">${isAr ? 'نبذة عن المحاضر:' : 'Biography:'}</h4>
+                    <p style="margin: 0; font-size: 0.88rem; color: #334155; line-height: 1.5; background: #fff; padding: 10px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                        ${escapeHtml(authorBio)}
+                    </p>
+                </div>
+
+                <div style="text-align: right;">
+                    <button type="button" id="btnCloseAuthorModal" style="width: 100%; padding: 10px 16px; background: #1e293b; color: white; border: none; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: background 0.2s;">
+                        ${isAr ? 'إغلاق' : 'Close'}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        modal.style.display = 'flex';
+
+        const closeModal = () => { modal.style.display = 'none'; };
+        document.getElementById('closeAuthorModal')?.addEventListener('click', closeModal);
+        document.getElementById('btnCloseAuthorModal')?.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
     }
 
     // ============================
@@ -544,11 +697,7 @@ deleteCourseBtn.addEventListener('click', () => {
                 });
             }
 
-            const widgetItems = filesToDownload.length > 0 
-                ? filesToDownload.map(f => f.name)
-                : [`${currentCourse.title || 'Course'}_Bundle`];
 
-            showProgressWidget(widgetItems, 'download');
 
 // Try server zip download first
 const numericIds = filesToDownload
