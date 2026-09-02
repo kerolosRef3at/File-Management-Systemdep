@@ -1072,13 +1072,15 @@ export const folderService = {
             liveFolders = [];
         }
 
-        const createdLocal = JSON.parse(localStorage.getItem('aitu_created_folders') || '[]');
+        // The server is the only source of truth for folders. We no longer
+        // merge a localStorage copy: those local-only entries could never be
+        // deleted through the API and kept reappearing on every reload, and
+        // they threw the file/category counts off. Purge any leftover copy from
+        // older versions so old phantom departments/programs disappear on their
+        // own the next time the page loads.
+        try { localStorage.removeItem('aitu_created_folders'); } catch (e) {}
+
         const combined = [...liveFolders];
-        createdLocal.forEach(f => {
-            if (!combined.some(x => String(x.id) === String(f.id) || (x.code && f.code && x.code === f.code))) {
-                combined.push(f);
-            }
-        });
 
         try {
             sessionStorage.setItem(cacheKey, JSON.stringify(combined));
@@ -1134,17 +1136,19 @@ export const folderService = {
             return localFolder;
         };
 
-        try {
-            const result = await fetchAPI('/api/Folders', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-            storeLocalFolder();
-            return result || storeLocalFolder();
-        } catch (err) {
-            console.warn('createFolder API endpoint failed, creating local fallback folder:', err);
-            return storeLocalFolder();
-        }
+        // The server is the single source of truth. We do NOT keep a local
+        // copy: a local-only folder can never be deleted through the API and
+        // reappears on every reload (it was merged back in by getFolders).
+        // On success we just clear the folders cache so the next load reflects
+        // the real server state. On failure we throw, so the UI shows the real
+        // reason instead of silently faking a folder that does not exist.
+        void storeLocalFolder; // kept to avoid touching unrelated code paths
+        const result = await fetchAPI('/api/Folders', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        sessionStorage.removeItem('aitu_folders_cache');
+        return result;
     },
 
     async getFolderDetails(id) {

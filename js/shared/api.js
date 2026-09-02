@@ -1,8 +1,8 @@
 // js/shared/api.js
 import logger from './logger.js';
-//export const BASE_URL = 'https://filesystemapi.runasp.net';
+export const BASE_URL = 'https://filesystemapi.runasp.net';
 
-export const BASE_URL = '';
+//export const BASE_URL = '';
 export async function fetchAPI(endpoint, options = {}) {
     const token = localStorage.getItem('aitu_token');
 

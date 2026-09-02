@@ -246,11 +246,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         mockDepartments.forEach(dept => {
             const isActive = currentDept === dept.id;
             const deptIconSvg = getDeptIconSvg(dept.icon);
+            const deptId = String(dept.id || '').toUpperCase();
+            const deptCode = String(dept.shortName || '').toUpperCase();
             const deptFilesCount = allFiles.filter(f => {
                 const fDept = String(f.dept || f.deptId || f.department || '').toUpperCase();
-                const deptId = String(dept.id).toUpperCase();
-                const deptCode = String(dept.shortName || '').toUpperCase();
-                return fDept === deptId || fDept === deptCode;
+                // A file with no department must not be counted anywhere.
+                // Previously an empty fDept matched a card whose code was also
+                // empty/undefined, so every untagged file piled onto one card
+                // (IT), making it show the grand total of all departments.
+                if (!fDept) return false;
+                return fDept === deptId || (deptCode !== '' && fDept === deptCode);
             }).length;
 
             const displayLabel = getDeptDisplayName(dept.label);
@@ -294,10 +299,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                     onConfirm: async () => {
                         const numericId = /^\d+$/.test(String(deptId)) ? parseInt(deptId) : NaN;
                         const targetId = !isNaN(numericId) ? numericId : deptId;
+                        // The delete must actually succeed on the server. If the
+                        // API rejects it (e.g. users still assigned, or a network
+                        // error), STOP here: do not remove it from the screen and
+                        // do not claim success -- otherwise it just comes back on
+                        // the next reload.
                         try {
                             await folderService.deleteFolder(targetId);
                         } catch (err) {
-                            console.warn('Delete dept API notice, removing locally:', err);
+                            const msg = (err && err.message) ? err.message : String(err);
+                            alert((lang === 'ar' ? 'تعذّر حذف القسم: ' : 'Could not delete department: ') + msg);
+                            return;
                         }
 
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Department', deptName);
@@ -629,10 +641,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     onConfirm: async () => {
                         const numericId = /^\d+$/.test(String(catId)) ? parseInt(catId) : NaN;
                         const targetId = !isNaN(numericId) ? numericId : catId;
+                        // Only remove from the screen if the server actually
+                        // deleted it. A rejected delete must surface its reason,
+                        // not be swallowed and faked as success.
                         try {
                             await folderService.deleteFolder(targetId);
                         } catch (err) {
-                            console.warn('Delete category API notice, removing locally:', err);
+                            const msg = (err && err.message) ? err.message : String(err);
+                            alert((lang === 'ar' ? 'تعذّر حذف التخصص: ' : 'Could not delete category: ') + msg);
+                            return;
                         }
 
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Category', catName);
@@ -1066,15 +1083,20 @@ if (currentProgram) {
                 showPasswordConfirmModal({
                     itemName: file.name,
                     onConfirm: async () => {
+                        const isAr = getCurrentLang() === 'ar';
+                        // Delete on the server first. If it fails, keep the file
+                        // on screen and show why -- never fake a success that a
+                        // reload would undo.
                         try {
                             await fileService.deleteFile(fileId);
                         } catch (err) {
-                            console.warn('Delete file API error, removing locally:', err);
+                            const msg = (err && err.message) ? err.message : String(err);
+                            alert((isAr ? 'تعذّر حذف الملف: ' : 'Could not delete file: ') + msg);
+                            return;
                         }
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', file.name);
                         allFiles = allFiles.filter(f => f.id.toString() !== fileId.toString());
                         renderFiles(getFilteredFiles());
-                        const isAr = getCurrentLang() === 'ar';
                         alert(isAr ? 'تم حذف الملف بنجاح.' : 'File deleted successfully.');
                     }
                 });
