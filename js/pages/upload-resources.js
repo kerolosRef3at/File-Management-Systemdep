@@ -602,7 +602,11 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
             if (globalDept) formData.append('department', globalDept);
             if (globalProg) formData.append('program', globalProg);
 
-            const deptCode = globalDept || 'IT';
+            // Never silently fall back to "IT". A file with no department was
+            // being filed under IT, which is exactly why the IT card showed the
+            // grand total of everyone's uploads. The dept is already required
+            // before we get here, so use it as-is.
+            const deptCode = globalDept;
             const customName = nextFile.title || nextFile.name.split('.')[0];
             const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
             const progFolder = selectedProg ? selectedProg.name : '';
@@ -663,7 +667,7 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
 
                 const selectedProg = mockDepartments.find(d => d.id === globalDept)?.programs.find(p => p.id === globalProg);
                 const progFolder = selectedProg ? encodeURIComponent(selectedProg.name) : '';
-                const deptCode = encodeURIComponent(globalDept || 'IT');
+                const deptCode = encodeURIComponent(globalDept);
                 const progName = encodeURIComponent(file.title || file.name.split('.')[0]);
 
                 const url = `${BASE_URL}/api/Files/upload?type=programs&dept=${deptCode}&program=${progFolder}&customName=${progName}`;
