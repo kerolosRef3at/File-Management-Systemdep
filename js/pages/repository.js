@@ -385,15 +385,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const dept = mockDepartments.find(d => d.id === currentDept);
+        // The department may have just been deleted while currentDept still
+        // pointed at it. Bail out instead of reading .id off undefined (that
+        // threw "Cannot read properties of undefined (reading 'id')" right
+        // after a successful delete).
+        if (!dept) {
+            currentDept = null;
+            currentProgram = null;
+            repoBreadcrumb.innerHTML = '';
+            return;
+        }
         let crumbs = `<a href="#" data-nav="home">Repository</a><span class="bc-separator">&rsaquo;</span>`;
         crumbs += `<a href="#" data-nav="dept" data-dept="${dept.id}">${dept.shortName}</a>`;
 
         if (currentProgram) {
-            const prog = dept.programs.find(p => p.id === currentProgram);
-            crumbs += `<span class="bc-separator">&rsaquo;</span>`;
-            crumbs += `<span>Programs</span>`;
-            crumbs += `<span class="bc-separator">&rsaquo;</span>`;
-            crumbs += `<span class="bc-current">${prog.name}</span>`;
+            const prog = (dept.programs || []).find(p => p.id === currentProgram);
+            if (prog) {
+                crumbs += `<span class="bc-separator">&rsaquo;</span>`;
+                crumbs += `<span>Programs</span>`;
+                crumbs += `<span class="bc-separator">&rsaquo;</span>`;
+                crumbs += `<span class="bc-current">${prog.name}</span>`;
+            }
         }
 
         repoBreadcrumb.innerHTML = crumbs;
@@ -442,21 +454,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             subtitle = t('repo_subtitle');
         } else if (browsingMode === 'categories' && currentDept) {
             const dept = mockDepartments.find(d => d.id === currentDept);
-            const deptName = getDeptDisplayName(dept.name);
-            title = deptName;
-            subtitle = lang === 'ar' ? `تصفح الأقسام والبرامج في تخصص ${deptName}.` : `Browse categories and programs in the ${dept.name} department.`;
+            // Just-deleted department: fall back to the home view instead of
+            // reading .name off undefined.
+            if (!dept) {
+                currentDept = null; currentProgram = null; browsingMode = 'departments';
+                title = t('repo_title'); subtitle = t('repo_subtitle');
+            } else {
+                const deptName = getDeptDisplayName(dept.name);
+                title = deptName;
+                subtitle = lang === 'ar' ? `تصفح الأقسام والبرامج في تخصص ${deptName}.` : `Browse categories and programs in the ${dept.name} department.`;
+            }
         } else if (browsingMode === 'files' && currentProgram && currentDept) {
             const dept = mockDepartments.find(d => d.id === currentDept);
-            const prog = dept.programs.find(p => p.id === currentProgram);
-            title = lang === 'ar' ? `موارد ${prog.name}` : `${prog.name} Resources`;
-            subtitle = lang === 'ar' ? `مواد الكورسات الرسمية، الأدلة المعروضة، والمخططات الهندسية.` : `Official course materials, peer-reviewed manuals, and architecture blueprints.`;
-            showToggle = true;
+            const prog = dept ? (dept.programs || []).find(p => p.id === currentProgram) : null;
+            if (!dept || !prog) {
+                currentDept = null; currentProgram = null; browsingMode = 'departments';
+                title = t('repo_title'); subtitle = t('repo_subtitle');
+            } else {
+                title = lang === 'ar' ? `موارد ${prog.name}` : `${prog.name} Resources`;
+                subtitle = lang === 'ar' ? `مواد الكورسات الرسمية، الأدلة المعروضة، والمخططات الهندسية.` : `Official course materials, peer-reviewed manuals, and architecture blueprints.`;
+                showToggle = true;
+            }
         } else if (browsingMode === 'files' && currentDept) {
             const dept = mockDepartments.find(d => d.id === currentDept);
-            const deptName = getDeptDisplayName(dept.name);
-            title = lang === 'ar' ? `ملفات ${deptName}` : `${dept.name} Files`;
-            subtitle = lang === 'ar' ? `تصفح جميع الملفات في تخصص ${deptName}.` : `Browse all files in the ${dept.name} department.`;
-            showToggle = true;
+            if (!dept) {
+                currentDept = null; currentProgram = null; browsingMode = 'departments';
+                title = t('repo_title'); subtitle = t('repo_subtitle');
+            } else {
+                const deptName = getDeptDisplayName(dept.name);
+                title = lang === 'ar' ? `ملفات ${deptName}` : `${dept.name} Files`;
+                subtitle = lang === 'ar' ? `تصفح جميع الملفات في تخصص ${deptName}.` : `Browse all files in the ${dept.name} department.`;
+                showToggle = true;
+            }
         }
 
         repoTitleSection.innerHTML = `
