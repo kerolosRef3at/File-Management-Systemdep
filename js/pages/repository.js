@@ -1714,6 +1714,19 @@ if (currentProgram) {
     // ========================
     // DOWNLOAD TOAST VISUAL FEEDBACK
     // ========================
+    // escapeHTML was used by the toast below but never defined, so every
+    // download threw "escapeHTML is not defined" and the success/error toast
+    // never showed. Define it here: turn any text into safe HTML so a file
+    // name with < > & " can't break the markup.
+    function escapeHTML(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function showDownloadToast(title, message, isError = false) {
         const isAr = getCurrentLang() === 'ar';
         const existing = document.getElementById('downloadToastNotification');
