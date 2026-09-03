@@ -92,6 +92,26 @@ export async function fetchAPI(endpoint, options = {}) {
             return [];
         }
 
+        // Any other non-OK status (400 Bad Request, 409 Conflict, 500, ...) is
+        // a real failure. Without this, fetchAPI fell through and returned the
+        // error BODY as if it were data -- so a rejected delete looked like a
+        // success, the row vanished from the screen, and came back on reload.
+        // Read the server's message so the UI can show why it failed.
+        if (!response.ok) {
+            let serverMessage = '';
+            try {
+                const errData = await response.json();
+                serverMessage = errData?.message || errData?.title || JSON.stringify(errData);
+            } catch {
+                try { serverMessage = await response.text(); } catch { /* ignore */ }
+            }
+            throw new Error(
+                serverMessage && serverMessage.length < 300
+                    ? serverMessage
+                    : `Request failed with status ${response.status}`
+            );
+        }
+
         const contentLength = response.headers.get('content-length');
         if (contentLength === '0') {
             return [];

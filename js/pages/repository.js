@@ -639,6 +639,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showPasswordConfirmModal({
                     itemName: catName,
                     onConfirm: async () => {
+                        const lang = getCurrentLang();
                         const numericId = /^\d+$/.test(String(catId)) ? parseInt(catId) : NaN;
                         const targetId = !isNaN(numericId) ? numericId : catId;
                         // Only remove from the screen if the server actually
