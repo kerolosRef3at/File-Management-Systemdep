@@ -1075,9 +1075,8 @@ export const folderService = {
         // The server is the only source of truth for folders. We no longer
         // merge a localStorage copy: those local-only entries could never be
         // deleted through the API and kept reappearing on every reload, and
-        // they threw the file/category counts off. Purge any leftover copy from
-        // older versions so old phantom departments/programs disappear on their
-        // own the next time the page loads.
+        // threw the counts off. Purge any leftover copy from older versions so
+        // old phantom departments/programs disappear on the next load.
         try { localStorage.removeItem('aitu_created_folders'); } catch (e) {}
 
         const combined = [...liveFolders];
@@ -1138,11 +1137,10 @@ export const folderService = {
 
         // The server is the single source of truth. We do NOT keep a local
         // copy: a local-only folder can never be deleted through the API and
-        // reappears on every reload (it was merged back in by getFolders).
-        // On success we just clear the folders cache so the next load reflects
-        // the real server state. On failure we throw, so the UI shows the real
-        // reason instead of silently faking a folder that does not exist.
-        void storeLocalFolder; // kept to avoid touching unrelated code paths
+        // reappears on every reload (getFolders used to merge it back in). On
+        // success we clear the folders cache so the next load reflects real
+        // server state. On failure we throw so the UI shows the real reason.
+        void storeLocalFolder; // retained to avoid touching unrelated helper
         const result = await fetchAPI('/api/Folders', {
             method: 'POST',
             body: JSON.stringify(payload)
@@ -1816,42 +1814,31 @@ async function getLiveAggregates(targetYear = null, daysWindow = null) {
         return null;
     }
 
-    // Repository & Program files downloads
-    files.forEach(f => {
-        const dl = Number(f.downloads) || 0;
-        const k = matchKey(f.uploadDate || f.createdAt || f.created_at);
-        if (k && programVelocityMap[k] !== undefined) {
-            programVelocityMap[k] += dl;
-            downloadVelocityMap[k] += dl;
-        }
-    });
+    // NOTE: velocity is now computed ONLY from the download logs below, using
+    // each download's real timestamp. The previous code added each file's total
+    // download COUNT onto the file's UPLOAD date, which made the line spike on
+    // the days files were uploaded -- so "Download Velocity" actually traced
+    // uploads. The logs carry the true per-download dates.
 
-    // Courses downloads
-    courses.forEach(c => {
-        const dl = Number(c.downloads) || Number(c.downloadCount) || 0;
-        const k = matchKey(c.createdAt || c.uploadDate || c.created_at);
-        if (k && courseVelocityMap[k] !== undefined) {
-            courseVelocityMap[k] += dl;
-            downloadVelocityMap[k] += dl;
-        }
-    });
-
-    // Logs activity
+    // Logs activity -- count DOWNLOADS only, at their real timestamps.
     logs.forEach(l => {
         const k = matchKey(l.datetime || l.timestamp);
-        if (k) {
-            const actionText = String(l.action || '').toLowerCase();
-            const targetText = String(l.target || '').toLowerCase();
-            if (actionText.includes('course') || targetText.includes('course')) {
-                if (courseVelocityMap[k] !== undefined) {
-                    courseVelocityMap[k] += 1;
-                    downloadVelocityMap[k] += 1;
-                }
-            } else {
-                if (programVelocityMap[k] !== undefined) {
-                    programVelocityMap[k] += 1;
-                    downloadVelocityMap[k] += 1;
-                }
+        if (!k) return;
+        const actionText = String(l.action || '').toLowerCase();
+        // Only real download events belong on this chart. Uploads, deletes,
+        // logins, folder actions, etc. must not inflate it.
+        if (!actionText.includes('download')) return;
+
+        const targetText = String(l.target || l.details || '').toLowerCase();
+        if (actionText.includes('course') || targetText.includes('course')) {
+            if (courseVelocityMap[k] !== undefined) {
+                courseVelocityMap[k] += 1;
+                downloadVelocityMap[k] += 1;
+            }
+        } else {
+            if (programVelocityMap[k] !== undefined) {
+                programVelocityMap[k] += 1;
+                downloadVelocityMap[k] += 1;
             }
         }
     });

@@ -1594,6 +1594,9 @@ if (currentProgram) {
                     shortName: id,
                     label: name.toUpperCase(),
                     icon: icon,
+                    // Real numeric folder id from the server, so deleting this
+                    // department sends the int the API expects (not the code).
+                    dbId: (apiResult && (apiResult.id ?? apiResult.folderId)) ?? undefined,
                     totalFiles: 0,
                     categories: 0,
                     programs: []
@@ -1716,9 +1719,15 @@ if (currentProgram) {
                         );
                     }
 
+                    // Capture the real numeric folder id the server just
+                    // created. Without it the delete button falls back to the
+                    // generated string id ("semester1-0129"), which the API
+                    // rejects with a 400 because it expects an int.
+                    const newDbId = progResult && (progResult.id ?? progResult.folderId);
                     activeDept.programs.push({
                         id: progId,
-                        name: name
+                        name: name,
+                        dbId: newDbId ?? undefined
                     });
                     activeDept.categories = activeDept.programs.length;
                     
