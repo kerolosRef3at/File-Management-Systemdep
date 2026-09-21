@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,105 +7,272 @@
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Login - AITU Admin Portal</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/rtl.css">
-    <script>(function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();</script>
-</head>
+    <title>تسجيل الدخول - جامعة أسيوط التكنولوجية الدولية</title>
+    <link rel="icon" type="image/png" href="logos/logo.png">
 
-<body class="login-page-bg">
+    <link rel="stylesheet" href="css/login.css">
 
-    <!-- Floating Logo Loader -->
-    <div id="global-page-loader">
-        <div class="loader-logo-container">
-            <img src="logos/logo_AITU.jpg" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
-            <div class="loader-ring"></div>
-        </div>
-        <div class="loader-text" data-i18n="loader_text">Loading...</div>
-    </div>
     <script>
-        setTimeout(function() {
-            var loader = document.getElementById('global-page-loader');
-            if (loader) {
-                loader.classList.add('hide-loader');
-                setTimeout(function() { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 300);
-            }
-        }, 300);
+        // Apply saved language instantly
+        (function() {
+            var lang = localStorage.getItem('aitu_lang') || 'ar';
+            var dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.documentElement.setAttribute('dir', dir);
+            document.documentElement.setAttribute('lang', lang);
+        })();
     </script>
+</head>
+<body>
+    <div class="lp-root" id="lpRoot" dir="rtl">
+        <!-- Background Layer with baked-in soft curve -->
+        <div class="lp-bg" id="lpBg" style="background-image: url('background.png');"></div>
 
-    <!-- Floating Lang Toggle -->
-    <div class="auth-lang-float">
-        <button class="lang-toggle-btn" id="langToggleBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            <span class="lang-btn-text" data-i18n="lang_btn">عربي</span>
-        </button>
-    </div>
+        <!-- Readability Veil -->
+        <div class="lp-veil"></div>
 
-    <div class="login-centered-wrapper">
-        <div class="auth-layout">
-            <div class="auth-brand">
-                <div class="auth-brand-header">
-                    <img src="logos/logo_AITU.jpg" alt="AITU Logo" class="auth-brand-logo" onerror="this.src='logos/aitu_logo.png'" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Back to Home">                    <div class="auth-brand-header-text">
-                        <div class="auth-brand-uni-name" data-i18n="auth_uni_name">Assiut International Technological University - AITU</div>
-                        <div class="auth-brand-system-name" data-i18n="auth_system_name">File Management System</div>
-                    </div>
-                </div>
-
-                <div class="auth-brand-content">
-                    <div class="auth-system-pill" style="margin-bottom: 15px; margin-top: 15px;">
-                        <span class="auth-pill-dot"></span>
-                        <span data-i18n="auth_pill">File System</span>
-                    </div>
-
-                    <h1 class="auth-main-title" data-i18n="auth_main_title">File Management System</h1>
-                    <p class="auth-main-desc" data-i18n="auth_main_desc">Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
-                </div>
-
-                <div class="auth-brand-footer" data-i18n="auth_footer">
-                    &copy; 2026 Assiut International Technological University
+        <!-- Header -->
+        <header class="lp-header">
+            <div class="lp-brand">
+                <img src="logos/logo.png" alt="AITU" class="lp-brand-logo" onerror="this.src='logos/logo_AITU.jpg'">
+                <div class="lp-brand-text">
+                    <div class="lp-brand-name" id="lpBrandName">جَامِعَةُ أَسْيُوطَ التِّكْنُولُوجِيَّةُ الدَّوْلِيَّةُ</div>
+                    <div class="lp-brand-sub" id="lpBrandSub">Assiut International Technological University</div>
                 </div>
             </div>
 
-            <div class="auth-form-container">
-                <div class="auth-form-wrapper">
-                    <h2 data-i18n="login_welcome">Welcome Back</h2>
-                    <p data-i18n="login_subtitle">Sign in to your AITU account to continue.</p>
+            <button class="lp-lang" id="lpLangBtn" type="button" aria-label="Switch Language">
+                <span class="lp-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20"/>
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </span>
+                <span class="lp-lang-label" id="lpLangLabel">English</span>
+                <span class="lp-icon lp-chev">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </span>
+            </button>
+        </header>
 
-                    <form id="loginForm">
-                        <div class="form-group">
-                            <label for="username" data-i18n="login_username_label">Username or Email Address</label>
-                            <input type="text" id="username" class="form-control" data-i18n-placeholder="login_username_placeholder" placeholder="Enter Your Username or Email" required>
-                        </div>
+        <!-- Hero Text (Campus Side) -->
+        <div class="lp-hero">
+            <div class="lp-hero-rule"></div>
+            <div class="lp-hero-lines" id="lpHeroLines">
+                <div>نبني عقولًا</div>
+                <div>لمستقبلٍ</div>
+                <div>أكثر إشراقًا</div>
+            </div>
+        </div>
 
-                        <div class="form-group">
-                            <label for="password" data-i18n="login_password_label">Password</label>
-                            <input type="password" id="password" class="form-control has-icon" data-i18n-placeholder="login_password_placeholder" placeholder="Enter Your Password" required>
-                            <span class="toggle-password" id="togglePasswordBtn">
-                                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
+        <!-- Login Card Zone (Positioned over soft curve) -->
+        <div class="lp-card-zone">
+            <div class="lp-card">
+                <img src="logos/logo.png" alt="AITU" class="lp-card-logo" onerror="this.src='logos/logo_AITU.jpg'">
+
+                <div class="lp-card-name" id="lpCardName">جَامِعَةُ أَسْيُوطَ التِّكْنُولُوجِيَّةُ الدَّوْلِيَّةُ</div>
+                <div class="lp-card-sub" id="lpCardSub">Assiut International Technological University</div>
+
+                <div class="lp-card-rule"></div>
+
+                <!-- Mode 1: Login Form -->
+                <form class="lp-form" id="loginForm">
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <span class="input-left-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
                                 </svg>
                             </span>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                class="lp-input" 
+                                placeholder="اسم المستخدم أو البريد الإلكتروني" 
+                                required 
+                                autocomplete="username"
+                            >
                         </div>
+                    </div>
 
-                        <a href="forgot-password.html" class="forgot-link" data-i18n="login_forgot">Forgot Password?</a>
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <span class="input-left-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="4" y="11" width="16" height="10" rx="2"/>
+                                    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                                </svg>
+                            </span>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                class="lp-input" 
+                                placeholder="كلمة المرور" 
+                                required 
+                                autocomplete="current-password"
+                            >
+                            <button type="button" class="lp-pw-toggle" id="togglePasswordBtn" aria-label="Toggle Password Visibility">
+                                <span class="lp-pw-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </span>
+                                <span class="lp-pw-text">إظهار</span>
+                            </button>
+                        </div>
+                    </div>
 
-                        <button type="submit" class="btn-primary btn-block" id="submitBtn" data-i18n="login_submit">Login</button>
+                    <div class="lp-row">
+                        <label class="lp-remember">
+                            <input type="checkbox" id="rememberMe" checked>
+                            <span id="lpRememberLabel">تذكرني</span>
+                        </label>
+                        <button type="button" class="lp-link" id="lpForgotBtn">نسيت كلمة المرور؟</button>
+                    </div>
 
-                        <div id="errorMessage" style="color: red; font-size: 0.85rem; margin-top: 10px; display: none;"></div>
-                    </form>
+                    <div id="errorMessage" class="lp-alert lp-alert-error" style="display:none;"></div>
 
-                </div>
+                    <button type="submit" class="lp-btn-primary" id="submitBtn">
+                        <span id="btnText">تسجيل الدخول</span>
+                        <span class="lp-btn-arrow" id="lpBtnArrow">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="19" y1="12" x2="5" y2="12" />
+                                <polyline points="12 19 5 12 12 5" />
+                            </svg>
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Mode 2: Forgot Password - Send OTP Form -->
+                <form class="lp-form" id="forgotEmailForm" style="display: none;">
+                    <p class="lp-hint" id="fpHint">
+                        أدخل بريدك الإلكتروني وسنرسل لك رمز تحقق لإعادة تعيين كلمة المرور.
+                    </p>
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <span class="input-left-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                </svg>
+                            </span>
+                            <input 
+                                type="email" 
+                                id="fpEmail" 
+                                class="lp-input" 
+                                placeholder="البريد الإلكتروني" 
+                                required 
+                                dir="ltr"
+                            >
+                        </div>
+                    </div>
+
+                    <div id="fpEmailError" class="lp-alert lp-alert-error" style="display:none;"></div>
+
+                    <button type="submit" class="lp-btn-primary" id="sendOtpBtn">
+                        <span id="sendOtpBtnText">إرسال رمز التحقق</span>
+                    </button>
+
+                    <button type="button" class="lp-btn-ghost" id="backToLoginBtn1">
+                        <span id="backToLoginText1">→ رجوع لتسجيل الدخول</span>
+                    </button>
+                </form>
+
+                <!-- Mode 3: Forgot Password - Reset Password Form -->
+                <form class="lp-form" id="forgotResetForm" style="display: none;">
+                    <div id="fpInfoAlert" class="lp-alert lp-alert-success" style="display:none;"></div>
+
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <input 
+                                type="text" 
+                                id="fpOtp" 
+                                class="lp-input" 
+                                placeholder="رمز التحقق (6 أرقام)" 
+                                maxlength="6" 
+                                dir="ltr"
+                                style="text-align: center; letter-spacing: 8px; font-size: 20px; font-weight: 800; padding: 9px 13px;"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <span class="input-left-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="4" y="11" width="16" height="10" rx="2"/>
+                                    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                                </svg>
+                            </span>
+                            <input 
+                                type="password" 
+                                id="fpNewPassword" 
+                                class="lp-input" 
+                                placeholder="كلمة المرور الجديدة" 
+                                required 
+                                minlength="6"
+                                dir="ltr"
+                            >
+                            <button type="button" class="lp-pw-toggle" id="toggleFpNewPasswordBtn" aria-label="Toggle Password Visibility">
+                                <span class="lp-pw-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </span>
+                                <span class="lp-pw-text">إظهار</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="input-field-group">
+                        <div class="input-wrapper">
+                            <span class="input-left-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="4" y="11" width="16" height="10" rx="2"/>
+                                    <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                                </svg>
+                            </span>
+                            <input 
+                                type="password" 
+                                id="fpConfirmPassword" 
+                                class="lp-input" 
+                                placeholder="تأكيد كلمة المرور" 
+                                required 
+                                minlength="6"
+                                dir="ltr"
+                            >
+                            <button type="button" class="lp-pw-toggle" id="toggleFpConfirmPasswordBtn" aria-label="Toggle Password Visibility">
+                                <span class="lp-pw-icon">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </span>
+                                <span class="lp-pw-text">إظهار</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="fpResetError" class="lp-alert lp-alert-error" style="display:none;"></div>
+
+                    <button type="submit" class="lp-btn-primary" id="resetPasswordBtn">
+                        <span id="resetPasswordBtnText">حفظ كلمة المرور الجديدة</span>
+                    </button>
+
+                    <button type="button" class="lp-btn-ghost" id="backToLoginBtn2">
+                        <span id="backToLoginText2">→ رجوع لتسجيل الدخول</span>
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 
     <script type="module" src="js/pages/login.js"></script>
-    <script type="module">
-        import { initLanguage } from './js/shared/jssharedi18n.js';
-        document.addEventListener('DOMContentLoaded', initLanguage);
-    </script>
 </body>
-
 </html>

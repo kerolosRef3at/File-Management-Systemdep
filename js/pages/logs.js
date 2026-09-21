@@ -5,7 +5,7 @@ import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+export async function initLogs() {
     // Guards access: Logs Page is strictly restricted to Supervisor role
     if (!protectPage(['Supervisor'])) {
         return;
@@ -480,4 +480,12 @@ flex-shrink:0; width:30px; height:30px; border-radius:50%; background-color:var(
 
     // Initial load
     await loadLogs();
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('logs')) {
+            initLogs();
+        }
+    });
+}

@@ -5,7 +5,7 @@ import { renderLayout } from '../shared/layout.js';
 import { showAlert } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+export function initProfile() {
     // Guards access: requires authenticated active session
     if (!protectPage()) {
         const loader = document.getElementById('global-page-loader');
@@ -410,4 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
         loader.classList.add('hide-loader');
         setTimeout(() => loader.remove(), 400);
     }
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('profile')) {
+            initProfile();
+        }
+    });
+}

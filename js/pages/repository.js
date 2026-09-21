@@ -6,49 +6,62 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+export async function initRepository() {
     const user = getCurrentUser();
     const isGuest = !user || user.role === 'Public User';
 
-    // If the user is logged in as admin, redirect to admin layout version dynamically
+    // If the user is logged in as admin/manager/staff
     if (user && user.role !== 'Public User') {
-        // Hide the public navbar
         const repoNavbar = document.getElementById('repoNavbar');
         if (repoNavbar) repoNavbar.style.display = 'none';
 
-        // Detach the repo body and download modal
-        const repoBody = document.querySelector('.repo-body');
+        let repoBody = document.querySelector('.repo-body');
         const downloadModalEl = document.getElementById('downloadModal');
-        if (repoBody) {
-            repoBody.parentNode.removeChild(repoBody);
-            if (downloadModalEl) downloadModalEl.parentNode.removeChild(downloadModalEl);
-            
-            // Render admin layout
+
+        // Only create new #app if shell root is not present
+        if (!document.getElementById('appShellRoot')) {
             const loader = document.getElementById('global-page-loader');
             document.body.innerHTML = '<div id="app"></div>';
             if (loader) document.body.appendChild(loader);
-            renderLayout('repository');
-            
-            // Hide the academic departments sidebar for admins
-            const deptSidebarEl = repoBody.querySelector('#deptSidebar');
+        }
+        renderLayout('repository');
+
+        const pageContent = document.getElementById('page-content');
+        if (pageContent) {
+            if (!document.getElementById('filesContainer')) {
+                pageContent.innerHTML = `
+                    <div class="repo-body" style="padding: 0; max-width: 100%; min-height: auto;">
+                        <aside class="dept-sidebar" id="deptSidebar" style="display:none;">
+                            <div id="deptTree"></div>
+                        </aside>
+                        <main class="repo-main" id="repoMain" style="padding: 24px; width: 100%; max-width: 100%;">
+                            <div class="repo-breadcrumb" id="repoBreadcrumb"></div>
+                            <div class="repo-title-section" id="repoTitleSection"></div>
+                            <div class="dept-summary-cards" id="deptSummaryCards"></div>
+                            <div class="repo-controls" id="repoControls"></div>
+                            <div class="repo-filter-chips" id="repoFilterChips"></div>
+                            <div id="filesContainer"></div>
+                            <div class="repo-selection-bar" id="selectionBar" style="display:none;">
+                                <div class="repo-selection-left">
+                                    <span class="repo-selection-badge" id="selectedCount">0</span>
+                                    <span>Files Selected</span>
+                                </div>
+                                <div class="repo-selection-divider"></div>
+                                <button id="clearSelectionBtn">Clear Selection</button>
+                                <button class="repo-download-bundle-btn" id="downloadSelectedBtn">Download Selected</button>
+                            </div>
+                        </main>
+                    </div>
+                `;
+            }
+            repoBody = pageContent.querySelector('.repo-body') || document.querySelector('.repo-body');
+            const deptSidebarEl = repoBody?.querySelector('#deptSidebar');
             if (deptSidebarEl) deptSidebarEl.style.display = 'none';
-            
-            // Move repo body into the layout's content area
-            const pageContent = document.getElementById('page-content');
-            if (pageContent) {
-                pageContent.appendChild(repoBody);
-            }
-            
-            // Re-append the download modal to the body
-            if (downloadModalEl) {
-                document.body.appendChild(downloadModalEl);
-            }
-            
-            // Adjust styles so it fits well inside the admin layout
-            repoBody.style.padding = '0';
-            repoBody.style.maxWidth = '100%';
-            repoBody.style.minHeight = 'auto';
             document.body.classList.add('admin-mode');
+        }
+
+        if (downloadModalEl && !document.body.contains(downloadModalEl)) {
+            document.body.appendChild(downloadModalEl);
         }
     } else {
         // For public users, keep the normal navbar and show Logout if logged in
@@ -118,6 +131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. DEPARTMENT SIDEBAR
     // ========================
     function renderDeptSidebar() {
+        const treeEl = document.getElementById('deptTree');
+        if (!treeEl) return;
         let html = '';
         mockDepartments.forEach(dept => {
             const isExpanded = currentDept === dept.id;
@@ -141,18 +156,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         });
 
-        deptTree.innerHTML = html;
+        treeEl.innerHTML = html;
 
         // Attach events
-        deptTree.querySelectorAll('.dept-group-header').forEach(header => {
+        treeEl.querySelectorAll('.dept-group-header').forEach(header => {
             header.addEventListener('click', () => {
                 const deptId = header.dataset.dept;
-                const programs = deptTree.querySelector(`[data-dept-programs="${deptId}"]`);
+                const programs = treeEl.querySelector(`[data-dept-programs="${deptId}"]`);
                 const isOpen = header.classList.contains('expanded');
 
                 // Close all groups
-                deptTree.querySelectorAll('.dept-group-header').forEach(h => h.classList.remove('expanded'));
-                deptTree.querySelectorAll('.dept-programs').forEach(p => p.classList.remove('open'));
+                treeEl.querySelectorAll('.dept-group-header').forEach(h => h.classList.remove('expanded'));
+                treeEl.querySelectorAll('.dept-programs').forEach(p => p.classList.remove('open'));
 
                 if (!isOpen) {
                     header.classList.add('expanded');
@@ -2168,4 +2183,12 @@ function showPasswordConfirmModal({ itemName, onConfirm }) {
         loader.classList.add('hide-loader');
         setTimeout(() => loader.remove(), 400);
     }
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('repository')) {
+            initRepository();
+        }
+    });
+}

@@ -16,11 +16,15 @@ function canManageContent(role) {
     return /\s+Manager$/i.test(r);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+export async function initDashboard() {
     // Protect: only authenticated non-public users
     if (!protectPage()) return;
     if (!canManageContent(getCurrentUser()?.role)) {
-        window.location.href = 'repository.html';
+        if (window.navigateTo) {
+            window.navigateTo('repository');
+        } else {
+            window.location.href = 'repository.html';
+        }
         return;
     }
 
@@ -779,4 +783,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        // If loaded directly without router active navigation
+        const isCurrentPage = window.location.pathname.includes('dashboard') || (!window.location.pathname.includes('.html') && !window.__spa_navigating);
+        if (isCurrentPage) {
+            initDashboard();
+        }
+    });
+}

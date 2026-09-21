@@ -6,7 +6,7 @@ import { renderSkeleton, showAlert, showConfirmModal } from '../shared/component
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 import { escapeHTML } from '../shared/utils.js';
 
-document.addEventListener('DOMContentLoaded', async () => {
+export async function initUsers() {
     // Guards access: Users Page is strictly restricted to Supervisor role
     if (!protectPage(['Supervisor'])) {
         return;
@@ -761,4 +761,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load departments and roles first
     await loadOrgData();
     initUsersList();
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('users')) {
+            initUsers();
+        }
+    });
+}

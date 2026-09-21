@@ -1,341 +1,295 @@
 // js/shared/layout.js
 import { getCurrentUser, logout } from './auth.js';
-import { fileService, dashboardService } from './services.js';
+import { fileService } from './services.js';
 import { getCurrentLang, toggleLanguage, translations } from './jssharedi18n.js';
-import { escapeHTML } from './utils.js';
 
+/**
+ * Ensures the app-shell.css is loaded
+ */
+function ensureShellStyles() {
+    if (!document.querySelector('link[href*="app-shell.css"]')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'css/app-shell.css';
+        document.head.appendChild(link);
+    }
+}
+
+/**
+ * Standard role label helper
+ */
+export function getRoleLabel(role, lang = 'ar') {
+    const r = String(role || '').trim();
+    const map = {
+        Supervisor: { ar: 'مشرف النظام', en: 'System Supervisor' },
+        'IT Manager': { ar: 'مدير قسم IT', en: 'IT Manager' },
+        'EL Manager': { ar: 'مدير قسم الكترونيات', en: 'Electrical Manager' },
+        'Mechanical Manager': { ar: 'مدير قسم ميكانيكا', en: 'Mechanical Manager' },
+        'Public User': { ar: 'مستخدم عام', en: 'Public User' },
+        Employee: { ar: 'موظف', en: 'Staff' },
+        Student: { ar: 'طالب', en: 'Student' },
+    };
+    if (map[r]) return map[r][lang] || map[r].ar;
+    if (/\s+Manager$/i.test(r)) {
+        return lang === 'ar' ? `مدير قسم (${r.replace(/\s+Manager$/i, '')})` : r;
+    }
+    return r || (lang === 'ar' ? 'مستخدم' : 'User');
+}
+
+/**
+ * Renders or updates the Unified App Shell layout.
+ * Ensures the shell is mounted ONCE (fixed base) while pages change dynamically.
+ */
 export function renderLayout(activePage = 'repository') {
+    ensureShellStyles();
+
     const appContainer = document.getElementById('app');
     if (!appContainer) return;
 
     const user = getCurrentUser();
-    const lang = localStorage.getItem('aitu_lang') || 'en';
+    const lang = localStorage.getItem('aitu_lang') || 'ar';
+    const isAr = lang === 'ar';
 
     // Apply language direction
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = isAr ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
 
     // Translation helper
     const t = (key) => (translations[lang] || translations.en)[key] || (translations.en)[key] || key;
 
-    // Check permissions for user/log views
+    // Permissions
     const isSupervisor = user && user.role === 'Supervisor';
     const isPublicUser = !user || user.role === 'Public User';
     const isManager = user && (user.role.includes('Manager') || isSupervisor);
 
-    const pageTitles = {
-        dashboard: t('sidebar_dashboard'),
-        repository: t('sidebar_repository'),
-        courses: t('sidebar_courses'),
-        users: t('users_title'),
-        logs: t('sidebar_logs'),
-        profile: t('profile_title')
-    };
-
-    const pageSubtitles = {
-        dashboard: t('sidebar_sub_dashboard'),
-        repository: t('sidebar_sub_repository'),
-        courses: t('sidebar_sub_courses'),
-        users: t('sidebar_sub_users'),
-        logs: t('sidebar_sub_logs'),
-        profile: t('sidebar_sub_profile')
-    };
-
-    const displayTitle = pageTitles[activePage] || 'Tech Services';
-    const displaySubtitle = pageSubtitles[activePage] || 'Portal Overview';
-
-    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const formattedDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', dateOptions);
-
-    // Build sidebar menu links based on role
-    const navItems = [];
-    
-    if (isManager) {
-        navItems.push({ href: 'dashboard.html', page: 'dashboard', label: t('sidebar_dashboard'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' });
+    // If shell is already in DOM, simply update the active button and return!
+    const existingShell = document.getElementById('appShellRoot');
+    if (existingShell) {
+        updateActiveNavState(activePage);
+        return;
     }
 
-    navItems.push({ href: 'repository.html', page: 'repository', label: t('sidebar_repository'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>' });
+    const rawUserDisplayName = user ? (user.name || user.username) : (isAr ? 'زائر' : 'Guest');
+    const userDisplayName = String(rawUserDisplayName || '').includes('@') ? String(rawUserDisplayName).split('@')[0] : rawUserDisplayName;
+    const userRoleLabel = getRoleLabel(user?.role, lang);
 
-    navItems.push({ href: 'courses.html', page: 'courses', label: t('sidebar_courses'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>' });
+    // Build sidebar navigation items based on permissions
+    const navItems = [];
+
+    if (isManager) {
+        navItems.push({
+            id: 'dashboard',
+            href: 'dashboard.html',
+            label: isAr ? 'لوحة التحكم' : 'Dashboard',
+            icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+            </svg>`
+        });
+    }
+
+    navItems.push({
+        id: 'repository',
+        href: 'repository.html',
+        label: isAr ? 'المستودع الأكاديمي' : 'Academic Repository',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>`
+    });
+
+    navItems.push({
+        id: 'courses',
+        href: 'courses.html',
+        label: isAr ? 'المقررات الدراسية' : 'Courses',
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>`
+    });
 
     if (isSupervisor) {
-        navItems.push({ href: 'users.html', page: 'users', label: t('users_title'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' });
-        navItems.push({ href: 'logs.html', page: 'logs', label: t('sidebar_logs'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>' });
+        navItems.push({
+            id: 'users',
+            href: 'users.html',
+            label: isAr ? 'إدارة المستخدمين' : 'Users Management',
+            icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>`
+        });
+        navItems.push({
+            id: 'logs',
+            href: 'logs.html',
+            label: isAr ? 'سجل العمليات' : 'Audit Logs',
+            icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/>
+            </svg>`
+        });
     }
 
     if (!isPublicUser) {
-        navItems.push({ href: 'profile.html', page: 'profile', label: t('sidebar_profile'), icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' });
+        navItems.push({
+            id: 'profile',
+            href: 'profile.html',
+            label: isAr ? 'الملف الشخصي' : 'My Profile',
+            icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>`
+        });
     }
 
-    const menuHTML = navItems.map(item => {
-        const isActive = item.page === activePage;
-        return '<li><a href="' + item.href + '" class="' + (isActive ? 'active' : '') + '">' + item.icon + item.label + '</a></li>';
+    const navButtonsHTML = navItems.map(item => {
+        const isActive = item.id === activePage;
+        return `
+            <button 
+                class="nav-link-btn ${isActive ? 'active' : ''}" 
+                data-page="${item.id}"
+                data-href="${item.href}"
+                title="${item.label}"
+            >
+                <span class="nav-icon">${item.icon}</span>
+                <span class="nav-label">${item.label}</span>
+            </button>
+        `;
     }).join('');
 
-    const actionButtons = {
-        repository: { label: t('sidebar_add_program'), id: 'globalUploadBtn' },
-        courses: { label: t('sidebar_add_course'), id: 'addCourseBtn' },
-        users: { label: t('sidebar_add_user'), id: 'addUserBtn' }
-    };
-
-    let actionBtnHTML = '';
-    if (!isPublicUser && actionButtons[activePage]) {
-        const ab = actionButtons[activePage];
-        actionBtnHTML = '<div class="sidebar-btn-wrapper" style="display:none !important;"><button class="btn-upload" id="' + ab.id + '">' + ab.label + '</button></div>';
-    }
-
-    const rawUserDisplayName = user ? (user.name || user.username) : 'Guest';
-    const userDisplayName = String(rawUserDisplayName || '').includes('@') ? String(rawUserDisplayName).split('@')[0] : rawUserDisplayName;
-    const userEmail = user ? user.email : '';
-    const userInitial = userDisplayName.charAt(0).toUpperCase();
-
-    const userAvatarHtml = (user && user.avatar) 
-        ? `<img src="${user.avatar}" alt="Avatar" style="width:42px; height:42px; border-radius:50%; object-fit:cover;">`
-        : `<span class="avatar-circle">${userInitial}</span>`;
-
-    const userDropdownAvatarHtml = (user && user.avatar)
-        ? `<img src="${user.avatar}" alt="Avatar" style="width:50px; height:50px; border-radius:50%; object-fit:cover; flex-shrink:0;">`
-        : `<div class="avatar-lg">${userInitial}</div>`;
-
     const layoutHTML = `
-        <style>
-            /* 1. جعل القائمة الجانبية Flexbox لحل مشكلة الزووم وتداخل العناصر */
-            #adminSidebar { 
-                background-color: #08305b !important; 
-                border-right: 1px solid #062343 !important; 
-                display: flex !important;
-                flex-direction: column !important;
-                height: 100vh !important;
-                overflow: hidden !important; /* نمنع القائمة كلها من التمدد خارج الشاشة */
-            }
-            
-            /* 2. اللوجو فوق (ثابت) */
-            #adminSidebar .sidebar-header {
-                flex-shrink: 0 !important;
-            }
+        <div class="app" id="appShellRoot">
+            <!-- 1. Unified Sticky App Header -->
+            <header class="app-header">
+                <!-- Dark Navy Strip (hdr-top) -->
+                <div class="hdr-top">
+                    <span class="hdr-top-left">
+                        <span>🏛️</span>
+                        <span>${isAr ? 'جامعة أسيوط التكنولوجية الدولية — AITU' : 'Assiut International Technological University — AITU'}</span>
+                    </span>
 
-            /* 3. الروابط في المنتصف (تتمدد وتعمل سكرول لو الشاشة صغيرة) */
-            #adminSidebar .sidebar-menu {
-                flex: 1 1 auto !important;
-                overflow-y: auto !important;
-                overflow-x: hidden !important;
-                margin-top: 15px !important;
-                margin-bottom: 0 !important;
-                padding-bottom: 10px !important;
-            }
+                    <div class="hdr-top-right">
+                        ${user ? `
+                            <span class="hdr-top-user">
+                                <span>${userDisplayName}</span>
+                                <span>•</span>
+                                <span class="hdr-top-role">${userRoleLabel}</span>
+                            </span>
+                            <div class="hdr-top-sep"></div>
+                        ` : ''}
 
-            /* 4. الفوتر تحت (ثابت دائماً) */
-            #adminSidebar .sidebar-footer {
-                flex-shrink: 0 !important;
-                margin-top: auto !important;
-            }
-
-            /* تصميم السكرول بار للقائمة عشان يكون شيك ومش مزعج */
-            #adminSidebar .sidebar-menu::-webkit-scrollbar {
-                width: 5px;
-            }
-            #adminSidebar .sidebar-menu::-webkit-scrollbar-thumb {
-                background: rgba(255, 255, 255, 0.15);
-                border-radius: 10px;
-            }
-            #adminSidebar .sidebar-menu::-webkit-scrollbar-track {
-                background: transparent;
-            }
-            
-            /* ألوان وتصميم الروابط (كبسولة) */
-            #adminSidebar .sidebar-menu a { 
-                color: #ece3de !important; 
-                font-weight: 600; 
-                transition: all 0.2s ease; 
-                border-radius: 12px !important; 
-                margin: 4px 12px !important; 
-                padding: 12px 15px !important;
-            }
-            #adminSidebar .sidebar-menu a svg { color: #8B9CC8 !important; transition: all 0.2s ease; }
-            #adminSidebar .sidebar-menu a:hover { background-color: rgba(255, 255, 255, 0.1) !important; color: #ffffff !important; }
-            #adminSidebar .sidebar-menu a:hover svg { color: #ffffff !important; }
-            #adminSidebar .sidebar-menu a.active { 
-                background-color: rgba(255, 255, 255, 0.12) !important; 
-                color: #ffffff !important; 
-                border-left: 4px solid #60A5FA !important;
-                border-radius: 0 10px 10px 0 !important; 
-                margin-left: 0 !important;
-                padding-left: 23px !important;
-                box-shadow: none;
-            }
-            #adminSidebar .sidebar-menu a.active svg { color: #60A5FA !important; }
-            .sidebar-btn-wrapper { padding: 0 16px; margin-bottom: 20px; }
-            .sidebar-btn-wrapper button { width: 100%; padding: 12px; background: #1A3CAA; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(26,60,170,0.3); }
-            .sidebar-btn-wrapper button:hover { background: #0b3b70; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(26,60,170,0.4); }
-        </style>
-
-        <div class="admin-layout">
-            <div class="sidebar-overlay" id="sidebarOverlay"></div>
-            
-            <aside class="sidebar" id="adminSidebar">
-                <div class="sidebar-header" style="cursor:pointer; display:flex; align-items:center; gap:12px; padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); min-height: 85px; box-sizing: border-box;" onclick="window.location.href='index.html'">
-                    <img src="logos/logo_AITU.jpg" alt="AITU Logo" style="width: 46px; height: 46px; min-width: 46px; border-radius:50%; object-fit:cover; flex-shrink: 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2);" onerror="this.src='logos/logo_AITU.jpg'">
-                    <div style="display:flex; flex-direction:column; justify-content:center; overflow:hidden; text-align:${lang === 'ar' ? 'right' : 'left'};">
-                        <span style="font-size:0.82rem; font-weight:700; color:#ffffff; line-height:1.3; display:block;" data-i18n="sidebar_uni_name">${t('sidebar_uni_name')}</span>
-                        <span style="font-size:0.7rem; font-weight:500; color:#8B9CC8; margin-top:3px; display:block; letter-spacing:0.3px;" data-i18n="sidebar_uni_sub">${t('sidebar_uni_sub')}</span>
-                    </div>
-                </div>
-                
-                <ul class="sidebar-menu">
-                    ${menuHTML}
-                </ul>
-                
-                ${actionBtnHTML}
-                
-                <div class="sidebar-footer" style="padding: 16px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
-                    <div class="sidebar-user-block mobile-only" style="margin-bottom: 15px;">
-                        <a href="profile.html" style="display:flex; align-items:center; gap:10px; margin-bottom: 12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); text-decoration:none; cursor:pointer; transition:0.2s;">
-                            <div style="width:36px; height:36px; border-radius:50%; background:#1A3CAA; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; flex-shrink:0;">${userInitial}</div>
-                            <div style="display:flex; flex-direction:column; overflow:hidden;">
-                                <span style="font-size:13px; font-weight:700; color:#fff; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${userDisplayName}</span>
-                                <span style="font-size:11px; color:#8B9CC8;">${user ? user.role : 'Guest'}</span>
-                            </div>
-                        </a>
-                    </div>
-                    <button id="sidebarLangBtn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:rgba(255,255,255,0.06); color:#8B9CC8; font-weight:600; font-size:0.9rem; border-radius:8px; cursor:pointer; transition:0.2s; margin-bottom:8px;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                        ${lang === 'ar' ? 'English' : 'عربي'}
-                    </button>
-                    <button id="sidebarLogoutBtn" class="logout-btn" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; border:none; background:transparent; color:#ef4444; font-weight:600; font-size:0.95rem; border-radius:8px; cursor:pointer; transition:0.2s;">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                        ${t('sidebar_logout')}
-                    </button>
-                </div>
-            </aside>
-
-            <div class="main-wrapper">
-                <header class="top-header">
-                    <div class="header-left">
-                        <button class="mobile-menu-btn" id="mobileMenuBtn">
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                        <button class="hdr-top-btn" id="shellLangBtn" title="${isAr ? 'Switch to English' : 'التحويل للعربية'}">
+                            🌐 ${isAr ? 'English' : 'عربي'}
                         </button>
-                        <div class="page-title-box">
-                            <h2>${displayTitle}</h2>
-                            <div class="subtitle-row">
-                                <span>${displaySubtitle}</span>
-                                <span class="dot hide-on-mobile">•</span>
-                                <span class="current-date">${formattedDate}</span>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="header-right">
-                        <button class="lang-toggle-topbar" id="langToggleBtn" title="${lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}">
-                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                            <span class="lang-btn-text">${lang === 'ar' ? 'English' : 'عربي'}</span>
-                        </button>
-                        <div class="dash-user-menu">
-                            <button class="dash-user-avatar-btn" id="userAvatarBtn">
-                                ${userAvatarHtml}
-                                <div class="user-meta">
-                                    <span class="user-name">${userDisplayName}</span>
-                                    <span class="user-role">${user ? user.role : 'Guest'}</span>
-                                </div>
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                        ${user ? `
+                            <div class="hdr-top-sep"></div>
+                            <button class="hdr-top-logout" id="shellLogoutBtn" title="${isAr ? 'تسجيل الخروج' : 'Logout'}">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                    <polyline points="16 17 21 12 16 7" />
+                                    <line x1="21" y1="12" x2="9" y2="12" />
+                                </svg>
+                                <span>${isAr ? 'خروج' : 'Logout'}</span>
                             </button>
+                        ` : `
+                            <div class="hdr-top-sep"></div>
+                            <button class="hdr-top-btn" onclick="window.location.href='login.html'">
+                                <span>${isAr ? 'تسجيل الدخول' : 'Login'}</span>
+                            </button>
+                        `}
+                    </div>
+                </div>
 
-                            <div class="dash-user-dropdown" id="userDropdown">
-                                <div class="dash-user-dropdown-header">
-                                    ${userDropdownAvatarHtml}
-                                    <div class="user-info">
-                                        <div class="name">${userDisplayName}</div>
-                                        ${userEmail ? `<div class="email">${userEmail}</div>` : ''}
-                                    </div>
-                                </div>
-                                <div class="dash-user-dropdown-menu">
-                                    <a href="profile.html">
-                                        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                        My Profile
-                                    </a>
-                                    <button class="logout-item" id="dropdownLogoutBtn">
-                                        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                                        Logout
-                                    </button>
-                                </div>
-                            </div>
+                <!-- Main White Header Bar (hdr-main) -->
+                <div class="hdr-main">
+                    <!-- Brand: Hamburger + Floating Logo + University Name -->
+                    <div class="hdr-brand">
+                        <button class="hdr-hamburger" id="shellHamburgerBtn" title="Menu">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                                <line x1="3" y1="6" x2="21" y2="6" />
+                                <line x1="3" y1="12" x2="21" y2="12" />
+                                <line x1="3" y1="18" x2="21" y2="18" />
+                            </svg>
+                        </button>
+
+                        <div class="hdr-logo-wrap" onclick="if(window.navigateTo){window.navigateTo('repository');}else{window.location.href='index.html';}">
+                            <img src="logos/logo.png" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
+                        </div>
+
+                        <div class="hdr-univ" onclick="if(window.navigateTo){window.navigateTo('repository');}else{window.location.href='index.html';}">
+                            <div class="hdr-univ-name">${isAr ? 'جامعة أسيوط التكنولوجية الدولية' : 'Assiut International Technological University'}</div>
+                            <div class="hdr-univ-en">${isAr ? 'Assiut International Technological University' : 'جامعة أسيوط التكنولوجية الدولية'}</div>
                         </div>
                     </div>
-                </header>
-                    <style>
-                    @media (max-width: 768px) {
-                        .hide-on-mobile { display: none !important; }
-                        .subtitle-row { flex-direction: column; align-items: flex-start; gap: 2px; }
-                        .current-date { display: none !important; }
-                        .subtitle-row span { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: block; }
-                        .top-header { height: auto !important; padding: 15px 20px !important; }
-                        .header-right { display: none !important; }
-                        .mobile-only { display: block !important; }
-                    }
-                    @media (min-width: 769px) {
-                        .mobile-only { display: none !important; }
-                    }
-                    .header-left { display: flex; align-items: center; gap: 15px; min-width: 0; flex: 1; }
-                    .page-title-box { min-width: 0; }
-                    .page-title-box h2 { margin: 0 0 4px 0; font-size: 1.3rem; color: #1A1F36; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                    .subtitle-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 0.85rem; color: #6B7A99; line-height: 1.4; }
-                    .subtitle-row span { white-space: normal; word-break: break-word; }
-                    .header-right { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
-                    .lang-toggle-topbar { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #F0F4FF; border: 1px solid #D1D9E6; border-radius: 50px; cursor: pointer; font-size: 13.5px; font-weight: 600; color: #1A3CAA; transition: all 0.25s ease; white-space: nowrap; }
-                    .lang-toggle-topbar:hover { background: #E0E8FF; border-color: #1A3CAA; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,60,170,0.12); }
-                    .lang-toggle-topbar svg { color: #1A3CAA; flex-shrink: 0; }
-                    .dash-user-menu { position: relative; }
-                    .dash-user-avatar-btn { background: #ffffff; border: 1px solid #E8ECF4; border-radius: 50px; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 6px 20px 6px 6px; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.02); height: 54px; }
-                    .dash-user-avatar-btn:hover { background: #F8FAFC; border-color: #D1D9E6; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-1px); }
-                    .dash-user-avatar-btn .avatar-circle { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #1A3CAA, #0b3b70); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; box-shadow: inset 0 -2px 4px rgba(0,0,0,0.1); }
-                    .dash-user-avatar-btn .user-meta { display: flex; flex-direction: column; text-align: left; line-height: 1.25; }
-                    .dash-user-avatar-btn .user-name { font-size: 15px; font-weight: 700; color: #0b3b70; letter-spacing: 0.2px; margin-bottom: 2px; }
-                    .dash-user-avatar-btn .user-role { font-size: 11.5px; font-weight: 600; color: #6B7A99; text-transform: uppercase; letter-spacing: 0.5px; }
-                    .dash-user-dropdown { position: absolute; top: calc(100% + 12px); right: 0; background: #ffffff; border: 1px solid #E8ECF4; border-radius: 16px; box-shadow: 0 16px 48px rgba(7, 34, 71, 0.1), 0 4px 16px rgba(7, 34, 71, 0.04); z-index: 9999; width: 280px; padding: 0; display: none; overflow: hidden; transform: translateY(-10px); opacity: 0; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease; }
-                    .dash-user-dropdown.open { display: flex; flex-direction: column; transform: translateY(0); opacity: 1; }
-                    .dash-user-dropdown-header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: linear-gradient(180deg, #F8FAFC 0%, #FFFFFF 100%); border-bottom: 1px solid #E8ECF4; }
-                    .dash-user-dropdown-header .avatar-lg { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #1A3CAA, #0b3b70); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(11, 59, 112, 0.2); }
-                    .dash-user-dropdown-header .user-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-                    .dash-user-dropdown-header .user-info .name { font-size: 16px; font-weight: 700; color: #0b3b70; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; margin-bottom: 3px; }
-                    .dash-user-dropdown-header .user-info .email { font-size: 13px; color: #6B7A99; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-                    .dash-user-dropdown-menu { padding: 12px; }
-                    .dash-user-dropdown-menu a, .dash-user-dropdown-menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; font-size: 14.5px; font-weight: 500; color: #1A1F36; background: none; border: none; text-decoration: none; cursor: pointer; transition: all 0.2s ease; text-align: left; border-radius: 8px; }
-                    .dash-user-dropdown-menu a:hover, .dash-user-dropdown-menu button:hover { background: #F8FAFC; color: #0b3b70; transform: translateX(4px); }
-                    .dash-user-dropdown-menu .logout-item { color: #E63946; border-top: 1px solid #F0F2F5; margin-top: 6px; padding-top: 14px; border-radius: 0 0 8px 8px; }
-                    .dash-user-dropdown-menu .logout-item:hover { background: #FFF5F5; color: #D62828; }
-                    .dash-user-dropdown-menu svg { width: 18px; height: 18px; max-width: 18px; max-height: 18px; min-width: 18px; min-height: 18px; color: #6B7A99; flex-shrink: 0; display: block; stroke-width: 2.5; transition: color 0.2s ease; }
-                    .dash-user-dropdown-menu a:hover svg, .dash-user-dropdown-menu button:hover svg { color: #0b3b70; }
-                    .dash-user-dropdown-menu .logout-item svg { color: #E63946; }
-                    .dash-user-dropdown-menu .logout-item:hover svg { color: #D62828; }
-                </style>
-                <main class="content-area" id="page-content"></main>
+
+                    <!-- Center System Title -->
+                    <div class="hdr-center">
+                        <div class="hdr-center-title">${isAr ? 'نظام إدارة الملفات والوثائق الأكاديمية' : 'Academic File Management System'}</div>
+                        <div class="hdr-center-sub">${isAr ? 'Assiut International Technological University — AITU' : 'جامعة أسيوط التكنولوجية الدولية'}</div>
+                    </div>
+
+                    <!-- Spacer for visual symmetry -->
+                    <div class="hdr-spacer"></div>
+                </div>
+            </header>
+
+            <!-- 2. Main Layout Area (Sidebar + Dynamic Page Content) -->
+            <div class="layout">
+                <!-- Left Sidebar -->
+                <aside class="sidebar" id="shellSidebar">
+                    <!-- Sidebar Header with System Name and Mobile Close -->
+                    <div class="sidebar-header">
+                        <div class="sidebar-title">${isAr ? 'نظام الملفات الأكاديمية' : 'File Management System'}</div>
+                        <button class="sidebar-close-btn" id="shellSidebarCloseBtn" title="${isAr ? 'إغلاق القائمة' : 'Close Menu'}">✕</button>
+                    </div>
+
+                    <!-- User Role Status Card with Pulsing Indicator -->
+                    <div class="sidebar-badge-box">
+                        <div class="sidebar-role-badge">
+                            <div class="status-dot"></div>
+                            <span class="sidebar-role-text">${userRoleLabel}</span>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Links -->
+                    <nav class="sidebar-nav" id="shellSidebarNav">
+                        ${navButtonsHTML}
+                    </nav>
+
+                    <!-- Sidebar Footer -->
+                    <div class="sidebar-footer">
+                        <div class="sidebar-footer-text">AITU File Management © ${new Date().getFullYear()}</div>
+                    </div>
+                </aside>
+
+                <!-- Dynamic Main Content (Fixed shell content container) -->
+                <main class="main page-pad" id="page-content"></main>
             </div>
+
+            <!-- Mobile Backdrop Overlay -->
+            <div class="sidebar-overlay" id="shellSidebarOverlay"></div>
         </div>
 
+        <!-- Global Upload Modal -->
         <div class="modal-overlay" id="globalUploadModal">
-            <div class="upload-modal">
-                <div class="modal-header">
-                    <h3 id="uploadModalTitle">Upload New Document</h3>
-                    <span class="close-modal" id="closeUploadModalBtn">&times;</span>
+            <div class="upload-modal" style="background:#fff; border-radius:12px; max-width:520px; width:90%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.15); margin:auto;">
+                <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
+                    <h3 id="uploadModalTitle" style="font-size:17px; font-weight:700; color:#0F172A;">${isAr ? 'رفع وثيقة جديدة' : 'Upload New Document'}</h3>
+                    <span class="close-modal" id="closeUploadModalBtn" style="cursor:pointer; font-size:22px; color:#64748B;">&times;</span>
                 </div>
                 
                 <form id="globalUploadForm">
-                    <div class="form-group">
-                        <label>File Title / Name</label>
-                        <input type="text" id="uploadFileName" class="form-control" placeholder="e.g. Project_Blueprint.pdf" required>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'عنوان أو اسم الملف' : 'File Title / Name'}</label>
+                        <input type="text" id="uploadFileName" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" placeholder="${isAr ? 'مثال: Project_Blueprint.pdf' : 'e.g. Project_Blueprint.pdf'}" required>
                     </div>
                     
-                    <div class="form-row">
-                        <div class="form-group col-half">
-                            <label>Department</label>
-                            <select id="uploadFileDept" class="form-control" required>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+                        <div class="form-group">
+                            <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'القسم الأكاديمي' : 'Department'}</label>
+                            <select id="uploadFileDept" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" required>
                                 <option value="IT">IT</option>
                                 <option value="EL">EL</option>
                                 <option value="ME">ME</option>
                             </select>
                         </div>
-                        <div class="form-group col-half">
-                            <label>File Type</label>
-                            <select id="uploadFileType" class="form-control" required>
+                        <div class="form-group">
+                            <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'نوع الملف' : 'File Type'}</label>
+                            <select id="uploadFileType" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" required>
                                 <option value="PDF">PDF</option>
                                 <option value="XLSX">Excel (XLSX)</option>
                                 <option value="DOCX">Word (DOCX)</option>
@@ -345,20 +299,15 @@ export function renderLayout(activePage = 'repository') {
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>File Size (Estimated)</label>
-                        <input type="text" id="uploadFileSize" class="form-control" placeholder="e.g. 2.4 MB" required>
-                    </div>
-
-                    <div class="drop-zone" id="uploadDropZone">
-                        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                        <div>Click to select a file for upload</div>
+                    <div class="drop-zone" id="uploadDropZone" style="border:2px dashed #CBD5E1; border-radius:8px; padding:24px; text-align:center; cursor:pointer; background:#F8FAFC; margin-bottom:18px;">
+                        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#64748B" stroke-width="2" style="margin:0 auto 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <div style="font-size:13.5px; font-weight:600; color:#475569;">${isAr ? 'اضغط هنا لاختيار ملف من جهازك' : 'Click to select a file for upload'}</div>
                         <input type="file" id="globalFileInput" style="display:none;">
                     </div>
 
-                    <div class="modal-actions">
-                        <button type="button" class="btn-outline" id="cancelUploadModalBtn">Cancel</button>
-                        <button type="submit" class="btn-primary" id="submitUploadModalBtn">Upload File</button>
+                    <div style="display:flex; justify-content:flex-end; gap:10px;">
+                        <button type="button" id="cancelUploadModalBtn" style="padding:8px 16px; border:1px solid #CBD5E1; background:#fff; border-radius:6px; cursor:pointer; font-family:'Cairo',sans-serif; font-weight:600;">${isAr ? 'إلغاء' : 'Cancel'}</button>
+                        <button type="submit" id="submitUploadModalBtn" style="padding:8px 20px; border:none; background:#1565C0; color:#fff; border-radius:6px; cursor:pointer; font-family:'Cairo',sans-serif; font-weight:700;">${isAr ? 'تأكيد الرفع' : 'Upload File'}</button>
                     </div>
                 </form>
             </div>
@@ -367,66 +316,99 @@ export function renderLayout(activePage = 'repository') {
 
     appContainer.innerHTML = layoutHTML;
 
-    // --- Event Listeners ---
+    // --- Wire Event Handlers ---
+    initShellEventHandlers(activePage);
+}
 
-    const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
-    if (sidebarLogoutBtn) {
-        sidebarLogoutBtn.addEventListener('click', () => {
-            if (user) { logout(); } else { window.location.href = 'login.html'; }
-        });
-    }
+/**
+ * Updates active indicator on the navigation buttons without reloading
+ */
+function updateActiveNavState(activePage) {
+    const navButtons = document.querySelectorAll('.nav-link-btn');
+    navButtons.forEach(btn => {
+        if (btn.dataset.page === activePage) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
 
-    const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
-    if (dropdownLogoutBtn) {
-        dropdownLogoutBtn.addEventListener('click', () => {
-            if (user) { logout(); } else { window.location.href = 'login.html'; }
-        });
-    }
+    // Close mobile drawer
+    closeMobileDrawer();
+}
 
-    const avatarBtn = document.getElementById('userAvatarBtn');
-    const userDropdown = document.getElementById('userDropdown');
-    if (avatarBtn && userDropdown) {
-        avatarBtn.addEventListener('click', (e) => {
+/**
+ * Closes mobile sidebar drawer
+ */
+function closeMobileDrawer() {
+    const sidebar = document.getElementById('shellSidebar');
+    const overlay = document.getElementById('shellSidebarOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.remove('open');
+}
+
+/**
+ * Initializes listeners for hamburger, drawer, navigation, logout, and language
+ */
+function initShellEventHandlers(initialPage) {
+    const sidebar = document.getElementById('shellSidebar');
+    const overlay = document.getElementById('shellSidebarOverlay');
+    const hamburgerBtn = document.getElementById('shellHamburgerBtn');
+    const closeBtn = document.getElementById('shellSidebarCloseBtn');
+
+    // Hamburger toggle
+    if (hamburgerBtn) {
+        hamburgerBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            userDropdown.classList.toggle('open');
-        });
-        document.addEventListener('click', () => {
-            userDropdown.classList.remove('open');
-        });
-        userDropdown.addEventListener('click', (e) => {
-            e.stopPropagation();
+            if (sidebar) sidebar.classList.toggle('open');
+            if (overlay) overlay.classList.toggle('open');
         });
     }
 
-    if (!isPublicUser) {
-        dashboardService.getNotificationsCount().then(data => {
-            const badge = document.getElementById('notifBadge');
-            if (badge && data && data.count > 0) {
-                badge.style.display = 'block';
+    // Close button
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeMobileDrawer);
+    }
+
+    // Overlay click closes
+    if (overlay) {
+        overlay.addEventListener('click', closeMobileDrawer);
+    }
+
+    // Navigation buttons intercept click to prevent full reload
+    const navButtons = document.querySelectorAll('.nav-link-btn');
+    navButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetPage = btn.dataset.page;
+            if (targetPage) {
+                closeMobileDrawer();
+                if (window.navigateTo) {
+                    window.navigateTo(targetPage);
+                } else {
+                    window.location.href = `${targetPage}.html`;
+                }
             }
-        }).catch(() => {});
+        });
+    });
+
+    // Language Toggle
+    const langBtn = document.getElementById('shellLangBtn');
+    if (langBtn) {
+        langBtn.addEventListener('click', (e) => {
+            toggleLanguage(e);
+        });
     }
 
-    const mobileBtn = document.getElementById('mobileMenuBtn');
-    const sidebar = document.getElementById('adminSidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    if (mobileBtn && sidebar && overlay) {
-        mobileBtn.addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('active'); });
-        overlay.addEventListener('click', () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); });
+    // Logout Button
+    const logoutBtn = document.getElementById('shellLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            logout();
+        });
     }
 
-    // Language toggle button
-    const langToggleBtn = document.getElementById('langToggleBtn');
-    if (langToggleBtn) {
-        langToggleBtn.onclick = (e) => toggleLanguage(e);
-    }
-
-    // Sidebar language toggle (mobile)
-    const sidebarLangBtn = document.getElementById('sidebarLangBtn');
-    if (sidebarLangBtn) {
-        sidebarLangBtn.onclick = (e) => toggleLanguage(e);
-    }
-
+    // Global Upload Modal handlers
     const uploadBtn = document.getElementById('globalUploadBtn');
     const uploadModal = document.getElementById('globalUploadModal');
     const closeUploadBtn = document.getElementById('closeUploadModalBtn');
@@ -435,86 +417,75 @@ export function renderLayout(activePage = 'repository') {
     const dropZone = document.getElementById('uploadDropZone');
     const fileInput = document.getElementById('globalFileInput');
 
-    if (uploadBtn && uploadModal) {
+    if (uploadModal) {
         const showModal = () => uploadModal.classList.add('active');
         const hideModal = () => {
             uploadModal.classList.remove('active');
-            globalUploadForm.reset();
+            if (globalUploadForm) globalUploadForm.reset();
         };
 
-        uploadBtn.addEventListener('click', showModal);
-        closeUploadBtn.addEventListener('click', hideModal);
-        cancelUploadBtn.addEventListener('click', hideModal);
+        if (uploadBtn) uploadBtn.addEventListener('click', showModal);
+        if (closeUploadBtn) closeUploadBtn.addEventListener('click', hideModal);
+        if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', hideModal);
 
-        dropZone.addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                const file = e.target.files[0];
-                document.getElementById('uploadFileName').value = file.name;
-                document.getElementById('uploadFileSize').value = (file.size / (1024 * 1024)).toFixed(2) + " MB";
-                
-                const ext = file.name.split('.').pop().toUpperCase();
-                const typeDropdown = document.getElementById('uploadFileType');
-                if (['PDF', 'XLSX', 'DOCX', 'DWG', 'MP4'].includes(ext)) {
-                    typeDropdown.value = ext;
+        if (dropZone && fileInput) {
+            dropZone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const nameInput = document.getElementById('uploadFileName');
+                    if (nameInput) nameInput.value = file.name;
+                    const ext = file.name.split('.').pop().toUpperCase();
+                    const typeDropdown = document.getElementById('uploadFileType');
+                    if (typeDropdown && ['PDF', 'XLSX', 'DOCX', 'DWG', 'MP4'].includes(ext)) {
+                        typeDropdown.value = ext;
+                    }
                 }
-            }
-        });
+            });
+        }
 
-        globalUploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitUploadModalBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerText = "Uploading...";
+        if (globalUploadForm) {
+            globalUploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = document.getElementById('submitUploadModalBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerText = "Uploading...";
 
-            const customName = document.getElementById('uploadFileName').value;
-            const dept = document.getElementById('uploadFileDept').value;
-            const type = document.getElementById('uploadFileType').value;
-            const fileInput = document.getElementById('globalFileInput');
-            const file = fileInput.files[0];
+                const customName = document.getElementById('uploadFileName')?.value || '';
+                const dept = document.getElementById('uploadFileDept')?.value || 'IT';
+                const type = document.getElementById('uploadFileType')?.value || 'PDF';
+                const file = fileInput?.files?.[0];
 
-            if (!file) {
-                alert("Please select a file to upload.");
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Upload File";
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const folderId = 0; // Default folder ID for global uploads
-                await fileService.uploadFile(formData, folderId, type, dept, customName);
-                hideModal();
-                
-                const fileGrid = document.getElementById('filesGrid');
-                if (fileGrid) {
-                    const event = new CustomEvent('fileUploaded');
-                    document.dispatchEvent(event);
+                if (!file) {
+                    alert("Please select a file to upload.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Upload File";
+                    return;
                 }
-            } catch (err) {
-                alert("Upload failed: " + err.message);
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerText = "Upload File";
-            }
-        });
+
+                const formData = new FormData();
+                formData.append("file", file);
+
+                try {
+                    await fileService.uploadFile(formData, 0, type, dept, customName);
+                    hideModal();
+                    document.dispatchEvent(new CustomEvent('fileUploaded'));
+                } catch (err) {
+                    alert("Upload failed: " + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Upload File";
+                }
+            });
+        }
     }
 
-    // Restore persistent background upload widget if present
-    import('../pages/upload-resources.js').then(mod => {
-        if (mod && mod.initPersistentUploadWidget) {
-            mod.initPersistentUploadWidget();
-        }
-    }).catch(() => {});
-
-    // Safety fallback: Ensure global loader hides even if network requests hang or fail
+    // Safety fallback: Ensure any old global loader is hidden
     setTimeout(() => {
         const loader = document.getElementById('global-page-loader');
         if (loader) {
             loader.classList.add('hide-loader');
-            setTimeout(() => loader.remove(), 400);
+            setTimeout(() => loader.remove(), 350);
         }
-    }, 600);
+    }, 400);
 }

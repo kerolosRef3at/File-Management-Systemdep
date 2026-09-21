@@ -11,6 +11,7 @@
     <title>Central Repository - AITU File Management System</title>
     <meta name="description"
         content="Browse the official AITU central file repository for academic and administrative record keeping across IT, Electrical, and Mechanical Engineering departments.">
+    <link rel="stylesheet" href="css/app-shell.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/rtl.css">
@@ -225,6 +226,7 @@
         <!-- Admin layout shell -->
         <div id="app" style="display:none;"></div>
 
+        <script type="module" src="js/shared/router.js"></script>
         <script type="module" src="js/pages/repository.js"></script>
         <script type="module">
             import { initLanguage } from './js/shared/jssharedi18n.js';

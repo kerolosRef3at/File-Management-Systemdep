@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <title>نظام إدارة الملفات والوثائق - جامعة أسيوط التكنولوجية الدولية</title>
+    <meta name="description" content="البوابة المركزية لإدارة المناهج والملفات الأكاديمية - جامعة أسيوط التكنولوجية الدولية AITU">
+    <link rel="icon" type="image/png" href="logos/logo.png">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/app-shell.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="stylesheet" href="css/repository.css">
+    <link rel="stylesheet" href="css/courses.css">
+    <link rel="stylesheet" href="css/rtl.css">
+
+    <script>
+        // Apply saved language instantly to avoid UI flicker
+        (function() {
+            var lang = localStorage.getItem('aitu_lang') || 'ar';
+            document.documentElement.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+            document.documentElement.setAttribute('lang', lang);
+        })();
+    </script>
+</head>
+<body>
+    <!-- App Shell Mount Point -->
+    <div id="app"></div>
+
+    <!-- Main Router Initialization -->
+    <script type="module">
+        import { navigateTo, getPageFromLocation } from './js/shared/router.js';
+        import { getCurrentUser } from './js/shared/auth.js';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = getCurrentUser();
+            const urlParams = new URLSearchParams(window.location.search);
+            const requestedPage = urlParams.get('p') || getPageFromLocation();
+
+            // Default route based on role
+            let targetPage = requestedPage;
+            if (!targetPage || targetPage === 'index') {
+                if (user && (user.role === 'Supervisor' || user.role.includes('Manager'))) {
+                    targetPage = 'dashboard';
+                } else {
+                    targetPage = 'repository';
+                }
+            }
+
+            navigateTo(targetPage);
+        });
+    </script>
+</body>
+</html>

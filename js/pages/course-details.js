@@ -40,7 +40,7 @@ function downloadResource(path, name) {
     a.remove();
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+export async function initCourseDetails() {
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
 
@@ -890,4 +890,12 @@ if (ok === 0) {
             }
         });
     }
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('course-details')) {
+            initCourseDetails();
+        }
+    });
+}

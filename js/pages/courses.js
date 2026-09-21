@@ -27,7 +27,7 @@ function escapeHtml(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+export function initCourses() {
     const user = getCurrentUser();
     const isAdmin = user && !['Public User'].includes(user.role);
     const canManageCourses = user && canManageContent(user.role);
@@ -798,4 +798,12 @@ document.addEventListener('DOMContentLoaded', () => {
             img: resolveCourseImg(c.img || c.image || c.thumbnail)
         }));
     }
-});
+}
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.location.pathname.includes('courses')) {
+            initCourses();
+        }
+    });
+}

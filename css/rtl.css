@@ -9,18 +9,7 @@ html[dir="rtl"] body {
     direction: rtl;
 }
 
-/* --- Admin Layout: Sidebar flip to right --- */
-html[dir="rtl"] .sidebar {
-    left: auto !important;
-    right: 0 !important;
-    border-right: none !important;
-    border-left: 1px solid #062343 !important;
-}
-
-html[dir="rtl"] .admin-layout .main-wrapper {
-    margin-left: 0 !important;
-    margin-right: 260px !important;
-}
+/* Legacy RTL sidebar overrides removed in favor of app-shell.css */
 
 /* --- Sidebar Active Link: flip indicator to right side --- */
 html[dir="rtl"] #adminSidebar .sidebar-menu a.active {
