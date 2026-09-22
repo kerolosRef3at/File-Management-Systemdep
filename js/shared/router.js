@@ -145,6 +145,12 @@ document.addEventListener('click', (e) => {
     const link = e.target.closest('a');
     if (!link || !link.getAttribute('href')) return;
 
+    // For public / guest users, allow normal native navigation between HTML pages!
+    const user = getCurrentUser();
+    if (!user || user.role === 'Public User') {
+        return;
+    }
+
     const href = link.getAttribute('href');
     if (
         href.startsWith('http') ||

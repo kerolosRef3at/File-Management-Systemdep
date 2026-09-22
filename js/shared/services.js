@@ -939,62 +939,84 @@ export const fileService = {
         }
     },
 
-    async downloadFile(id, filename, fileObj = null) {
+    async downloadFile(id, filename, fileObj = null, onProgress = null, fileHandle = null) {
         try {
-
             // Two kinds of "file" exist in this app:
             //  - repository files: a numeric id -> /api/Files/download/{id}
             //  - course lessons:   a string id ("0olacye1k") + a stored path
             //    ("assets/uploads/x.mp4") -> /api/Files/download-by-path?path=
             // Pick the endpoint based on what we actually have.
             const numericId = parseInt(id);
-            const path = fileObj && (fileObj.file || fileObj.path);
+            const path = typeof fileObj === 'string' ? fileObj : (fileObj && (fileObj.file || fileObj.path));
+            const handle = fileHandle || (fileObj && fileObj.fileHandle);
 
             let url;
             if (!isNaN(numericId) && numericId > 0 && String(numericId) === String(id)) {
                 url = `${BASE_URL}/api/Files/download/${numericId}`;
             } else if (path) {
-                url = `${BASE_URL}/api/Files/download-by-path?path=${encodeURIComponent(path)}`;
+                if (/^https?:\/\//i.test(path) || path.startsWith('/api/')) {
+                    url = path.startsWith('/api/') ? `${BASE_URL}${path}` : path;
+                } else {
+                    url = `${BASE_URL}/api/Files/download-by-path?path=${encodeURIComponent(path)}`;
+                }
             } else {
                 // Nothing usable to fetch.
                 return { success: false };
             }
 
-            // Fetch the real bytes and save them via a blob (reliable, gives a
-            // real success/failure signal -- unlike a hidden iframe).
             const token = localStorage.getItem('aitu_token');
-            const res = await fetch(url, {
+            let res = await fetch(url, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
             });
+
+            // If by-path download returned not-ok and path exists, try direct URL
+            if (!res.ok && path && !url.includes(path)) {
+                const directUrl = path.startsWith('/') ? `${BASE_URL}${path}` : `${BASE_URL}/${path}`;
+                try {
+                    const retryRes = await fetch(directUrl, {
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                    });
+                    if (retryRes.ok) res = retryRes;
+                } catch (retryErr) {
+                    console.warn("Direct path retry error:", retryErr);
+                }
+            }
+
             if (!res.ok) throw new Error('Download failed: ' + res.status);
 
-            const blob = await res.blob();
-            if (!blob || blob.size === 0) throw new Error('Empty file');
-
-            // Use the server's filename from Content-Disposition when present,
-            // otherwise fall back to the passed name.
+            // Determine suggested file name
             let name = filename || 'download';
             const cd = res.headers.get('content-disposition') || '';
             const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-            if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch { name = m[1]; } }
+            if (m && m[1]) {
+                try { name = decodeURIComponent(m[1]); } catch { name = m[1]; }
+            } else {
+                // If name doesn't have an extension, try to detect from path or Content-Type
+                if (!/\.[a-zA-Z0-9]{2,5}$/.test(name)) {
+                    const sourcePath = path || url || '';
+                    const extMatch = sourcePath.match(/\.([a-zA-Z0-9]{2,5})(?:\?|#|$)/);
+                    if (extMatch) {
+                        name += '.' + extMatch[1];
+                    } else {
+                        const ct = res.headers.get('content-type') || '';
+                        if (ct.includes('application/pdf')) name += '.pdf';
+                        else if (ct.includes('video/mp4')) name += '.mp4';
+                        else if (ct.includes('application/zip')) name += '.zip';
+                    }
+                }
+            }
 
-            const blobUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-            a.download = name;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-
-            return { success: true };
+            return await streamResponseToTarget(res, name, handle, onProgress);
         } catch (err) {
+            if (err.name === 'AbortError') {
+                return { success: false, cancelled: true };
+            }
             console.warn("Download error:", err.message);
-            return { success: false };
+            return { success: false, error: err.message };
         }
     },
 
-    async downloadZip(fileIds) {
+    async downloadZip(fileIds, suggestedZipName = null, onProgress = null, fileHandle = null) {
         try {
             const token = localStorage.getItem('aitu_token');
             const response = await fetch(
@@ -1010,30 +1032,126 @@ export const fileService = {
             );
             if (!response.ok) throw new Error('ZIP download failed: ' + response.status);
 
-            const blob = await response.blob();
-            // Guard against an error body sneaking through as a "zip". A real zip
-            // is never a few bytes of JSON.
-            if (!blob || blob.size < 100) {
-                throw new Error('ZIP response was empty or invalid');
+            let name = suggestedZipName;
+            if (!name) {
+                const cd = response.headers.get('content-disposition') || '';
+                const m = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+                if (m && m[1]) {
+                    try { name = decodeURIComponent(m[1]); } catch { name = m[1]; }
+                }
+            }
+            if (!name) {
+                name = `files_${Date.now()}.zip`;
+            }
+            if (!name.toLowerCase().endsWith('.zip')) {
+                name += '.zip';
             }
 
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `files_${Date.now()}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            // Revoke LATER, not immediately. Revoking right after click() can
-            // cancel the save of a large (tens of MB) archive mid-write.
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
-            return { success: true };
+            return await streamResponseToTarget(response, name, fileHandle, onProgress);
         } catch (err) {
+            if (err.name === 'AbortError') {
+                return { success: false, cancelled: true };
+            }
             console.warn("ZIP download failed:", err.message);
             throw err;
         }
     }
 };
+
+// ==========================================
+// Download Streaming & Progress Helper
+// ==========================================
+async function streamResponseToTarget(res, name, fileHandle = null, onProgress = null) {
+    const contentLengthHeader = res.headers.get('content-length');
+    const totalBytes = contentLengthHeader ? parseInt(contentLengthHeader, 10) : 0;
+    const hasTotal = !isNaN(totalBytes) && totalBytes > 0;
+
+    let writable = null;
+    if (fileHandle && typeof fileHandle.createWritable === 'function') {
+        try {
+            writable = await fileHandle.createWritable();
+        } catch (wErr) {
+            console.error('Failed to create writable stream on fileHandle:', wErr);
+            throw wErr;
+        }
+    } else {
+        if (typeof window !== 'undefined') {
+            if (!('showSaveFilePicker' in window)) {
+                console.warn('showSaveFilePicker is not available in this browser. Falling back to default download.');
+            } else {
+                console.warn('showSaveFilePicker is not available or blocked. Falling back to default download.');
+            }
+        }
+    }
+
+    const reader = res.body ? res.body.getReader() : null;
+    const chunks = writable ? null : [];
+    let receivedBytes = 0;
+
+    // Report initial progress
+    if (typeof onProgress === 'function') {
+        if (hasTotal) {
+            onProgress(0, 0, totalBytes, '0.0');
+        } else {
+            onProgress(null, 0, 0, '0.0');
+        }
+    }
+
+    if (reader) {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            if (value && value.length > 0) {
+                receivedBytes += value.length;
+
+                if (writable) {
+                    await writable.write(value);
+                } else {
+                    chunks.push(value);
+                }
+
+                if (typeof onProgress === 'function') {
+                    if (hasTotal) {
+                        const percent = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+                        const mb = (receivedBytes / (1024 * 1024)).toFixed(1);
+                        onProgress(percent, receivedBytes, totalBytes, mb);
+                    } else {
+                        const mb = (receivedBytes / (1024 * 1024)).toFixed(1);
+                        onProgress(null, receivedBytes, 0, mb);
+                    }
+                }
+            }
+        }
+
+        if (writable) {
+            await writable.close();
+        }
+    }
+
+    // Report 100% completion if known total
+    if (typeof onProgress === 'function' && hasTotal) {
+        onProgress(100, totalBytes, totalBytes, (totalBytes / (1024 * 1024)).toFixed(1));
+    }
+
+    // If no writable stream, save collected chunks via Blob and anchor
+    if (!writable) {
+        const contentType = res.headers.get('content-type') || 'application/octet-stream';
+        const blob = new Blob(chunks || [], { type: contentType });
+        if (!blob || blob.size === 0) throw new Error('Empty file or invalid response');
+
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    }
+
+    return { success: true, name };
+}
 
 // ==========================================
 // 3. Folder Management Service

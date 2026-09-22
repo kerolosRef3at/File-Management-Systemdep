@@ -1,6 +1,6 @@
 // js/pages/login.js
 import { authService, logService } from '../shared/services.js';
-import { api } from '../shared/api.js';
+import { fetchAPI } from '../shared/api.js';
 
 const LOGIN_ATTEMPTS_KEY = 'aitu_login_attempts';
 const LOGIN_LOCKOUT_KEY = 'aitu_login_lockout';
@@ -251,7 +251,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fpEmailError) fpEmailError.style.display = 'none';
 
             try {
-                await api.post('/auth/forgot-password', { email: emailVal }).catch(() => ({ success: true }));
+                if (typeof authService.forgotPassword === 'function') {
+                    await authService.forgotPassword(emailVal).catch(() => ({ success: true }));
+                } else {
+                    await fetchAPI('/api/Auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: emailVal }) }).catch(() => ({ success: true }));
+                }
                 if (fpInfoAlert) {
                     fpInfoAlert.textContent = isRtl 
                         ? '✅ تم إرسال كود التحقق إلى بريدك الإلكتروني.'
@@ -308,11 +312,14 @@ document.addEventListener('DOMContentLoaded', () => {
             resetPasswordBtn.innerHTML = `<span class="lp-spinner"></span> <span>${isRtl ? 'جاري الحفظ...' : 'Saving...'}</span>`;
 
             try {
-                await api.post('/auth/reset-password', {
-                    email: fpEmail.value.trim(),
-                    otp: otpVal,
-                    newPassword: newPw
-                }).catch(() => ({ success: true }));
+                if (typeof authService.resetPassword === 'function') {
+                    await authService.resetPassword(fpEmail.value.trim(), otpVal, newPw).catch(() => ({ success: true }));
+                } else {
+                    await fetchAPI('/api/Auth/reset-password', {
+                        method: 'POST',
+                        body: JSON.stringify({ email: fpEmail.value.trim(), code: otpVal, newPassword: newPw })
+                    }).catch(() => ({ success: true }));
+                }
 
                 if (errorMessage) {
                     errorMessage.className = 'lp-alert lp-alert-success';
