@@ -32,10 +32,8 @@
         <div class="loader-text" data-i18n="loader_text">Loading...</div>
     </div>
 
-    <!-- Public layout shell (hidden when admin) -->
-    <div id="publicShell" style="display:none;">
-        <!-- Public Navbar -->
-        <header class="repo-navbar" id="repoNavbar">
+    <!-- Public Navbar -->
+    <header class="repo-navbar" id="repoNavbar">
         <div class="repo-navbar-inner">
             <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer;">
                 <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="48" height="48"
@@ -168,25 +166,11 @@
         </main>
     </div>
 
-    <!-- Footer -->
-    <footer class="repo-footer" id="repoFooter">
-        <div class="repo-footer-inner">
-            <div class="repo-footer-brand">
-                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="44" height="44" style="border-radius:50%; object-fit:cover;"
-                    onerror="this.src='logos/logo_AITU.jpg'">
-                <div>
-                    <strong data-i18n="footer_brand">AITU File Sharing System</strong>
-                    <span data-i18n="footer_desc">Centralizing academic intelligence with precision.</span>
-                </div>
-            </div>
-            <div class="repo-footer-copy" data-i18n="footer_copy">
-                &copy; 2026 Assiut International Technological University. All rights reserved.
-            </div>
-        </div>
-    </footer>
-    </div>
 
-    <!-- Download Confirmation Modal (Shared between public and admin) -->
+
+
+
+    <!-- Download Confirmation Modal -->
     <div class="repo-modal-overlay" id="downloadModal">
         <div class="repo-download-modal">
             <div class="repo-modal-header">
@@ -222,9 +206,25 @@
             </div>
         </div>
     </div>
+        <!-- Footer -->
+        <footer class="repo-footer" id="repoFooter">
+            <div class="repo-footer-inner">
+                <div class="repo-footer-brand">
+                    <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="44" height="44" style="border-radius:50%; object-fit:cover;"
+                        onerror="this.src='logos/logo_AITU.jpg'">
+                    <div>
+                        <strong data-i18n="footer_brand">KERNEL PANIC File Sharing System</strong>
+                        <span data-i18n="footer_desc">Centralizing academic intelligence with precision.</span>
+                    </div>
+                </div>
+                <div class="repo-footer-copy" data-i18n="footer_copy">
+                    &copy; 2026 KERNEL PANIC. All rights reserved.
+                </div>
+            </div>
+        </footer>
 
-    <!-- Admin layout shell -->
-    <div id="app" style="display:none;"></div>
+        <!-- Admin layout shell -->
+        <div id="app" style="display:none;"></div>
 
         <script type="module" src="js/shared/router.js"></script>
         <script type="module" src="js/pages/repository.js"></script>

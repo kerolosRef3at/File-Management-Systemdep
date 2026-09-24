@@ -10,8 +10,8 @@ export default function AppBar({
     en: 'Ticketing Management System',
   },
   universityName = {
-    ar: 'جامعة أسيوط التكنولوجية الدولية',
-    en: 'Assiut International Technological University',
+    ar: <><span style={{ color: '#000000', fontWeight: 800 }}>KERNEL</span> <span style={{ color: '#0066ff', fontWeight: 800 }}>PANIC</span></>,
+    en: <span style={{ color: '#94a3b8', fontWeight: 600, letterSpacing: '1px' }}>IT TEAM</span>,
   },
   onToggleSidebar,
 }) {
@@ -310,16 +310,16 @@ export default function AppBar({
 
             {/* Logo with float animation */}
             <div className="hdr-logo-wrap">
-              <img src={logo} alt="EGC Logo" style={{ width: '54px', height: '54px', objectFit: 'contain' }} />
+              <img src={logo} alt="KERNEL PANIC Logo" style={{ height: '44px', width: 'auto', maxWidth: '48px', objectFit: 'contain', background: 'transparent', borderRadius: 0, padding: 0, boxShadow: 'none' }} onError={(e) => { e.target.src = '/logos/kp_icon.png'; }} />
             </div>
 
             {/* University / Company Brand Text */}
             <div className="hdr-univ">
-              <div className="hdr-univ-name">
-                {lang === 'ar' ? universityName.ar : universityName.en}
+              <div className="hdr-univ-name" style={{ fontSize: '20px', fontWeight: 800, lineHeight: 1.2 }}>
+                <span style={{ color: '#000000', fontWeight: 800 }}>KERNEL</span> <span style={{ color: '#0066ff', fontWeight: 800 }}>PANIC</span>
               </div>
-              <div className="hdr-univ-en">
-                {lang === 'ar' ? universityName.en : universityName.ar}
+              <div className="hdr-univ-en" style={{ color: '#8899ac', fontWeight: 700, letterSpacing: '2px', fontSize: '11px', marginTop: '1px' }}>
+                IT TEAM
               </div>
             </div>
           </div>

@@ -405,7 +405,7 @@ export async function initCourseDetails() {
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                                 ` : ''}
-                                <button class="rl-file-download-btn" data-id="${lesson.fileId != null ? lesson.fileId : (lesson.id || '')}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" data-type="${lesson.type || ''}" title="Download">
+                                <button class="rl-file-download-btn" data-id="${lesson.fileId != null ? lesson.fileId : (lesson.id || '')}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" title="Download">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                                 </button>
                             </div>
@@ -428,99 +428,41 @@ export async function initCourseDetails() {
         document.querySelectorAll('.rl-file-download-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
-
-                const fileUrl = btn.dataset.file || btn.getAttribute('data-file') || '';
-                let targetFileName = (btn.dataset.title || btn.getAttribute('data-name') || 'course_file')
-                    .replace(/[/\\:*?"<>|]/g, '_')
-                    .replace(/\s+/g, ' ')
-                    .trim() || 'download';
-
-                // Ensure appropriate extension
-                if (!/\.[a-zA-Z0-9]{2,5}$/.test(targetFileName)) {
-                    const extMatch = fileUrl.match(/\.([a-zA-Z0-9]{2,5})(?:\?|#|$)/);
-                    if (extMatch) {
-                        targetFileName += '.' + extMatch[1];
-                    } else {
-                        const type = (btn.dataset.type || '').toUpperCase();
-                        if (type === 'VIDEO' || type === 'MP4') targetFileName += '.mp4';
-                        else if (type === 'PPTX' || type === 'PPT') targetFileName += '.pptx';
-                        else if (type === 'ZIP') targetFileName += '.zip';
-                        else if (type === 'DOCX' || type === 'DOC') targetFileName += '.docx';
-                        else targetFileName += '.pdf';
-                    }
-                }
-
-                // Synchronously trigger showSaveFilePicker at the absolute top of click handler
-                let fileHandle = null;
-                if ('showSaveFilePicker' in window) {
-                    try {
-                        fileHandle = await window.showSaveFilePicker({
-                            suggestedName: targetFileName
-                        });
-                    } catch (err) {
-                        if (err.name === 'AbortError') return; // User cancelled
-                        console.error(err);
-                    }
-                } else {
-                    console.warn('showSaveFilePicker is not available or blocked in this browser.');
-                }
-
                 const fileId = btn.dataset.id;
-
-                // 2. Update clicked button UI immediately: disable it, show mini spinner, and display 0%
-                const originalBtnHtml = btn.innerHTML;
-                btn.disabled = true;
-                btn.style.pointerEvents = 'none';
-                btn.style.display = 'inline-flex';
-                btn.style.alignItems = 'center';
-                btn.style.gap = '4px';
-
-                btn.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
-                    <span style="font-size: 0.78rem; font-weight: 600; color: var(--primary-blue);">0%</span>
-                `;
-
-                // 3. Progress callback to update button text on each streamed chunk
-                const onProgress = (percent, receivedBytes, totalBytes, mb) => {
-                    let progressText = '0%';
-                    if (percent !== null && percent !== undefined) {
-                        progressText = `${percent}%`;
-                    } else if (mb) {
-                        progressText = `${mb} MB`;
-                    }
-                    btn.innerHTML = `
-                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
-                        <span style="font-size: 0.78rem; font-weight: 600; color: var(--primary-blue);">${progressText}</span>
-                    `;
-                };
+                const fileUrl = btn.dataset.file || btn.getAttribute('data-file');
+                const fileName = btn.dataset.title || btn.getAttribute('data-name') || 'course_file';
 
                 // Pass BOTH the id and the stored path. downloadFile uses the
                 // numeric-id endpoint for repository files and the by-path
                 // endpoint for course lessons (whose id is a non-numeric string
                 // and whose real locator is the file path).
                 try {
-                    const r = await fileService.downloadFile(fileId, targetFileName, { file: fileUrl, fileHandle }, onProgress, fileHandle);
-                    if (r && (r.success || r.cancelled)) return;
+                    const r = await fileService.downloadFile(fileId, fileName, { file: fileUrl });
+                    if (r && r.success) return;
                 } catch (err) {
-                    if (err.name === 'AbortError') return;
                     console.warn("downloadFile failed:", err);
-                } finally {
-                    btn.disabled = false;
-                    btn.style.pointerEvents = '';
-                    btn.style.display = '';
-                    btn.style.alignItems = '';
-                    btn.style.gap = '';
-                    btn.innerHTML = originalBtnHtml;
-                    btn.title = 'Download';
                 }
 
-                // If not successful and not cancelled, notify user
-                const isAr = getCurrentLang() === 'ar';
-                alert(
-                    isAr
-                        ? 'هذا الملف غير متاح للتحميل حاليًا.'
-                        : 'This file is not available for download.'
-                );
+                if (false && fileUrl) {
+                    const downloadUrl = fileUrl.startsWith('http') || fileUrl.startsWith('data:') ? fileUrl : `${BASE_URL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = fileName;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+// No id and no url -> nothing real to download. The old code
+// wrote a fake "<name>.txt" placeholder here.
+// Just tell the user.
+const isAr = getCurrentLang() === 'ar';
+alert(
+    isAr
+        ? 'هذا الملف غير متاح للتحميل حاليًا.'
+        : 'This file is not available for download.'
+);
+                }
             });
         });
 
@@ -723,7 +665,7 @@ deleteCourseBtn.addEventListener('click', () => {
     // ============================
     // DOWNLOAD BUNDLE HELPER FUNCTION
     // ============================
-    async function executeBundleDownload(currentCourse, onProgress = null, fileHandle = null) {
+    async function executeBundleDownload(currentCourse) {
         if (!currentCourse) return;
         const lang = getCurrentLang();
         const isAr = lang === 'ar';
@@ -755,76 +697,63 @@ deleteCourseBtn.addEventListener('click', () => {
                 });
             }
 
-            if (filesToDownload.length === 0) {
-                alert(
-                    isAr
-                        ? 'لا توجد ملفات لتحميلها في هذا الكورس.'
-                        : 'This course has no files to download.'
-                );
-                return;
-            }
 
-            // Clean suggested ZIP filename: default to clean course title
-            const courseTitle = currentCourse.title || currentCourse.name || 'Course';
-            const cleanTitle = courseTitle.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Course';
-            const bundleZipName = `${cleanTitle}_Bundle.zip`;
 
-            // If only 1 file in the course, stream directly into fileHandle if provided
-            if (filesToDownload.length === 1) {
-                const f = filesToDownload[0];
-                return await fileService.downloadFile(f.id, f.name, { file: f.file, fileHandle }, onProgress, fileHandle);
-            }
+// Try server zip download first
+const numericIds = filesToDownload
+    .map(f => parseInt(f.id))
+    .filter(id => !isNaN(id) && id > 0);
 
-            // Try server zip download
-            const numericIds = filesToDownload
-                .map(f => parseInt(f.id))
-                .filter(id => !isNaN(id) && id > 0);
+const allNumeric = numericIds.length === filesToDownload.length;
 
-            if (numericIds.length > 0) {
-                try {
-                    const res = await fileService.downloadZip(numericIds, bundleZipName, onProgress, fileHandle);
-                    if (res && res.success) return;
-                    if (res && res.cancelled) return; // User cleanly cancelled file picker
-                } catch (err) {
-                    if (err.name === 'AbortError') return;
-                    console.warn('Server ZIP unavailable, downloading individually:', err);
-                }
-            }
+if (allNumeric && numericIds.length > 0) {
+    try {
+        const res = await fileService.downloadZip(numericIds);
+        if (res && res.success) return;
+    } catch (err) {
+        console.warn('Server ZIP unavailable, downloading individually:', err);
+    }
+}
 
-            let ok = 0,
-                failed = 0;
+const isAr = getCurrentLang() === 'ar';
 
-            for (const f of filesToDownload) {
-                try {
-                    const r = await fileService.downloadFile(f.id, f.name, { file: f.file }, onProgress);
-                    if (r && r.success) {
-                        ok++;
-                    } else if (r && r.cancelled) {
-                        // User cancelled
-                    } else {
-                        failed++;
-                    }
-                } catch (e) {
-                    if (e.name !== 'AbortError') {
-                        failed++;
-                    }
-                }
+if (filesToDownload.length === 0) {
+    alert(
+        isAr
+            ? 'لا توجد ملفات لتحميلها في هذا الكورس.'
+            : 'This course has no files to download.'
+    );
+    return;
+}
 
-                await new Promise(res => setTimeout(res, 400));
-            }
+let ok = 0,
+    failed = 0;
 
-            if (ok === 0 && failed > 0) {
-                alert(
-                    isAr
-                        ? 'تعذّر تحميل ملفات هذا الكورس. قد تكون غير متاحة على الخادم.'
-                        : "Could not download this course's files. They may be unavailable on the server."
-                );
-            } else if (failed > 0) {
-                alert(
-                    isAr
-                        ? `تم تحميل ${ok} ملف، وتعذّر تحميل ${failed}.`
-                        : `Downloaded ${ok} file(s); ${failed} could not be downloaded.`
-                );
+for (const f of filesToDownload) {
+    try {
+        const r = await fileService.downloadFile(f.id, f.name, { file: f.file });
+        if (r && r.success) ok++;
+        else failed++;
+    } catch (e) {
+        failed++;
+    }
+
+    await new Promise(res => setTimeout(res, 400));
+}
+
+if (ok === 0) {
+    alert(
+        isAr
+            ? 'تعذّر تحميل ملفات هذا الكورس. قد تكون غير متاحة على الخادم.'
+            : "Could not download this course's files. They may be unavailable on the server."
+    );
+} else if (failed > 0) {
+    alert(
+        isAr
+            ? `تم تحميل ${ok} ملف، وتعذّر تحميل ${failed}.`
+            : `Downloaded ${ok} file(s); ${failed} could not be downloaded.`
+    );
+
             }
         } catch (err) {
             console.warn('Error in executeBundleDownload:', err);
@@ -934,26 +863,6 @@ deleteCourseBtn.addEventListener('click', () => {
     const confirmModalBtn = document.getElementById('confirmModal');
     if (confirmModalBtn) {
         confirmModalBtn.addEventListener('click', async () => {
-            const course = courseData || {};
-            const courseTitle = course.title || course.name || 'Course';
-            const cleanTitle = courseTitle.replace(/[/\\:*?"<>|]/g, '_').replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'Course';
-            const targetFileName = `${cleanTitle}_Bundle.zip`;
-
-            // Synchronously trigger showSaveFilePicker at the absolute top of click handler
-            let fileHandle = null;
-            if ('showSaveFilePicker' in window) {
-                try {
-                    fileHandle = await window.showSaveFilePicker({
-                        suggestedName: targetFileName
-                    });
-                } catch (err) {
-                    if (err.name === 'AbortError') return; // User cancelled
-                    console.error(err);
-                }
-            } else {
-                console.warn('showSaveFilePicker is not available or blocked in this browser.');
-            }
-
             const lang = getCurrentLang();
             const isAr = lang === 'ar';
 
@@ -961,25 +870,8 @@ deleteCourseBtn.addEventListener('click', () => {
             const originalHTML = confirmModalBtn.innerHTML;
             confirmModalBtn.innerHTML = `
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-                <span>${isAr ? 'جاري التحميل: 0%' : 'Downloading: 0%'}</span>
+                <span>${isAr ? 'جاري تجهيز التحميل...' : 'Preparing Download...'}</span>
             `;
-
-            // Real-time button text update as chunks arrive
-            const onProgress = (percent, receivedBytes, totalBytes, mb) => {
-                if (!confirmModalBtn) return;
-                let text;
-                if (percent !== null && percent !== undefined) {
-                    text = isAr ? `جاري التحميل: ${percent}%` : `Downloading: ${percent}%`;
-                } else if (mb) {
-                    text = isAr ? `جاري التحميل: ${mb} ميجابايت...` : `Downloading: ${mb} MB...`;
-                } else {
-                    text = isAr ? 'جاري التحميل...' : 'Downloading...';
-                }
-                confirmModalBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path></svg>
-                    <span>${text}</span>
-                `;
-            };
 
             try {
                 // Use courseData (the module-scoped variable set at load), NOT
@@ -988,11 +880,9 @@ deleteCourseBtn.addEventListener('click', () => {
                 // bundle download never ran.
                 // The server logs the download itself (guest or authenticated)
                 // inside /api/Files/zip and /api/Files/download, so no client log.
-                await executeBundleDownload(courseData, onProgress, fileHandle);
+                await executeBundleDownload(courseData);
             } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.warn('Confirm modal download notice:', err);
-                }
+                console.warn('Confirm modal download notice:', err);
             } finally {
                 confirmModalBtn.disabled = false;
                 confirmModalBtn.innerHTML = originalHTML;

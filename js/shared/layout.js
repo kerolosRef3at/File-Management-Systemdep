@@ -158,7 +158,7 @@ export function renderLayout(activePage = 'repository') {
                 <div class="hdr-top">
                     <span class="hdr-top-left">
                         <span>🏛️</span>
-                        <span>${isAr ? 'جامعة أسيوط التكنولوجية الدولية — AITU' : 'Assiut International Technological University — AITU'}</span>
+                        <span><span style="color:#ffffff;">KERNEL</span> <span style="color:#60a5fa;">PANIC</span></span>
                     </span>
 
                     <div class="hdr-top-right">
@@ -207,19 +207,19 @@ export function renderLayout(activePage = 'repository') {
                         </button>
 
                         <div class="hdr-logo-wrap" onclick="if(window.navigateTo){window.navigateTo('repository');}else{window.location.href='index.html';}">
-                            <img src="logos/logo.png" alt="AITU Logo" onerror="this.src='logos/logo_AITU.jpg'">
+                            <img src="logos/logo.png?v=20260924_1" alt="KERNEL PANIC Logo" style="height:44px !important; width:auto !important; max-width:48px !important; object-fit:contain !important; background:transparent !important; border-radius:0 !important; padding:0 !important; box-shadow:none !important;" onerror="this.src='logos/kp_icon.png'">
                         </div>
 
                         <div class="hdr-univ" onclick="if(window.navigateTo){window.navigateTo('repository');}else{window.location.href='index.html';}">
-                            <div class="hdr-univ-name">${isAr ? 'جامعة أسيوط التكنولوجية الدولية' : 'Assiut International Technological University'}</div>
-                            <div class="hdr-univ-en">${isAr ? 'Assiut International Technological University' : 'جامعة أسيوط التكنولوجية الدولية'}</div>
+                            <div class="hdr-univ-name" style="font-size:20px !important; font-weight:800 !important; line-height:1.2 !important;"><span style="color:#000000; font-weight:800;">KERNEL</span> <span style="color:#0066ff; font-weight:800;">PANIC</span></div>
+                            <div class="hdr-univ-en" style="color:#8899ac !important; font-weight:700 !important; letter-spacing:2px !important; font-size:11px !important; margin-top:1px !important;">IT TEAM</div>
                         </div>
                     </div>
 
                     <!-- Center System Title -->
                     <div class="hdr-center">
                         <div class="hdr-center-title">${isAr ? 'نظام إدارة الملفات والوثائق الأكاديمية' : 'Academic File Management System'}</div>
-                        <div class="hdr-center-sub">${isAr ? 'Assiut International Technological University — AITU' : 'جامعة أسيوط التكنولوجية الدولية'}</div>
+                        <div class="hdr-center-sub" style="color:#94a3b8; font-weight:600; letter-spacing:1px;">IT TEAM</div>
                     </div>
 
                     <!-- Spacer for visual symmetry -->

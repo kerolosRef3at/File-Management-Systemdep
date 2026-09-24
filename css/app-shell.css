@@ -180,11 +180,15 @@ body {
 }
 
 .hdr-logo-wrap img {
-  width: 52px;
-  height: 52px;
-  object-fit: contain;
-  border-radius: 50%;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+  height: 44px !important;
+  width: auto !important;
+  max-width: 48px !important;
+  object-fit: contain !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  display: block !important;
 }
 
 .hdr-univ {
@@ -194,19 +198,21 @@ body {
 }
 
 .hdr-univ-name {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--shell-navy);
   white-space: nowrap;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .hdr-univ-en {
-  font-size: 11.5px;
-  color: var(--shell-text-subtle);
+  font-size: 11px;
+  color: #8899ac;
+  letter-spacing: 2px;
+  text-transform: uppercase;
   margin-top: 1px;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .hdr-center {

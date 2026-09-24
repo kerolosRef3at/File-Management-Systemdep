@@ -14,9 +14,9 @@ export const translations = {
 
         // ===== Index / Hero =====
         hero_title: "Academic Infrastructure Repository",
-        hero_desc: "The institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.",
+        hero_desc: "The institutional file management system for KERNEL PANIC. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.",
         hero_btn_browse: "Browse Programs",
-        hero_btn_academy: "Join AITU Academy",
+        hero_btn_academy: "Join KERNEL PANIC Academy",
 
         // ===== Departments Section =====
         dept_section_title: "Supported Departments",
@@ -30,7 +30,7 @@ export const translations = {
 
         // ===== Trust Banner =====
         trust_title: "Trusted Platform for Academic Research",
-        trust_desc: "AITU Drive ensures fast and secure access to thousands of academic documents, fostering collaboration across all technological departments.",
+        trust_desc: "KERNEL PANIC Drive ensures fast and secure access to thousands of academic documents, fostering collaboration across all technological departments.",
         trust_stat: "100%",
         trust_stat_label: "Secure Encryption",
 
@@ -41,7 +41,7 @@ export const translations = {
 
         // ===== Repository Controls =====
         repo_title: "Central Repository",
-        repo_subtitle: "The official AITU file management system for academic and administrative record keeping.",
+        repo_subtitle: "The official KERNEL PANIC file management system for academic and administrative record keeping.",
         repo_add_category: "Add Category",
         repo_add_program: "Add Program",
         repo_upload: "Upload Resources",
@@ -58,9 +58,9 @@ export const translations = {
         courses_hero_desc: "Discover professional and academic courses tailored for the next generation of technological leaders.",
         courses_search_placeholder: "Search courses...",
         courses_cta_title: "Unlock Your Potential",
-        courses_cta_desc: "Access comprehensive course materials and resources designed by AITU's expert faculty.",
+        courses_cta_desc: "Access comprehensive course materials and resources designed by KERNEL PANIC's expert faculty.",
         courses_cta_browse: "Browse Programs",
-        courses_cta_join: "Join AITU",
+        courses_cta_join: "Join KERNEL PANIC",
         courses_bulk_title: "Bulk Downloads",
         courses_bulk_desc: "Download entire semesters of technical resources in one click.",
         courses_bulk_btn: "Browse Packages",
@@ -71,25 +71,25 @@ export const translations = {
         cd_download_confirm: "Confirm Course Download",
         cd_total_size: "TOTAL SIZE",
         cd_policy_title: "Usage Restriction Policy",
-        cd_policy_desc: "Redistribution, public sharing, or commercial use of these materials is strictly prohibited under Assiut International Technological University Terms of Service and Intellectual Property regulations. Resources are for individual educational use only.",
+        cd_policy_desc: "Redistribution, public sharing, or commercial use of these materials is strictly prohibited under KERNEL PANIC Terms of Service and Intellectual Property regulations. Resources are for individual educational use only.",
         cd_cancel: "Cancel",
         cd_download_btn: "Download Course Archive",
         cd_loading: "Loading course details...",
 
         // ===== Footer =====
-        footer_brand: "AITU File Sharing System",
+        footer_brand: "نظام مشاركة ملفات <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
         footer_desc: "Centralizing academic intelligence with precision.",
-        footer_copy: "© 2026 Assiut International Technological University. All rights reserved.",
+        footer_copy: "© 2026 <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>. All rights reserved.",
 
         // ===== Auth Pages =====
-        sidebar_uni_name: "Assiut International Technological University",
-        sidebar_uni_sub: "File Management System",
-        auth_uni_name: "Assiut International Technological University - AITU",
+        sidebar_uni_name: "<span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
+        sidebar_uni_sub: "<span style='color:#94a3b8; font-weight:600; letter-spacing:1px;'>IT TEAM</span>",
+        auth_uni_name: "<span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
         auth_system_name: "File Management System",
         auth_pill: "File System",
         auth_main_title: "File Management System",
-        auth_main_desc: "Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.",
-        auth_footer: "© 2026 Assiut International Technological University",
+        auth_main_desc: "Streamline workflows, track progress, and collaborate seamlessly across all KERNEL PANIC departments and teams.",
+        auth_footer: "© 2026 <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
 
         // ===== Login =====
         login_welcome: "Welcome Back",
@@ -451,9 +451,9 @@ export const translations = {
 
         // ===== Index / Hero =====
         hero_title: "مستودع البنية التحتية الأكاديمية",
-        hero_desc: "نظام إدارة الملفات المؤسسي لجامعة أسيوط التكنولوجية الدولية. منصة آمنة ومنظمة للوصول إلى موارد أقسام تكنولوجيا المعلومات والهندسة الكهربائية والميكانيكية.",
+        hero_desc: "نظام إدارة الملفات المؤسسي لـ KERNEL PANIC. منصة آمنة ومنظمة للوصول إلى موارد أقسام تكنولوجيا المعلومات والهندسة الكهربائية والميكانيكية.",
         hero_btn_browse: "تصفح التخصصات",
-        hero_btn_academy: "انضم لأكاديمية AITU",
+        hero_btn_academy: "انضم لأكاديمية KERNEL PANIC",
 
         // ===== Departments Section =====
         dept_section_title: "الأقسام المدعومة",
@@ -467,7 +467,7 @@ export const translations = {
 
         // ===== Trust Banner =====
         trust_title: "منصة موثوقة للبحث الأكاديمي",
-        trust_desc: "يضمن AITU Drive وصولاً سريعاً وآمناً إلى آلاف الوثائق الأكاديمية، مما يعزز التعاون عبر جميع الأقسام التكنولوجية.",
+        trust_desc: "يضمن KERNEL PANIC Drive وصولاً سريعاً وآمناً إلى آلاف الوثائق الأكاديمية، مما يعزز التعاون عبر جميع الأقسام التكنولوجية.",
         trust_stat: "١٠٠٪",
         trust_stat_label: "تشفير آمن",
 
@@ -478,7 +478,7 @@ export const translations = {
 
         // ===== Repository Controls =====
         repo_title: "المستودع المركزي",
-        repo_subtitle: "النظام الرسمي لإدارة ملفات جامعة أسيوط التكنولوجية الدولية لتدوين السجلات الأكاديمية والإدارية.",
+        repo_subtitle: "النظام الرسمي لإدارة ملفات KERNEL PANIC لتدوين السجلات الأكاديمية والإدارية.",
         repo_add_category: "إضافة قسم",
         repo_add_program: "إضافة تخصص",
         repo_upload: "رفع الموارد",
@@ -495,9 +495,9 @@ export const translations = {
         courses_hero_desc: "اكتشف الكورسات المهنية والأكاديمية المصممة للجيل القادم من القادة التكنولوجيين.",
         courses_search_placeholder: "ابحث عن كورسات...",
         courses_cta_title: "أطلق إمكانياتك",
-        courses_cta_desc: "احصل على مواد دراسية شاملة وموارد مصممة بواسطة أعضاء هيئة التدريس في AITU.",
+        courses_cta_desc: "احصل على مواد دراسية شاملة وموارد مصممة بواسطة أعضاء هيئة التدريس في KERNEL PANIC.",
         courses_cta_browse: "تصفح التخصصات",
-        courses_cta_join: "انضم لـ AITU",
+        courses_cta_join: "انضم لـ KERNEL PANIC",
         courses_bulk_title: "تحميل جماعي",
         courses_bulk_desc: "قم بتحميل فصول دراسية كاملة من الموارد التقنية بضغطة واحدة.",
         courses_bulk_btn: "تصفح الحزم",
@@ -508,25 +508,25 @@ export const translations = {
         cd_download_confirm: "تأكيد تحميل الكورس",
         cd_total_size: "الحجم الكلي",
         cd_policy_title: "سياسة قيود الاستخدام",
-        cd_policy_desc: "يُحظر تمامًا إعادة التوزيع أو المشاركة العامة أو الاستخدام التجاري لهذه المواد بموجب شروط خدمة جامعة أسيوط التكنولوجية الدولية ولوائح الملكية الفكرية. الموارد للاستخدام التعليمي الفردي فقط.",
+        cd_policy_desc: "يُحظر تمامًا إعادة التوزيع أو المشاركة العامة أو الاستخدام التجاري لهذه المواد بموجب شروط خدمة KERNEL PANIC ولوائح الملكية الفكرية. الموارد للاستخدام التعليمي الفردي فقط.",
         cd_cancel: "إلغاء",
         cd_download_btn: "تحميل أرشيف الكورس",
         cd_loading: "جاري تحميل تفاصيل الكورس...",
 
         // ===== Footer =====
-        footer_brand: "نظام مشاركة ملفات AITU",
+        footer_brand: "نظام مشاركة ملفات <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
         footer_desc: "مركزية الذكاء الأكاديمي بدقة.",
-        footer_copy: "© ٢٠٢٦ جامعة أسيوط التكنولوجية الدولية. جميع الحقوق محفوظة.",
+        footer_copy: "© ٢٠٢٦ <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>. جميع الحقوق محفوظة.",
 
         // ===== Auth Pages =====
-        sidebar_uni_name: "جامعة أسيوط التكنولوجية الدولية",
-        sidebar_uni_sub: "نظام إدارة الملفات",
-        auth_uni_name: "جامعة أسيوط التكنولوجية الدولية - AITU",
+        sidebar_uni_name: "<span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
+        sidebar_uni_sub: "<span style='color:#94a3b8; font-weight:600; letter-spacing:1px;'>IT TEAM</span>",
+        auth_uni_name: "<span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
         auth_system_name: "نظام إدارة الملفات",
         auth_pill: "نظام الملفات",
         auth_main_title: "نظام إدارة الملفات",
-        auth_main_desc: "بسّط سير العمل، تابع التقدم، وتعاون بسلاسة عبر جميع أقسام وفرق AITU.",
-        auth_footer: "© ٢٠٢٦ جامعة أسيوط التكنولوجية الدولية",
+        auth_main_desc: "بسّط سير العمل، تابع التقدم، وتعاون بسلاسة عبر جميع أقسام وفرق KERNEL PANIC.",
+        auth_footer: "© ٢٠٢٦ <span style='color:#000000; font-weight:800;'>KERNEL</span> <span style='color:#0066ff; font-weight:800;'>PANIC</span>",
 
         // ===== Login =====
         login_welcome: "مرحباً بعودتك",

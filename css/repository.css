@@ -628,64 +628,6 @@
     height: 14px;
 }
 
-.repo-chip-select-wrap {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    background: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 0 12px;
-    height: 34px;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.repo-chip-select-wrap:hover {
-    border-color: var(--primary-dark);
-}
-
-.repo-chip-select-wrap:focus-within {
-    border-color: var(--primary-dark);
-    box-shadow: 0 0 0 2px rgba(21, 101, 192, 0.15);
-}
-
-.repo-chip-select-wrap .select-prefix-icon {
-    color: var(--text-gray);
-    margin-inline-end: 8px;
-    flex-shrink: 0;
-    pointer-events: none;
-}
-
-.repo-chip-select-wrap .select-chevron-icon {
-    color: var(--text-gray);
-    margin-inline-start: 8px;
-    flex-shrink: 0;
-    pointer-events: none;
-}
-
-.repo-chip-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    border: none;
-    background: transparent;
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: inherit;
-    color: var(--text-dark);
-    cursor: pointer;
-    outline: none;
-    padding: 0;
-    line-height: 1;
-}
-
-.repo-chip-select option {
-    background: #fff;
-    color: var(--text-dark);
-    font-weight: 500;
-}
-
 /* --- File Cards Grid View --- */
 .repo-file-grid {
     display: grid;

@@ -47,23 +47,11 @@ html[dir="rtl"] .lp-bg {
   transform: scaleX(-1); /* The ONLY mirrored element */
 }
 
-/* Soft white/blue readability veil toward the card side — positioned, never mirrored */
-.lp-veil {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  width: 46%;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(to left, rgba(255,255,255,0.38), rgba(255,255,255,0.12) 55%, transparent);
-}
-
+/* Soft white/blue readability veil toward the card side — disabled for maximum background curve transparency */
+.lp-veil,
 [dir="rtl"] .lp-veil,
 html[dir="rtl"] .lp-veil {
-  right: auto;
-  left: 0;
-  background: linear-gradient(to right, rgba(255,255,255,0.38), rgba(255,255,255,0.12) 55%, transparent);
+  display: none !important;
 }
 
 /* ═════════ UI LAYERS — z-index above background, NEVER mirrored ═════════ */
@@ -85,7 +73,7 @@ html[dir="rtl"] .lp-veil {
 .lp-brand {
   display: flex;
   align-items: center;
-  gap: clamp(8px, 1.2vw, 16px);
+  gap: 12px;
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -95,29 +83,34 @@ html[dir="rtl"] .lp-veil {
 }
 
 .lp-brand-name {
-  font-size: clamp(12px, 1.3vw, 17px);
-  font-weight: 700;
+  font-size: 32px !important;
+  font-weight: 800 !important;
   color: #0B2A5B;
-  line-height: 1.35;
+  line-height: 1.2 !important;
+  letter-spacing: 0.5px !important;
 }
 
 .lp-brand-sub {
-  font-size: clamp(10px, 0.95vw, 13px);
-  font-weight: 500;
-  color: #64748B;
-  margin-top: 4px;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #8899AC !important;
+  letter-spacing: 3px !important;
+  margin-top: 4px !important;
   line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .lp-brand-logo {
-  width: clamp(38px, 4.5vw, 64px);
-  height: clamp(38px, 4.5vw, 64px);
-  border-radius: 50%;
-  object-fit: cover;
-  background: #fff;
-  box-shadow: 0 6px 18px rgba(11, 42, 91, 0.10);
-  flex-shrink: 0;
-  padding: 2px;
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 50% !important;
+  object-fit: contain !important;
+  display: block !important;
+  padding: 4px !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.1) !important;
+  flex-shrink: 0 !important;
 }
 
 /* ── Language selector ── */
@@ -159,6 +152,7 @@ html[dir="rtl"] .lp-veil {
 
 /* ── Hero block — campus side (left in EN → right in AR) ── */
 .lp-hero {
+  display: none !important;
   position: absolute;
   top: 19%;
   left: 6%;
@@ -216,69 +210,73 @@ html[dir="rtl"] .lp-card-zone {
   left: 5.5%;
 }
 
+.lp-brand-name,
+.lp-brand-sub,
+.lp-card-name,
+.lp-card-sub {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+}
+
 /* Card hugs content */
 .lp-card {
-  width: clamp(380px, 28vw, 540px);
-  max-height: 92vh;
-  background: #FFFFFF;
-  border: 1px solid #E8EEF6;
-  border-radius: 26px;
-  padding: clamp(34px, 3.2vw, 48px) clamp(28px, 3vw, 46px) clamp(28px, 2.6vw, 40px);
-  box-shadow:
-    0 28px 70px rgba(15, 35, 80, 0.16),
-    0 8px 20px rgba(15, 35, 80, 0.07);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+  width: 410px !important;
+  max-width: 90vw !important;
+  max-height: 92vh !important;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(226, 232, 240, 0.7) !important;
+  border-radius: 30px !important;
+  padding: 38px 34px 34px !important;
+  box-shadow: 0 22px 60px rgba(15, 35, 80, 0.12), 0 6px 20px rgba(15, 35, 80, 0.05) !important;
+  text-align: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
 }
 
 .lp-card-logo {
-  width: clamp(76px, 7.2vw, 96px);
-  height: clamp(76px, 7.2vw, 96px);
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-  margin: 2px auto 18px;
-  padding: 3px;
-  background: #FFFFFF;
-  border: 2px solid rgba(21, 101, 192, 0.10);
-  box-shadow: 0 10px 24px rgba(11, 42, 91, 0.14);
+  width: 96px !important;
+  height: 96px !important;
+  border-radius: 50% !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: 0 auto 14px !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09) !important;
 }
 
 .lp-card-name {
-  font-size: clamp(16px, 1.5vw, 19px);
-  font-weight: 800;
-  color: #0B2A5B;
-  line-height: 1.45;
-  letter-spacing: 0.2px;
+  font-size: 27px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.5px !important;
 }
 
-.lp-card-sub {
-  font-size: clamp(12.5px, 1.1vw, 14.5px);
-  font-weight: 500;
-  color: #64748B;
-  margin-top: 6px;
-  line-height: 1.6;
-}
-
+.lp-card-sub,
 [dir="rtl"] .lp-card-sub,
 html[dir="rtl"] .lp-card-sub {
-  font-size: clamp(13px, 1.15vw, 15px);
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  color: #94A3B8 !important;
+  letter-spacing: 2.5px !important;
+  text-transform: uppercase !important;
+  margin-top: 4px !important;
+  line-height: 1.4 !important;
 }
 
 .lp-card-rule {
-  width: 48px;
-  height: 3px;
-  background: #1565C0;
-  margin: 16px auto 22px;
-  border-radius: 3px;
+  width: 36px !important;
+  height: 4px !important;
+  background: #0066FF !important;
+  border-radius: 4px !important;
+  margin: 12px auto 20px !important;
 }
 
 .lp-form {
   display: flex;
   flex-direction: column;
-  gap: clamp(13px, 1.4vw, 17px);
+  gap: clamp(14px, 1.5vw, 18px);
   text-align: start;
 }
 
@@ -298,39 +296,40 @@ html[dir="rtl"] .lp-card-sub {
 
 .input-left-icon {
   position: absolute;
-  inset-inline-start: 13px;
+  inset-inline-start: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #94A3B8;
   pointer-events: none;
+  z-index: 2;
 }
 
 .lp-input {
   width: 100%;
-  height: 48px;
-  padding: 9px 13px;
-  padding-inline-start: 38px;
+  height: 52px;
+  padding: 12px 14px;
+  padding-inline-start: 44px;
   padding-inline-end: 14px;
   border: 1.5px solid #E2E8F0;
-  border-radius: 10px;
-  font-size: 13px;
+  border-radius: 14px;
+  font-size: 14px;
   font-family: inherit;
   outline: none;
-  background: #FAFBFD;
+  background: #FFFFFF;
   box-sizing: border-box;
   color: #0F172A;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
 }
 
 .lp-input[type="password"] {
-  padding-inline-end: 84px;
+  padding-inline-end: 96px;
 }
 
 .lp-input:focus {
-  border-color: #1565C0;
+  border-color: #0066FF;
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.12);
 }
 
 .lp-pw-toggle {
@@ -339,25 +338,26 @@ html[dir="rtl"] .lp-card-sub {
   top: 50%;
   transform: translateY(-50%);
   border: none;
-  background: rgba(21, 101, 192, 0.07);
+  background: #E8EFFC;
   cursor: pointer;
-  color: #1565C0;
+  color: #0066FF;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 12.5px;
   font-family: inherit;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   user-select: none;
   transition: background 0.15s, color 0.15s;
   line-height: 1;
+  z-index: 2;
 }
 
 .lp-pw-toggle:hover {
-  background: rgba(21, 101, 192, 0.14);
-  color: #0B2A5B;
+  background: #DCE8FA;
+  color: #0052CC;
   text-decoration: none;
 }
 
@@ -382,7 +382,8 @@ html[dir="rtl"] .lp-card-sub {
   align-items: center;
   justify-content: space-between;
   font-size: 14px;
-  margin-top: -2px;
+  margin-top: 2px;
+  margin-bottom: 4px;
   gap: 10px;
   flex-wrap: wrap;
 }
@@ -391,33 +392,59 @@ html[dir="rtl"] .lp-card-sub {
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #334155;
-  font-weight: 600;
+  color: #0F172A;
+  font-weight: 700;
   cursor: pointer;
   user-select: none;
+  font-size: 14px;
 }
 
-.lp-remember input {
-  accent-color: #0B2A5B;
-  width: 17px;
-  height: 17px;
+.lp-remember input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 19px;
+  height: 19px;
+  border: 2px solid #133E82;
+  border-radius: 5px;
+  background: #ffffff;
   cursor: pointer;
   margin: 0;
+  position: relative;
+  display: grid;
+  place-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.lp-remember input[type="checkbox"]:checked {
+  background: #133E82;
+  border-color: #133E82;
+}
+
+.lp-remember input[type="checkbox"]:checked::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  border: solid #ffffff;
+  border-width: 0 2.2px 2.2px 0;
+  transform: rotate(45deg) translate(-0.5px, -1px);
+  display: block;
 }
 
 .lp-link {
   background: none;
   border: none;
-  color: #1565C0;
+  color: #0066FF;
   font-size: 14px;
   font-family: inherit;
   cursor: pointer;
   font-weight: 700;
   text-decoration: none;
+  padding: 0;
 }
 
 .lp-link:hover {
-  color: #0B2A5B;
+  color: #0052CC;
   text-decoration: underline;
 }
 
@@ -450,21 +477,21 @@ html[dir="rtl"] .lp-card-sub {
   height: 54px;
   padding: 0 24px;
   border: none;
-  border-radius: 999px;
-  font-size: clamp(15px, 1.4vw, 16.5px);
+  border-radius: 9999px;
+  font-size: 16.5px;
   line-height: 1;
   font-weight: 800;
   font-family: inherit;
   color: #fff;
   cursor: pointer;
-  background: linear-gradient(135deg, #0E2E63, #17418C);
-  box-shadow: 0 12px 26px rgba(11, 42, 91, 0.28);
+  background: #133E82;
+  box-shadow: 0 10px 24px rgba(19, 62, 130, 0.35);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .lp-btn-primary:disabled {
@@ -473,9 +500,9 @@ html[dir="rtl"] .lp-card-sub {
 }
 
 .lp-btn-primary:not(:disabled):hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(11, 42, 91, 0.36);
-  background: linear-gradient(135deg, #123B7D, #1E4FA3);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(19, 62, 130, 0.42);
+  background: #0F326B;
 }
 
 .lp-btn-arrow {
@@ -581,7 +608,7 @@ html[dir="rtl"] .lp-btn-primary:not(:disabled):hover .lp-btn-arrow {
 
 @media (max-width: 480px) {
   .lp-header { padding: 16px 14px 0; gap: 10px; }
-  .lp-brand-logo { width: 42px; height: 42px; }
+  .lp-brand-logo { width: 48px !important; height: 48px !important; padding: 6px !important; }
   .lp-brand-name { font-size: 12.5px; }
   .lp-brand-sub { font-size: 10.5px; }
   .lp-lang { height: 32px; padding: 0 12px; font-size: 12.5px; }

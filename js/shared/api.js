@@ -313,21 +313,6 @@ export async function pingAPI(timeout = 5000) {
     }
 }
 
-export const api = {
-    BASE_URL,
-    fetchAPI,
-    fetchAll,
-    fetchWithRetry,
-    uploadFileWithProgress,
-    downloadFile,
-    getErrorMessage,
-    pingAPI,
-    get: (endpoint, options = {}) => fetchAPI(endpoint, { ...options, method: 'GET' }),
-    post: (endpoint, body, options = {}) => fetchAPI(endpoint, { ...options, method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) }),
-    put: (endpoint, body, options = {}) => fetchAPI(endpoint, { ...options, method: 'PUT', body: typeof body === 'string' ? body : JSON.stringify(body) }),
-    delete: (endpoint, options = {}) => fetchAPI(endpoint, { ...options, method: 'DELETE' })
-};
-
 export default {
     BASE_URL,
     fetchAPI,
@@ -336,6 +321,5 @@ export default {
     uploadFileWithProgress,
     downloadFile,
     getErrorMessage,
-    pingAPI,
-    api
+    pingAPI
 };

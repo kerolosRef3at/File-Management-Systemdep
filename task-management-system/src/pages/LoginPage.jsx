@@ -49,8 +49,8 @@ const ArrowRight = (
   </svg>
 );
 
-const UNIV_AR = 'جَامِعَةُ أَسْيُوطَ التِّكْنُولُوجِيَّةُ الدَّوْلِيَّةُ';
-const UNIV_EN = 'Assiut International Technological University';
+const UNIV_AR = <><span style={{ color: '#000000', fontWeight: 800 }}>KERNEL</span> <span style={{ color: '#0066ff', fontWeight: 800 }}>PANIC</span></>;
+const UNIV_EN = <span style={{ color: '#94a3b8', fontWeight: 600, letterSpacing: '1px' }}>IT TEAM</span>;
 
 export default function LoginPage({ onLogin, lang = 'en', setLang }) {
   // If no external language controller is provided, manage language internally
@@ -188,8 +188,8 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
 
   const isRtl = activeLang === 'ar';
   const t = {
-    name: isRtl ? UNIV_AR : UNIV_EN,
-    subName: isRtl ? UNIV_EN : UNIV_AR,
+    name: UNIV_AR,
+    subName: UNIV_EN,
     hero: isRtl ? ['نبني عقولًا', 'لمستقبلٍ', 'أكثر إشراقًا'] : ['BUILDING', 'MINDS FOR A', 'BRIGHTER', 'FUTURE'],
     userPh: isRtl ? 'اسم المستخدم أو البريد الإلكتروني' : 'Username or email',
     passPh: isRtl ? 'كلمة المرور' : 'Password',
@@ -232,13 +232,7 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
         </button>
       </div>
 
-      {/* ════════ HERO TEXT — grouped block on the campus side, never mirrored ════════ */}
-      <div className="lp-hero">
-        <div className="lp-hero-rule" />
-        <div className="lp-hero-lines">
-          {t.hero.map((w, i) => <div key={i}>{w}</div>)}
-        </div>
-      </div>
+
 
       {/* ════════ LOGIN CARD — auto height, sized to its content, on the pale-blue shape ════════
           right side in EN, left side in AR on desktop; centered, full-focus on mobile. Card itself is never mirrored. */}
@@ -412,19 +406,8 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
           transform: scaleX(-1);   /* ← the ONLY mirrored element in the entire page */
         }
 
-        /* Soft white/blue readability veil toward the card side — positioned, never mirrored */
-        .lp-veil {
-          position: absolute;
-          top: 0; bottom: 0; right: 0;
-          width: 46%;
-          z-index: 2;
-          pointer-events: none;
-          background: linear-gradient(to left, rgba(255,255,255,0.38), rgba(255,255,255,0.12) 55%, transparent);
-        }
-        [dir="rtl"] .lp-veil {
-          right: auto; left: 0;
-          background: linear-gradient(to right, rgba(255,255,255,0.38), rgba(255,255,255,0.12) 55%, transparent);
-        }
+        /* Soft white/blue readability veil disabled for maximum background curve transparency */
+        .lp-veil, [dir="rtl"] .lp-veil { display: none !important; }
 
         /* ═════════ UI LAYERS — z-index above background, NEVER mirrored ═════════ */
 
@@ -466,14 +449,16 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
           line-height: 1.4;
         }
         .lp-brand-logo {
-          width: clamp(38px, 4.5vw, 64px);
-          height: clamp(38px, 4.5vw, 64px);
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
-          object-fit: cover;
-          background: #fff;
-          box-shadow: 0 6px 18px rgba(11, 42, 91, 0.10);
+          object-fit: contain;
+          display: block;
+          padding: 10px;
+          box-sizing: border-box;
+          background: #ffffff;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.09);
           flex-shrink: 0;
-          padding: 2px;
         }
 
         /* ── Language selector — flex-shrink:0 so it never gets squeezed by a long name ── */
@@ -502,6 +487,7 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
 
         /* ── Hero block — campus side, one grouped composition (left in EN → right in AR) ── */
         .lp-hero {
+          display: none !important;
           position: absolute;
           top: 19%;
           left: 6%;
@@ -545,17 +531,16 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
         }
         [dir="rtl"] .lp-card-zone { right: auto; left: 5.5%; }
 
-        /* Card hugs its content — no forced height, no dead space */
+        /* Card hugs its content — sized to reference image */
         .lp-card {
-          width: clamp(380px, 28vw, 540px);
+          width: 410px;
+          max-width: 90vw;
           max-height: 92vh;
           background: #FFFFFF;
-          border: 1px solid #E8EEF6;
-          border-radius: 26px;
-          padding: clamp(34px, 3.2vw, 48px) clamp(28px, 3vw, 46px) clamp(28px, 2.6vw, 40px);
-          box-shadow:
-            0 28px 70px rgba(15, 35, 80, 0.16),
-            0 8px 20px rgba(15, 35, 80, 0.07);
+          border: 1px solid rgba(226, 232, 240, 0.7);
+          border-radius: 30px;
+          padding: 38px 34px 34px;
+          box-shadow: 0 22px 60px rgba(15, 35, 80, 0.12), 0 6px 20px rgba(15, 35, 80, 0.05);
           text-align: center;
           display: flex;
           flex-direction: column;
@@ -563,56 +548,61 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
         }
 
         .lp-card-logo {
-          width: clamp(72px, 7vw, 96px);
-          height: clamp(72px, 7vw, 96px);
+          width: 96px;
+          height: 96px;
           border-radius: 50%;
-          object-fit: cover;
+          object-fit: contain;
           display: block;
-          margin: 2px auto 20px;
-          box-shadow: 0 10px 26px rgba(11, 42, 91, 0.16);
-          animation: lpLogoFloat 4s ease-in-out infinite;
-        }
-        @keyframes lpLogoFloat {
-          0%, 100% { transform: translateY(0); }
-          50%      { transform: translateY(-8px); }
+          margin: 0 auto 14px;
+          padding: 8px;
+          box-sizing: border-box;
+          background: #ffffff;
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.09);
         }
 
         .lp-card-name {
-          font-size: clamp(16px, 1.5vw, 19px);
+          font-size: 27px;
           font-weight: 800;
-          color: #0B2A5B;
-          line-height: 1.45;
-          letter-spacing: 0.2px;
+          color: #0F172A;
+          line-height: 1.2;
+          letter-spacing: 0.5px;
         }
         .lp-card-sub {
-          font-size: clamp(12.5px, 1.1vw, 14.5px);
-          font-weight: 500;
-          color: #64748B;
-          margin-top: 6px;
-          line-height: 1.6;
+          font-size: 13.5px;
+          font-weight: 700;
+          color: #94A3B8;
+          letter-spacing: 2.5px;
+          text-transform: uppercase;
+          margin-top: 4px;
+          line-height: 1.4;
         }
-        [dir="rtl"] .lp-card-sub { font-size: clamp(13px, 1.15vw, 15px); }
+        [dir="rtl"] .lp-card-sub {
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 2.5px;
+        }
 
         .lp-card-rule {
-          width: 52px;
-          height: 3px;
-          background: linear-gradient(90deg, #1565C0, #3D8BE8);
-          margin: clamp(18px, 2vw, 24px) auto clamp(20px, 2.2vw, 28px);
-          border-radius: 3px;
+          width: 36px;
+          height: 4px;
+          background: #0066FF;
+          border-radius: 4px;
+          margin: 12px auto 20px;
         }
 
         .lp-form {
           display: flex;
           flex-direction: column;
-          gap: clamp(13px, 1.4vw, 17px);
+          gap: 16px;
           text-align: start;
         }
 
-        /* Ensure real <input> elements stay comfortably tappable on every device */
         .lp-card input[type="text"],
         .lp-card input[type="email"],
         .lp-card input[type="password"] {
-          min-height: 48px;
+          min-height: 52px;
+          border-radius: 14px;
+          font-size: 14px;
         }
 
         .lp-row {
@@ -620,7 +610,8 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
           align-items: center;
           justify-content: space-between;
           font-size: 14px;
-          margin-top: -2px;
+          margin-top: 2px;
+          margin-bottom: 4px;
           gap: 10px;
           flex-wrap: wrap;
         }
@@ -628,26 +619,56 @@ export default function LoginPage({ onLogin, lang = 'en', setLang }) {
           display: flex;
           align-items: center;
           gap: 9px;
-          color: #334155;
-          font-weight: 600;
+          color: #0F172A;
+          font-weight: 700;
           cursor: pointer;
           user-select: none;
+          font-size: 14px;
         }
-        .lp-remember input {
-          accent-color: #0B2A5B;
-          width: 17px;
-          height: 17px;
+        .lp-remember input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 19px;
+          height: 19px;
+          border: 2px solid #133E82;
+          border-radius: 5px;
+          background: #ffffff;
           cursor: pointer;
           margin: 0;
+          position: relative;
+          display: grid;
+          place-content: center;
+          transition: all 0.15s ease;
+          flex-shrink: 0;
+        }
+        .lp-remember input[type="checkbox"]:checked {
+          background: #133E82;
+          border-color: #133E82;
+        }
+        .lp-remember input[type="checkbox"]:checked::after {
+          content: "";
+          width: 5px;
+          height: 9px;
+          border: solid #ffffff;
+          border-width: 0 2.2px 2.2px 0;
+          transform: rotate(45deg) translate(-0.5px, -1px);
+          display: block;
         }
         .lp-link {
           background: none;
           border: none;
-          color: #1565C0;
+          color: #0066FF;
           font-size: 14px;
           font-family: inherit;
           cursor: pointer;
           font-weight: 700;
+          text-decoration: none;
+          padding: 0;
+        }
+        .lp-link:hover {
+          color: #0052CC;
+          text-decoration: underline;
+        }
           padding: 0;
         }
         .lp-link:hover { color: #0B2A5B; text-decoration: underline; }

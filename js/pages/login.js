@@ -1,14 +1,14 @@
 // js/pages/login.js
 import { authService, logService } from '../shared/services.js';
-import { fetchAPI } from '../shared/api.js';
+import { api } from '../shared/api.js';
 
 const LOGIN_ATTEMPTS_KEY = 'aitu_login_attempts';
 const LOGIN_LOCKOUT_KEY = 'aitu_login_lockout';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes
 
-const UNIV_AR = 'جَامِعَةُ أَسْيُوطَ التِّكْنُولُوجِيَّةُ الدَّوْلِيَّةُ';
-const UNIV_EN = 'Assiut International Technological University';
+const UNIV_AR = '<span style="color:#000000; font-weight:800;">KERNEL</span> <span style="color:#0066ff; font-weight:800;">PANIC</span>';
+const UNIV_EN = '<span style="color:#000000; font-weight:800;">KERNEL</span> <span style="color:#0066ff; font-weight:800;">PANIC</span>';
 
 const ARROW_LEFT = `
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -148,10 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Header brand & Card text
-        if (lpBrandName) lpBrandName.textContent = isRtl ? UNIV_AR : UNIV_EN;
-        if (lpBrandSub) lpBrandSub.textContent = isRtl ? UNIV_EN : UNIV_AR;
-        if (lpCardName) lpCardName.textContent = isRtl ? UNIV_AR : UNIV_EN;
-        if (lpCardSub) lpCardSub.textContent = isRtl ? UNIV_EN : UNIV_AR;
+        const BRAND_TITLE = '<span style="color:#000000; font-weight:800;">KERNEL</span> <span style="color:#0066ff; font-weight:800;">PANIC</span>';
+        const BRAND_SUB = '<span style="color:#94a3b8; font-weight:700; letter-spacing:2.5px;">IT TEAM</span>';
+        if (lpBrandName) lpBrandName.innerHTML = BRAND_TITLE;
+        if (lpBrandSub) lpBrandSub.innerHTML = BRAND_SUB;
+        if (lpCardName) lpCardName.innerHTML = BRAND_TITLE;
+        if (lpCardSub) lpCardSub.innerHTML = BRAND_SUB;
 
         // Language pill button: matches LoginPage.jsx
         if (lpLangLabel) lpLangLabel.textContent = isRtl ? 'عربي' : 'English';
@@ -251,11 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fpEmailError) fpEmailError.style.display = 'none';
 
             try {
-                if (typeof authService.forgotPassword === 'function') {
-                    await authService.forgotPassword(emailVal).catch(() => ({ success: true }));
-                } else {
-                    await fetchAPI('/api/Auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: emailVal }) }).catch(() => ({ success: true }));
-                }
+                await api.post('/auth/forgot-password', { email: emailVal }).catch(() => ({ success: true }));
                 if (fpInfoAlert) {
                     fpInfoAlert.textContent = isRtl 
                         ? '✅ تم إرسال كود التحقق إلى بريدك الإلكتروني.'
@@ -312,14 +310,11 @@ document.addEventListener('DOMContentLoaded', () => {
             resetPasswordBtn.innerHTML = `<span class="lp-spinner"></span> <span>${isRtl ? 'جاري الحفظ...' : 'Saving...'}</span>`;
 
             try {
-                if (typeof authService.resetPassword === 'function') {
-                    await authService.resetPassword(fpEmail.value.trim(), otpVal, newPw).catch(() => ({ success: true }));
-                } else {
-                    await fetchAPI('/api/Auth/reset-password', {
-                        method: 'POST',
-                        body: JSON.stringify({ email: fpEmail.value.trim(), code: otpVal, newPassword: newPw })
-                    }).catch(() => ({ success: true }));
-                }
+                await api.post('/auth/reset-password', {
+                    email: fpEmail.value.trim(),
+                    otp: otpVal,
+                    newPassword: newPw
+                }).catch(() => ({ success: true }));
 
                 if (errorMessage) {
                     errorMessage.className = 'lp-alert lp-alert-success';

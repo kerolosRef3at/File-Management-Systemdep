@@ -748,20 +748,8 @@ export function initCourses() {
     }
 
     function openCreateCourseModal(editId = null, draftId = null) {
-        let modal = document.getElementById('createCourseModal');
-        let modalBody = document.getElementById('createCourseModalBody');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'createCourseModal';
-            modal.className = 'cc-modal-overlay';
-            modal.innerHTML = `
-                <div class="cc-modal-container">
-                    <div id="createCourseModalBody" class="cc-modal-body"></div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-            modalBody = document.getElementById('createCourseModalBody');
-        }
+        const modal = document.getElementById('createCourseModal');
+        const modalBody = document.getElementById('createCourseModalBody');
         if (!modal || !modalBody) return;
 
         modal.classList.add('active');
@@ -813,15 +801,9 @@ export function initCourses() {
 }
 
 if (typeof window !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.location.pathname.includes('courses')) {
-                initCourses();
-            }
-        });
-    } else {
+    document.addEventListener('DOMContentLoaded', () => {
         if (window.location.pathname.includes('courses')) {
             initCourses();
         }
-    }
+    });
 }

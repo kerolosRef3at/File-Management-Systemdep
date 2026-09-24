@@ -6,69 +6,29 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
 
-function ensureDownloadModal() {
-    if (!document.getElementById('downloadModal')) {
-        const div = document.createElement('div');
-        div.className = 'repo-modal-overlay';
-        div.id = 'downloadModal';
-        div.innerHTML = `
-            <div class="repo-download-modal">
-                <div class="repo-modal-header">
-                    <div class="repo-modal-title-group">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--primary-dark)"
-                            stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                        <h3>Confirm Download</h3>
-                    </div>
-                    <button class="repo-modal-close" id="closeDownloadModal">&times;</button>
-                </div>
-                <p class="repo-modal-desc">You are about to download the following academic resources for offline use.</p>
-                <div class="repo-modal-file-list" id="modalFileList"></div>
-                <div class="repo-modal-summary" id="modalSummary"></div>
-                <div class="repo-modal-notice">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#3b82f6" stroke-width="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 16v-4M12 8h.01" />
-                    </svg>
-                    <p>By proceeding, you agree to the <a href="#">University Terms of Use</a>. Materials provided via
-                        ScholarVault are for academic research and personal study only. Unauthorized commercial
-                        redistribution is strictly prohibited.</p>
-                </div>
-                <div class="repo-modal-actions">
-                    <button class="repo-modal-cancel" id="cancelDownloadModal">Cancel</button>
-                    <button class="repo-modal-confirm" id="confirmDownloadModal">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                        </svg>
-                        Download Now
-                    </button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(div);
-    }
-}
-
 export async function initRepository() {
     const user = getCurrentUser();
     const isGuest = !user || user.role === 'Public User';
 
-    const publicShell = document.getElementById('publicShell');
-    const app = document.getElementById('app');
-
     // If the user is logged in as admin/manager/staff
-    if (!isGuest) {
-        if (publicShell) publicShell.remove();
-        if (app) app.style.display = 'block';
-        document.body.classList.add('admin-mode');
+    if (user && user.role !== 'Public User') {
+        const repoNavbar = document.getElementById('repoNavbar');
+        if (repoNavbar) repoNavbar.style.display = 'none';
 
+        let repoBody = document.querySelector('.repo-body');
+        const downloadModalEl = document.getElementById('downloadModal');
+
+        // Only create new #app if shell root is not present
+        if (!document.getElementById('appShellRoot')) {
+            const loader = document.getElementById('global-page-loader');
+            document.body.innerHTML = '<div id="app"></div>';
+            if (loader) document.body.appendChild(loader);
+        }
         renderLayout('repository');
-        ensureDownloadModal();
 
         const pageContent = document.getElementById('page-content');
         if (pageContent) {
-            if (!pageContent.querySelector('#filesContainer')) {
+            if (!document.getElementById('filesContainer')) {
                 pageContent.innerHTML = `
                     <div class="repo-body" style="padding: 0; max-width: 100%; min-height: auto;">
                         <aside class="dept-sidebar" id="deptSidebar" style="display:none;">
@@ -81,40 +41,29 @@ export async function initRepository() {
                             <div class="repo-controls" id="repoControls"></div>
                             <div class="repo-filter-chips" id="repoFilterChips"></div>
                             <div id="filesContainer"></div>
-                            <div class="repo-selection-bar" id="selectionBar">
+                            <div class="repo-selection-bar" id="selectionBar" style="display:none;">
                                 <div class="repo-selection-left">
                                     <span class="repo-selection-badge" id="selectedCount">0</span>
                                     <span>Files Selected</span>
                                 </div>
                                 <div class="repo-selection-divider"></div>
                                 <button id="clearSelectionBtn">Clear Selection</button>
-                                <button class="repo-download-bundle-btn" id="downloadSelectedBtn">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
-                                    </svg>
-                                    Download Selected Bundle
-                                </button>
-                                <button id="deleteSelectedBtn"
-                                    style="background:#dc2626; color:white; border:none; padding:9px 20px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; display:none; align-items:center; gap:7px; transition:all 0.2s;">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6" />
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    </svg>
-                                    Delete Selected
-                                </button>
+                                <button class="repo-download-bundle-btn" id="downloadSelectedBtn">Download Selected</button>
                             </div>
-                            <div class="repo-pagination" id="repoPagination"></div>
                         </main>
                     </div>
                 `;
             }
+            repoBody = pageContent.querySelector('.repo-body') || document.querySelector('.repo-body');
+            const deptSidebarEl = repoBody?.querySelector('#deptSidebar');
+            if (deptSidebarEl) deptSidebarEl.style.display = 'none';
+            document.body.classList.add('admin-mode');
+        }
+
+        if (downloadModalEl && !document.body.contains(downloadModalEl)) {
+            document.body.appendChild(downloadModalEl);
         }
     } else {
-        if (publicShell) publicShell.style.display = 'block';
-        if (app) app.style.display = 'none';
-        document.body.classList.remove('admin-mode');
-        ensureDownloadModal();
-
         // For public users, keep the normal navbar and show Logout if logged in
         const loginBtn = document.getElementById('navLoginBtn');
         const joinBtn = document.getElementById('coursesJoinBtn');
@@ -135,25 +84,12 @@ export async function initRepository() {
     let selectedFiles = new Set();
     let currentView = 'list'; // 'grid' or 'list'
     let currentFilterType = 'all';
-    let currentSort = 'date-desc';
     let currentDept = null; // null = all departments
     let currentProgram = null; // null = all programs
     let currentPage = 1;
     const filesPerPage = 8;
     let searchTerm = '';
     let browsingMode = 'departments'; // 'departments' or 'categories' or 'files'
-
-    function parseSizeMB(sizeStr) {
-        if (!sizeStr) return 0;
-        const match = String(sizeStr).match(/([\d.]+)\s*(MB|KB|GB|B)/i);
-        if (!match) return 0;
-        let val = parseFloat(match[1]);
-        const unit = match[2].toUpperCase();
-        if (unit === 'KB') val /= 1024;
-        else if (unit === 'GB') val *= 1024;
-        else if (unit === 'B') val /= (1024 * 1024);
-        return val;
-    }
 
     // DOM References
     const deptTree = document.getElementById('deptTree');
@@ -169,13 +105,10 @@ export async function initRepository() {
     const downloadModal = document.getElementById('downloadModal');
 
     // Create categories container dynamically
-    let categoriesContainer = document.getElementById('categoriesContainer');
-    if (!categoriesContainer) {
-        categoriesContainer = document.createElement('div');
-        categoriesContainer.id = 'categoriesContainer';
-        if (deptSummaryCards && deptSummaryCards.parentNode) {
-            deptSummaryCards.parentNode.insertBefore(categoriesContainer, deptSummaryCards.nextSibling);
-        }
+    const categoriesContainer = document.createElement('div');
+    categoriesContainer.id = 'categoriesContainer';
+    if (deptSummaryCards && deptSummaryCards.parentNode) {
+        deptSummaryCards.parentNode.insertBefore(categoriesContainer, deptSummaryCards.nextSibling);
     }
 
     // Mobile sidebar toggle
@@ -184,14 +117,14 @@ export async function initRepository() {
     const deptSidebarOverlay = document.getElementById('deptSidebarOverlay');
 
     if (mobileMenuBtn && deptSidebar && deptSidebarOverlay) {
-        mobileMenuBtn.onclick = () => {
+        mobileMenuBtn.addEventListener('click', () => {
             deptSidebar.classList.toggle('open');
             deptSidebarOverlay.classList.toggle('active');
-        };
-        deptSidebarOverlay.onclick = () => {
+        });
+        deptSidebarOverlay.addEventListener('click', () => {
             deptSidebar.classList.remove('open');
             deptSidebarOverlay.classList.remove('active');
-        };
+        });
     }
 
     // ========================
@@ -840,18 +773,27 @@ export async function initRepository() {
     }
 
     // ========================
-    // 5. CONTROLS BAR (Search Box Only - No Redundant Internal Filter/Sort Buttons)
+    // 5. CONTROLS BAR (Search + Filters + Sort)
     // ========================
     function renderControls() {
-        if (!repoControls) return;
         const lang = getCurrentLang();
+        const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
         const searchPlaceholder = lang === 'ar' ? 'تصفية الملفات حسب الاسم أو النوع أو الإصدار...' : 'Filter files by name, type, or version...';
+        const sortText = lang === 'ar' ? 'فرز' : 'Sort';
 
         repoControls.innerHTML = `
             <div class="repo-search-input">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="repoSearchField" placeholder="${searchPlaceholder}" value="${escapeHTML(searchTerm)}">
+                <input type="text" id="repoSearchField" placeholder="${searchPlaceholder}" value="${searchTerm}">
             </div>
+            <button class="repo-control-btn" id="filtersBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>
+                ${t('repo_filters')}
+            </button>
+            <button class="repo-control-btn" id="sortBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="16" y2="6"/><line x1="4" y1="12" x2="13" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+                ${sortText}
+            </button>
         `;
 
         const searchField = document.getElementById('repoSearchField');
@@ -865,99 +807,23 @@ export async function initRepository() {
     }
 
     // ========================
-    // 6. DEDICATED FILTER CONTROLS (Filters Button + All Types Dropdown + Date Added / Sort Dropdown)
+    // 6. FILTER CHIPS
     // ========================
     function renderFilterChips() {
-        if (!repoFilterChips) return;
         const lang = getCurrentLang();
-        const isAr = lang === 'ar';
-        const hasActiveFilter = (currentFilterType && currentFilterType !== 'all') || (currentSort && currentSort !== 'date-desc') || (searchTerm && searchTerm !== '');
+        const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
+        const types = [
+            { label: t('repo_filters'), value: 'all', hasIcon: true },
+            { label: lang === 'ar' ? 'كل الأنواع' : 'All Types', value: 'all' },
+            { label: lang === 'ar' ? 'تاريخ الإضافة' : 'Date Added', value: 'date' }
+        ];
 
-        repoFilterChips.innerHTML = `
-            <!-- Filters button/menu -->
-            <button class="repo-chip ${hasActiveFilter ? 'active' : ''}" id="repoFilterBtn" title="${isAr ? 'إعادة تعيين الفلاتر' : 'Reset / Clear Filters'}">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/>
-                    <line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/>
-                </svg>
-                <span>${isAr ? 'الفلاتر' : 'Filters'}${hasActiveFilter ? ' •' : ''}</span>
+        repoFilterChips.innerHTML = types.map(chip => `
+            <button class="repo-chip ${currentFilterType === chip.value && chip.label !== 'Filters' ? 'active' : ''}" data-filter="${chip.value}">
+                ${chip.hasIcon ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/></svg>' : ''}
+                ${chip.label}
             </button>
-
-            <!-- All Types dropdown filter -->
-            <div class="repo-chip-select-wrap">
-                <svg class="select-prefix-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <select class="repo-chip-select" id="filterTypeSelect" aria-label="${isAr ? 'تصفية حسب نوع الملف' : 'Filter by file type'}">
-                    <option value="all" ${currentFilterType === 'all' ? 'selected' : ''}>${isAr ? 'كل الأنواع' : 'All Types'}</option>
-                    <option value="PDF" ${currentFilterType === 'PDF' ? 'selected' : ''}>PDF</option>
-                    <option value="DOCX" ${currentFilterType === 'DOCX' ? 'selected' : ''}>Word (DOCX)</option>
-                    <option value="XLSX" ${currentFilterType === 'XLSX' ? 'selected' : ''}>Excel (XLSX)</option>
-                    <option value="DWG" ${currentFilterType === 'DWG' ? 'selected' : ''}>AutoCAD (DWG)</option>
-                    <option value="MP4" ${currentFilterType === 'MP4' ? 'selected' : ''}>Video (MP4)</option>
-                </select>
-                <svg class="select-chevron-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="6 9 12 15 18 9"/>
-                </svg>
-            </div>
-
-            <!-- Date Added / sort dropdown -->
-            <div class="repo-chip-select-wrap">
-                <svg class="select-prefix-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-                <select class="repo-chip-select" id="sortOrderSelect" aria-label="${isAr ? 'ترتيب الملفات' : 'Sort files'}">
-                    <option value="date-desc" ${currentSort === 'date-desc' ? 'selected' : ''}>${isAr ? 'تاريخ الإضافة (الأحدث)' : 'Date Added (Newest)'}</option>
-                    <option value="date-asc" ${currentSort === 'date-asc' ? 'selected' : ''}>${isAr ? 'تاريخ الإضافة (الأقدم)' : 'Date Added (Oldest)'}</option>
-                    <option value="name-asc" ${currentSort === 'name-asc' ? 'selected' : ''}>${isAr ? 'الاسم (أ - ي)' : 'Name (A - Z)'}</option>
-                    <option value="name-desc" ${currentSort === 'name-desc' ? 'selected' : ''}>${isAr ? 'الاسم (ي - أ)' : 'Name (Z - A)'}</option>
-                    <option value="size-desc" ${currentSort === 'size-desc' ? 'selected' : ''}>${isAr ? 'الحجم (الأكبر)' : 'Size (Largest)'}</option>
-                    <option value="size-asc" ${currentSort === 'size-asc' ? 'selected' : ''}>${isAr ? 'الحجم (الأصغر)' : 'Size (Smallest)'}</option>
-                </select>
-                <svg class="select-chevron-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polyline points="6 9 12 15 18 9"/>
-                </svg>
-            </div>
-        `;
-
-        const typeSelect = document.getElementById('filterTypeSelect');
-        if (typeSelect) {
-            typeSelect.onchange = (e) => {
-                currentFilterType = e.target.value;
-                currentPage = 1;
-                renderFilterChips();
-                applyFilters();
-            };
-        }
-
-        const sortSelect = document.getElementById('sortOrderSelect');
-        if (sortSelect) {
-            sortSelect.onchange = (e) => {
-                currentSort = e.target.value;
-                currentPage = 1;
-                renderFilterChips();
-                applyFilters();
-            };
-        }
-
-        const filterBtn = document.getElementById('repoFilterBtn');
-        if (filterBtn) {
-            filterBtn.onclick = () => {
-                currentFilterType = 'all';
-                currentSort = 'date-desc';
-                searchTerm = '';
-                currentPage = 1;
-                const sf = document.getElementById('repoSearchField');
-                if (sf) sf.value = '';
-                renderFilterChips();
-                applyFilters();
-            };
-        }
+        `).join('');
     }
 
     // ========================
@@ -1047,8 +913,8 @@ if (currentProgram) {
 }
 
         // Type filter
-        if (currentFilterType && currentFilterType !== 'all') {
-            filtered = filtered.filter(f => String(f.type || f.fileType || '').toUpperCase() === currentFilterType.toUpperCase());
+        if (currentFilterType !== 'all' && currentFilterType !== 'date') {
+            filtered = filtered.filter(f => String(f.type || '').toUpperCase() === currentFilterType.toUpperCase());
         }
 
         // Search
@@ -1061,19 +927,9 @@ if (currentProgram) {
             );
         }
 
-        // Sorting
-        if (currentSort === 'date-desc') {
-            filtered.sort((a, b) => new Date(b.uploadDate || b.createdAt || 0) - new Date(a.uploadDate || a.createdAt || 0));
-        } else if (currentSort === 'date-asc') {
-            filtered.sort((a, b) => new Date(a.uploadDate || a.createdAt || 0) - new Date(b.uploadDate || b.createdAt || 0));
-        } else if (currentSort === 'name-asc') {
-            filtered.sort((a, b) => String(a.name || a.fileName || '').localeCompare(String(b.name || b.fileName || '')));
-        } else if (currentSort === 'name-desc') {
-            filtered.sort((a, b) => String(b.name || b.fileName || '').localeCompare(String(a.name || a.fileName || '')));
-        } else if (currentSort === 'size-desc') {
-            filtered.sort((a, b) => parseSizeMB(b.size) - parseSizeMB(a.size));
-        } else if (currentSort === 'size-asc') {
-            filtered.sort((a, b) => parseSizeMB(a.size) - parseSizeMB(b.size));
+        // Date sort
+        if (currentFilterType === 'date') {
+            filtered.sort((a, b) => new Date(b.uploadDate || 0) - new Date(a.uploadDate || 0));
         }
 
         return filtered;
@@ -1104,7 +960,7 @@ if (currentProgram) {
                     <p style="margin:0; font-size:0.9rem; color:#64748b;">${emptySub}</p>
                 </div>
             `;
-            if (repoPagination) repoPagination.innerHTML = '';
+            repoPagination.innerHTML = '';
             return;
         }
 
@@ -1231,21 +1087,6 @@ if (currentProgram) {
                 if (file) {
                     const isAr = getCurrentLang() === 'ar';
 
-                    // Synchronously trigger showSaveFilePicker at top of click handler
-                    let fileHandle = null;
-                    if ('showSaveFilePicker' in window) {
-                        try {
-                            fileHandle = await window.showSaveFilePicker({
-                                suggestedName: file.name
-                            });
-                        } catch (err) {
-                            if (err.name === 'AbortError') return; // User cancelled
-                            console.error(err);
-                        }
-                    } else {
-                        console.warn('showSaveFilePicker is not available or blocked in this browser.');
-                    }
-
                     // Uncheck if selected
                     if (selectedFiles.has(fileId.toString())) {
                         selectedFiles.delete(fileId.toString());
@@ -1253,7 +1094,7 @@ if (currentProgram) {
                     }
 
                     try {
-                        const res = await fileService.downloadFile(fileId, file.name, file, null, fileHandle);
+                        const res = await fileService.downloadFile(fileId, file.name, file);
                         if (res && res.success) {
                             showDownloadToast(
                                 isAr ? 'بدء التحميل...' : 'Starting Download...',
@@ -1402,22 +1243,20 @@ if (currentProgram) {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>`;
 
-        if (repoPagination) {
-            repoPagination.innerHTML = `
-                <span class="repo-pagination-info">Showing ${start} of ${totalFiles} files</span>
-                <div class="repo-pagination-pages">${pagesHtml}</div>
-            `;
+        repoPagination.innerHTML = `
+            <span class="repo-pagination-info">Showing ${start} of ${totalFiles} files</span>
+            <div class="repo-pagination-pages">${pagesHtml}</div>
+        `;
 
-            repoPagination.querySelectorAll('.repo-page-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const page = btn.dataset.page;
-                    if (page === 'prev') currentPage = Math.max(1, currentPage - 1);
-                    else if (page === 'next') currentPage = Math.min(totalPages, currentPage + 1);
-                    else currentPage = parseInt(page);
-                    renderFiles(getFilteredFiles());
-                });
+        repoPagination.querySelectorAll('.repo-page-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
+                if (page === 'prev') currentPage = Math.max(1, currentPage - 1);
+                else if (page === 'next') currentPage = Math.min(totalPages, currentPage + 1);
+                else currentPage = parseInt(page);
+                renderFiles(getFilteredFiles());
             });
-        }
+        });
     }
 
     // ========================
@@ -1444,26 +1283,26 @@ if (currentProgram) {
     // Clear Selection
     const clearSelectionBtn = document.getElementById('clearSelectionBtn');
     if (clearSelectionBtn) {
-        clearSelectionBtn.onclick = () => {
+        clearSelectionBtn.addEventListener('click', () => {
             selectedFiles.clear();
             updateSelectionBar();
             renderFiles(getFilteredFiles());
-        };
+        });
     }
 
     // Download Selected → Show modal
     const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
     if (downloadSelectedBtn) {
-        downloadSelectedBtn.onclick = () => {
+        downloadSelectedBtn.addEventListener('click', () => {
             if (selectedFiles.size === 0) return;
             showDownloadModal();
-        };
+        });
     }
 
     // Delete Selected
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
     if (deleteSelectedBtn) {
-        deleteSelectedBtn.onclick = async () => {
+        deleteSelectedBtn.addEventListener('click', async () => {
             if (selectedFiles.size === 0) return;
             
             const count = selectedFiles.size;
@@ -1502,7 +1341,7 @@ if (currentProgram) {
                 updateSelectionBar();
                 applyFilters();
             }
-        };
+        });
     }
 
     // ========================
@@ -1546,55 +1385,30 @@ if (currentProgram) {
             <span>Total Size: <strong>${totalSizeMB.toFixed(1)} MB</strong></span>
         `;
 
-        const dlModal = document.getElementById('downloadModal');
-        if (dlModal) dlModal.classList.add('active');
+        downloadModal.classList.add('active');
     }
 
     function hideDownloadModal() {
-        const dlModal = document.getElementById('downloadModal');
-        if (dlModal) dlModal.classList.remove('active');
+        downloadModal.classList.remove('active');
     }
 
-    const closeDlModal = document.getElementById('closeDownloadModal');
-    if (closeDlModal) closeDlModal.onclick = hideDownloadModal;
+    document.getElementById('closeDownloadModal').addEventListener('click', hideDownloadModal);
+    document.getElementById('cancelDownloadModal').addEventListener('click', hideDownloadModal);
+    document.getElementById('confirmDownloadModal').addEventListener('click', async () => {
+        const count = selectedFiles.size;
+        const ids = Array.from(selectedFiles).map(id => parseInt(id));
+        const selectedList = allFiles.filter(f => selectedFiles.has(f.id.toString()));
+        hideDownloadModal();
 
-    const cancelDlModal = document.getElementById('cancelDownloadModal');
-    if (cancelDlModal) cancelDlModal.onclick = hideDownloadModal;
+        const isAr = getCurrentLang() === 'ar';
 
-    const confirmDlModal = document.getElementById('confirmDownloadModal');
-    if (confirmDlModal) {
-        confirmDlModal.onclick = async () => {
-            const count = selectedFiles.size;
-            const ids = Array.from(selectedFiles).map(id => parseInt(id));
-            const selectedList = allFiles.filter(f => selectedFiles.has(f.id.toString()));
-            const suggestedZipName = `files_${Date.now()}.zip`;
-
-            // Synchronously trigger showSaveFilePicker at top of click handler
-            let fileHandle = null;
-            if ('showSaveFilePicker' in window) {
-                try {
-                    fileHandle = await window.showSaveFilePicker({
-                        suggestedName: suggestedZipName
-                    });
-                } catch (err) {
-                    if (err.name === 'AbortError') return; // User cancelled
-                    console.error(err);
-                }
-            } else {
-                console.warn('showSaveFilePicker is not available or blocked in this browser.');
-            }
-
-            hideDownloadModal();
-
-            const isAr = getCurrentLang() === 'ar';
-
-            // Clear selection and uncheck items
-            selectedFiles.clear();
+        // Clear selection and uncheck items
+        selectedFiles.clear();
         updateSelectionBar();
         renderFiles(getFilteredFiles());
 
-            try {
-                const res = await fileService.downloadZip(ids, suggestedZipName, null, fileHandle);
+        try {
+            const res = await fileService.downloadZip(ids);
             if (res && res.success) {
                 showDownloadToast(
                     isAr ? 'بدء التحميل...' : 'Starting Download...',
@@ -1629,8 +1443,7 @@ if (currentProgram) {
                 );
             }
         }
-    };
-}
+    });
 
     // ========================
     // 12. GLOBAL SEARCH (navbar)
@@ -2339,53 +2152,43 @@ function showPasswordConfirmModal({ itemName, onConfirm }) {
     }
 
     try {
-        try {
-            allFiles = await fileService.getFiles();
-        } catch (e) {
-            allFiles = [];
-        }
+        allFiles = await fileService.getFiles();
+    } catch (e) {
+        allFiles = [];
+    }
 
-        // Departments + programs, filtered and de-duplicated (see mockData.js).
-        try {
-            hydrateDepartments(await folderService.getFolders(), allFiles);
-        } catch (e) {
-            console.warn('Could not load folders:', e);
-        }
+    // Departments + programs, filtered and de-duplicated (see mockData.js).
+    try {
+        hydrateDepartments(await folderService.getFolders(), allFiles);
+    } catch (e) {
+        console.warn('Could not load folders:', e);
+    }
 
-        // Only now can ?dept=CODE be resolved against a real department list.
-        handleUrlParams();
+    // Only now can ?dept=CODE be resolved against a real department list.
+    handleUrlParams();
 
-        renderDeptSidebar();
-        renderDeptSummaryCards();
-        renderBreadcrumb();
-        renderTitle();
-        renderControls();
-        renderFilterChips();
-        renderCategoriesView();
-        updateViewMode();
-        applyFilters();
-    } catch (err) {
-        console.warn('Repository init error:', err);
-    } finally {
-        // Hide Global Loader
-        const loader = document.getElementById('global-page-loader');
-        if (loader) {
-            loader.classList.add('hide-loader');
-            setTimeout(() => loader.remove(), 250);
-        }
+    renderDeptSidebar();
+    renderDeptSummaryCards();
+    renderBreadcrumb();
+    renderTitle();
+    renderControls();
+    renderFilterChips();
+    renderCategoriesView();
+    updateViewMode();
+    applyFilters();
+
+    // Hide Global Loader
+    const loader = document.getElementById('global-page-loader');
+    if (loader) {
+        loader.classList.add('hide-loader');
+        setTimeout(() => loader.remove(), 400);
     }
 }
 
 if (typeof window !== 'undefined') {
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.location.pathname.includes('repository')) {
-                initRepository();
-            }
-        });
-    } else {
+    document.addEventListener('DOMContentLoaded', () => {
         if (window.location.pathname.includes('repository')) {
             initRepository();
         }
-    }
+    });
 }
