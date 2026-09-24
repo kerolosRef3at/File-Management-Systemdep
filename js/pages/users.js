@@ -5,6 +5,7 @@ import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert, showConfirmModal } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 import { escapeHTML } from '../shared/utils.js';
+import { enhanceSelect } from '../shared/custom-select.js';
 
 export async function initUsers() {
     // Guards access: Users Page is strictly restricted to Supervisor role
@@ -62,33 +63,64 @@ export async function initUsers() {
 
             <div id="usersPageAlerts"></div>
 
-            <div class="filters-bar" style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap;">
+            <div class="filters-bar" style="display:flex; gap:15px; margin-bottom:25px; flex-wrap:wrap; align-items:center;">
                 <div class="search-bar" style="width: 300px; background: var(--white);">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" id="userSearch" placeholder="${t('users_search')}">
                 </div>
-                <select class="filter-select" id="roleFilter">
-                    <option value="all">${t('users_all_roles')}</option>
-                    ${roles.map(r => `<option value="${r.role}">${r.role}</option>`).join('')}
-                </select>
+                <div class="executive-select-wrap">
+                    <svg class="select-prefix-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                    </svg>
+                    <select class="executive-select filter-select" id="roleFilter">
+                        <option value="all">${t('users_all_roles')}</option>
+                        <option value="Supervisor">${t('users_stat_supervisors')}</option>
+                        <option value="managers">${t('users_stat_managers')}</option>
+                        <option value="Faculty">${t('users_stat_faculty')}</option>
+                        ${roles.map(r => `<option value="${r.role}">${r.role}</option>`).join('')}
+                    </select>
+                    <svg class="select-chevron-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
             </div>
 
             <div class="metrics-grid" style="margin-bottom:25px;">
-                <div class="metric-card stat-btn active-stat" data-role="all" style="padding: 15px; cursor:pointer;" id="cardStatTotal">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statTotal">0</div>
-                    <div class="metric-card-header" style="margin:0;">${t('users_stat_total')}</div>
+                <div class="metric-card stat-btn active-stat" data-role="all" id="cardStatTotal">
+                    <div class="metric-card-top">
+                        <span class="metric-card-label">${t('users_stat_total')}</span>
+                        <div class="metric-card-icon-box total">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="statTotal">0</div>
                 </div>
-                <div class="metric-card stat-btn" data-role="Supervisor" style="padding: 15px; border-bottom: 4px solid #9333ea; cursor:pointer;" id="cardStatSup">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statSup">0</div>
-                    <div class="metric-card-header" style="margin:0;">${t('users_stat_supervisors')}</div>
+                <div class="metric-card stat-btn" data-role="Supervisor" id="cardStatSup">
+                    <div class="metric-card-top">
+                        <span class="metric-card-label">${t('users_stat_supervisors')}</span>
+                        <div class="metric-card-icon-box supervisor">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="statSup">0</div>
                 </div>
-                <div class="metric-card stat-btn" data-role="managers" style="padding: 15px; border-bottom: 4px solid #0284c7; cursor:pointer;" id="cardStatManagers">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statManagers">0</div>
-                    <div class="metric-card-header" style="margin:0;">${t('users_stat_managers')}</div>
+                <div class="metric-card stat-btn" data-role="managers" id="cardStatManagers">
+                    <div class="metric-card-top">
+                        <span class="metric-card-label">${t('users_stat_managers')}</span>
+                        <div class="metric-card-icon-box managers">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="statManagers">0</div>
                 </div>
-                <div class="metric-card stat-btn" data-role="Faculty" style="padding: 15px; border-bottom: 4px solid #16a34a; cursor:pointer;" id="cardStatFaculty">
-                    <div class="metric-value" style="font-size: 1.8rem;" id="statFaculty">0</div>
-                    <div class="metric-card-header" style="margin:0;">${t('users_stat_faculty')}</div>
+                <div class="metric-card stat-btn" data-role="Faculty" id="cardStatFaculty">
+                    <div class="metric-card-top">
+                        <span class="metric-card-label">${t('users_stat_faculty')}</span>
+                        <div class="metric-card-icon-box faculty">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+                        </div>
+                    </div>
+                    <div class="metric-value" id="statFaculty">0</div>
                 </div>
             </div>
 
@@ -122,10 +154,20 @@ export async function initUsers() {
         if (dropdownFilter) {
             dropdownFilter.addEventListener('change', (e) => {
                 document.querySelectorAll('.stat-btn').forEach(b => b.classList.remove('active-stat'));
-                document.getElementById('cardStatTotal').classList.add('active-stat');
-                currentRoleFilter = e.target.value;
-                applyFilters();
+                const val = e.target.value;
+                if (val === 'all') {
+                    document.getElementById('cardStatTotal')?.classList.add('active-stat');
+                } else if (val === 'Supervisor') {
+                    document.getElementById('cardStatSup')?.classList.add('active-stat');
+                } else if (val === 'managers' || isManagerRole(val)) {
+                    document.getElementById('cardStatManagers')?.classList.add('active-stat');
+                } else if (val === 'Faculty') {
+                    document.getElementById('cardStatFaculty')?.classList.add('active-stat');
+                }
+                currentRoleFilter = val;
+                enhanceSelect(dropdownFilter);
             });
+            enhanceSelect(dropdownFilter);
         }
 
         document.querySelectorAll('.stat-btn').forEach(btn => {
@@ -136,10 +178,9 @@ export async function initUsers() {
                 const selectedRole = e.currentTarget.getAttribute('data-role');
                 const roleDropdown = document.getElementById('roleFilter');
                 
-                if (selectedRole === 'Field') {
-                    if (roleDropdown) roleDropdown.value = 'all'; 
-                } else {
-                    if (roleDropdown) roleDropdown.value = selectedRole;
+                if (roleDropdown) {
+                    roleDropdown.value = selectedRole;
+                    roleDropdown.dispatchEvent(new Event('change', { bubbles: true }));
                 }
 
                 currentRoleFilter = selectedRole;
@@ -177,13 +218,18 @@ export async function initUsers() {
 
         let filtered = [...allUsers];
 
-        if (currentRoleFilter === 'Field') {
+        if (currentRoleFilter === 'managers' || currentRoleFilter === 'manager') {
+            filtered = filtered.filter(u => isManagerRole(u.role));
+        } else if (currentRoleFilter === 'Field') {
             filtered = filtered.filter(u => {
                 const r = String(u.role || '').toLowerCase();
                 return r.includes('el') || r.includes('mechanical') || r.includes('mechanic');
             });
         } else if (currentRoleFilter !== 'all') {
-            filtered = filtered.filter(u => String(u.role || '').toLowerCase().includes(currentRoleFilter.toLowerCase()));
+            filtered = filtered.filter(u => {
+                const r = String(u.role || '').toLowerCase();
+                return r === currentRoleFilter.toLowerCase() || r.includes(currentRoleFilter.toLowerCase());
+            });
         }
 
         if (term) {
@@ -197,6 +243,41 @@ export async function initUsers() {
         renderUsers(filtered);
     }
 
+    function populateRoleDropdown() {
+        const roleDropdown = document.getElementById('roleFilter');
+        if (!roleDropdown) return;
+        const currentVal = roleDropdown.value;
+
+        let opts = `
+            <option value="all">${t('users_all_roles')}</option>
+            <option value="Supervisor">${t('users_stat_supervisors')}</option>
+            <option value="managers">${t('users_stat_managers')}</option>
+            <option value="Faculty">${t('users_stat_faculty')}</option>
+        `;
+
+        const known = new Set(['all', 'supervisor', 'managers', 'faculty']);
+        (roles || []).forEach(r => {
+            const rName = r.role || r;
+            if (rName && !known.has(String(rName).toLowerCase())) {
+                known.add(String(rName).toLowerCase());
+                opts += `<option value="${rName}">${rName}</option>`;
+            }
+        });
+
+        (allUsers || []).forEach(u => {
+            const uRole = u.role;
+            if (uRole && !known.has(String(uRole).toLowerCase())) {
+                known.add(String(uRole).toLowerCase());
+                opts += `<option value="${uRole}">${getRoleDisplay(uRole)}</option>`;
+            }
+        });
+
+        roleDropdown.innerHTML = opts;
+        if (currentVal && Array.from(roleDropdown.options).some(o => o.value === currentVal)) {
+            roleDropdown.value = currentVal;
+        }
+    }
+
     async function loadUsers() {
         const usersTableBody = document.getElementById('usersTableBody');
         const alertsContainer = document.getElementById('usersPageAlerts');
@@ -206,6 +287,7 @@ export async function initUsers() {
         try {
             const rawUsers = await userService.getUsers();
             allUsers = normalizeUsers(rawUsers);
+            populateRoleDropdown();
             applyFilters();
             updateStats();
         } catch (error) {
@@ -318,7 +400,7 @@ export async function initUsers() {
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${escapeHTML(user.phone || 'N/A')}</td>
                 <td style="color: var(--text-gray); font-size: 0.9rem;">${escapeHTML(user.joined)}</td>
                 <td>
-                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="${deleteTitle}" ${deleteDisabled} style="background:none; border:none; cursor:${canDelete ? 'pointer' : 'not-allowed'}; color:var(--text-gray); transition:0.3s;">
+                    <button class="action-btn delete-user-btn" data-id="${user.id}" title="${deleteTitle}" ${deleteDisabled} style="cursor:${canDelete ? 'pointer' : 'not-allowed'};">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
@@ -421,8 +503,8 @@ export async function initUsers() {
                         <h1 style="color:var(--primary-dark); font-size:2.2rem; font-weight:700; margin:0;">${t('users_create_title')}</h1>
                     </div>
                     <div style="display:flex; gap:12px;">
-                        <button class="btn-outline" id="btnCancelCreate" style="height:46px; padding:0 24px;">${t('users_cancel')}</button>
-                        <button class="btn-primary" id="btnSubmitCreate" style="height:46px; padding:0 24px; background-color:#0b3b70; border:none; color:#fff; border-radius:6px; font-weight:600; cursor:pointer;">${t('users_create_btn')}</button>
+                        <button class="btn-outline" id="btnCancelCreate">${t('users_cancel')}</button>
+                        <button class="btn-primary" id="btnSubmitCreate">${t('users_create_btn')}</button>
                     </div>
                 </div>
 

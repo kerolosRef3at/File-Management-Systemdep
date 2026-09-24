@@ -93,8 +93,10 @@ export function initCourses() {
     // PUBLIC VIEW
     // ============================
     function renderPublicView() {
-        document.getElementById('publicShell').style.display = 'block';
-        document.getElementById('app').style.display = 'none';
+        const publicShell = document.getElementById('publicShell');
+        if (publicShell) publicShell.style.display = 'block';
+        const appEl = document.getElementById('app');
+        if (appEl) appEl.style.display = 'none';
 
         // Handle logged-in navbar state
         const loginBtnEl = document.getElementById('coursesLoginBtn');
@@ -371,8 +373,10 @@ export function initCourses() {
     // ADMIN VIEW
     // ============================
     function renderAdminView() {
-        document.getElementById('publicShell').style.display = 'none';
-        document.getElementById('app').style.display = 'block';
+        const publicShell = document.getElementById('publicShell');
+        if (publicShell) publicShell.style.display = 'none';
+        const appEl = document.getElementById('app');
+        if (appEl) appEl.style.display = 'block';
 
         renderLayout('courses');
 
@@ -392,9 +396,9 @@ export function initCourses() {
                     ${mockDepartments.map(d =>
             `<button class="admin-dept-tab" data-dept="${d.id}">${d.shortName}</button>`
         ).join('')}
-                    <button class="admin-dept-tab" id="draftsTabBtn" data-dept="__drafts__"
-                        style="margin-left:8px;border:1px dashed #94a3b8;">
-                        ${isAr ? 'المسودات' : 'Drafts'} <span id="draftsCountBadge" style="opacity:.7;"></span>
+                    <button class="admin-dept-tab" id="draftsTabBtn" data-dept="__drafts__">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-inline-end:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        ${isAr ? 'المسودات' : 'Drafts'} <span id="draftsCountBadge" style="font-size:11.5px; opacity:.85; font-weight:800;"></span>
                     </button>
                 </div>
             </div>
@@ -425,9 +429,12 @@ export function initCourses() {
         refreshDraftsCount();
 
         // Load More
-        document.getElementById('adminLoadMoreBtn').addEventListener('click', () => {
-            alert('Loading additional archived curriculum entries...');
-        });
+        const loadMoreBtn = document.getElementById('adminLoadMoreBtn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', () => {
+                alert('Loading additional archived curriculum entries...');
+            });
+        }
 
         // Top search bar integration
         const layoutSearch = document.getElementById('globalSearchInput');
@@ -480,10 +487,12 @@ export function initCourses() {
     // painted as IT, which made DESIGN courses look like IT courses.
     function getDeptBadgeColor(dept) {
         const d = String(dept || '').toUpperCase();
-        if (d === 'IT') return 'it';
-        if (d === 'ME') return 'me';
-        if (d === 'EL') return 'el';
-        return '';
+        if (d === 'IT' || d.includes('INFO') || d.includes('TECH')) return 'it';
+        if (d === 'ME' || d.includes('MECH')) return 'me';
+        if (d === 'EL' || d.includes('ELEC')) return 'el';
+        if (d === 'DESIGN' || d.includes('ART')) return 'design';
+        if (d === 'CS' || d.includes('COMP')) return 'cs';
+        return 'general';
     }
 
     // ===== Drafts =========================================================
@@ -602,7 +611,10 @@ export function initCourses() {
             mockDepartments.map(d =>
                 `<button class="admin-dept-tab ${currentDeptFilter === d.id ? 'active' : ''}" data-dept="${d.id}">${d.shortName}</button>`
             ).join('') +
-            `<button class="admin-dept-tab ${currentDeptFilter === '__drafts__' ? 'active' : ''}" id="draftsTabBtn" data-dept="__drafts__" style="margin-left:8px;border:1px dashed #94a3b8;">Drafts <span id="draftsCountBadge" style="opacity:.7;"></span></button>`;
+            `<button class="admin-dept-tab ${currentDeptFilter === '__drafts__' ? 'active' : ''}" id="draftsTabBtn" data-dept="__drafts__">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-inline-end:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                ${isAr ? 'المسودات' : 'Drafts'} <span id="draftsCountBadge" style="font-size:11.5px; opacity:.85; font-weight:800;"></span>
+            </button>`;
 
         wrap.querySelectorAll('.admin-dept-tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -639,10 +651,9 @@ export function initCourses() {
 
         const isAr = getCurrentLang() === 'ar';
 
-        // FIXED: Added proper wrapper div with admin-course-card class
         grid.innerHTML = filtered.map(course => `
-            <div class="admin-course-card" data-id="${course.id}" style="position:relative;display:flex;flex-direction:column;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);transition:transform 0.2s,box-shadow 0.2s;cursor:pointer;">
-                <div class="admin-card-thumb" style="position:relative;">
+            <div class="admin-course-card" data-id="${course.id}">
+                <div class="admin-card-thumb">
                     ${course.img
                         ? `<img class="cc-card-img"
                                 src="${escapeHtml(resolveCourseImg(course.img))}"
@@ -650,6 +661,7 @@ export function initCourses() {
                                 loading="lazy"
                                 onerror="this.style.display='none';this.parentElement.classList.add('no-thumb');">`
                         : ''}
+                    <div class="admin-card-thumb-overlay"></div>
                     <span class="admin-card-badge ${getDeptBadgeColor(course.dept)}">
                         ${escapeHtml(course.dept)}
                     </span>
@@ -669,14 +681,14 @@ export function initCourses() {
                     ` : ''}
                 </div>
                 <div class="admin-card-body">
-                    <h3>${escapeHtml(course.title)}</h3>
+                    <h3 title="${escapeHtml(course.title)}">${escapeHtml(course.title)}</h3>
                     <div class="admin-card-meta">
-                        <span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <span class="admin-meta-pill">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
                             ${course.lessons} ${isAr ? 'دروس' : 'Lessons'}
                         </span>
-                        <span>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                        <span class="admin-meta-pill">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                             ${course.size}
                         </span>
                     </div>

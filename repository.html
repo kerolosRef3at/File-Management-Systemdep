@@ -11,12 +11,14 @@
     <title>Central Repository - AITU File Management System</title>
     <meta name="description"
         content="Browse the official AITU central file repository for academic and administrative record keeping across IT, Electrical, and Mechanical Engineering departments.">
-    <link rel="stylesheet" href="css/app-shell.css">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/rtl.css">
-    <link rel="stylesheet" href="css/repository.css">
-    <link rel="stylesheet" href="css/upload-resources.css">
+    <link rel="stylesheet" href="css/app-shell.css?v=17">
+    <link rel="stylesheet" href="css/style.css?v=17">
+    <link rel="stylesheet" href="css/components.css?v=17">
+    <link rel="stylesheet" href="css/rtl.css?v=17">
+    <link rel="stylesheet" href="css/repository.css?v=17">
+    <link rel="stylesheet" href="css/upload-resources.css?v=17">
+    <link rel="stylesheet" href="css/courses.css?v=17">
+    <link rel="stylesheet" href="css/dashboard.css?v=17">
     <script>(function () { var l = localStorage.getItem('aitu_lang'); if (l === 'ar') { document.documentElement.setAttribute('dir', 'rtl'); document.documentElement.setAttribute('lang', 'ar'); } })();</script>
 </head>
 
@@ -187,7 +189,7 @@
     </div>
 
     <!-- Download Confirmation Modal (Shared between public and admin) -->
-    <div class="repo-modal-overlay" id="downloadModal">
+    <div class="repo-modal-overlay" id="downloadModal" style="display:none;">
         <div class="repo-download-modal">
             <div class="repo-modal-header">
                 <div class="repo-modal-title-group">
@@ -226,8 +228,8 @@
     <!-- Admin layout shell -->
     <div id="app" style="display:none;"></div>
 
-        <script type="module" src="js/shared/router.js"></script>
-        <script type="module" src="js/pages/repository.js"></script>
+        <script type="module" src="js/shared/router.js?v=17"></script>
+        <script type="module" src="js/pages/repository.js?v=17"></script>
         <script type="module">
             import { initLanguage } from './js/shared/jssharedi18n.js';
             document.addEventListener('DOMContentLoaded', initLanguage);

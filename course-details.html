@@ -9,11 +9,12 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Course Details - AITU File Management System</title>
     <meta name="description" content="View course resource bundle details, module contents, and download academic materials from AITU.">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/rtl.css">
-    <link rel="stylesheet" href="css/repository.css">
-    <link rel="stylesheet" href="css/courses.css">
+    <link rel="stylesheet" href="css/app-shell.css?v=17">
+    <link rel="stylesheet" href="css/style.css?v=17">
+    <link rel="stylesheet" href="css/components.css?v=17">
+    <link rel="stylesheet" href="css/rtl.css?v=17">
+    <link rel="stylesheet" href="css/repository.css?v=17">
+    <link rel="stylesheet" href="css/courses.css?v=17">
     <script>(function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();</script>
 </head>
 <body>
@@ -27,7 +28,7 @@
     </div>
 
     <!-- Public layout shell (hidden when admin) -->
-    <div id="publicShell">
+    <div id="publicShell" style="display:none;">
         <!-- Public Navbar -->
         <header class="repo-navbar" id="detailNavbar">
         <div class="repo-navbar-inner">
@@ -125,7 +126,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/pages/course-details.js"></script>
+    <script type="module" src="js/pages/course-details.js?v=17"></script>
     <script type="module">
         import { initLanguage } from './js/shared/jssharedi18n.js';
         document.addEventListener('DOMContentLoaded', initLanguage);

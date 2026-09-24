@@ -5,12 +5,14 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
+import { enhanceSelect } from '../shared/custom-select.js';
 
 function ensureDownloadModal() {
     if (!document.getElementById('downloadModal')) {
         const div = document.createElement('div');
         div.className = 'repo-modal-overlay';
         div.id = 'downloadModal';
+        div.style.display = 'none';
         div.innerHTML = `
             <div class="repo-download-modal">
                 <div class="repo-modal-header">
@@ -50,7 +52,28 @@ function ensureDownloadModal() {
     }
 }
 
+function ensureRepoStyles() {
+    const requiredStyles = [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/repository.css',
+        'css/upload-resources.css'
+    ];
+    requiredStyles.forEach(href => {
+        const clean = href.split('?')[0];
+        if (!document.querySelector(`link[rel="stylesheet"][href*="${clean}"]`)) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            document.head.appendChild(link);
+        }
+    });
+}
+
 export async function initRepository() {
+    ensureRepoStyles();
     const user = getCurrentUser();
     const isGuest = !user || user.role === 'Public User';
 
@@ -317,6 +340,26 @@ export async function initRepository() {
         }
     }
 
+    function getDeptTheme(code) {
+        const c = String(code || '').toUpperCase();
+        if (c === 'IT' || c.includes('INFO') || c.includes('TECH')) {
+            return { color: '#1565C0', bg: 'rgba(21, 101, 192, 0.08)', border: 'rgba(21, 101, 192, 0.2)', classKey: 'it' };
+        }
+        if (c === 'EL' || c.includes('ELEC')) {
+            return { color: '#E11D48', bg: 'rgba(225, 29, 72, 0.08)', border: 'rgba(225, 29, 72, 0.2)', classKey: 'el' };
+        }
+        if (c === 'ME' || c.includes('MECH')) {
+            return { color: '#059669', bg: 'rgba(5, 150, 105, 0.08)', border: 'rgba(5, 150, 105, 0.2)', classKey: 'me' };
+        }
+        if (c === 'DESIGN' || c.includes('DESIGN') || c.includes('ART')) {
+            return { color: '#D97706', bg: 'rgba(217, 119, 6, 0.08)', border: 'rgba(217, 119, 6, 0.2)', classKey: 'design' };
+        }
+        if (c === 'CS' || c.includes('COMP')) {
+            return { color: '#7C3AED', bg: 'rgba(124, 58, 237, 0.08)', border: 'rgba(124, 58, 237, 0.2)', classKey: 'cs' };
+        }
+        return { color: '#475569', bg: 'rgba(71, 85, 105, 0.08)', border: 'rgba(71, 85, 105, 0.2)', classKey: 'general' };
+    }
+
     // ========================
     // 2. DEPARTMENT SUMMARY CARDS
     // ========================
@@ -332,10 +375,6 @@ export async function initRepository() {
             const deptCode = String(dept.shortName || '').toUpperCase();
             const deptFilesCount = allFiles.filter(f => {
                 const fDept = String(f.dept || f.deptId || f.department || '').toUpperCase();
-                // A file with no department must not be counted anywhere.
-                // Previously an empty fDept matched a card whose code was also
-                // empty/undefined, so every untagged file piled onto one card
-                // (IT), making it show the grand total of all departments.
                 if (!fDept) return false;
                 return fDept === deptId || (deptCode !== '' && fDept === deptCode);
             }).length;
@@ -344,23 +383,38 @@ export async function initRepository() {
             const displayShort = getDeptDisplayName(dept.shortName);
             const filesText = lang === 'ar' ? 'ملفات' : 'Files';
             const catText = lang === 'ar' ? 'أقسام' : 'Categories';
+            const theme = getDeptTheme(dept.shortName || dept.id);
 
             html += `
-                <div class="dept-summary-card ${isActive ? 'active' : ''}" data-dept="${dept.id}">
-                    <div style="flex:1; overflow:hidden;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <div class="dept-card-label" style="margin-bottom:0;">${displayLabel}</div>
-                            ${!isGuest ? `
-                                <button class="delete-dept-btn" data-id="${dept.dbId ?? dept.id}" data-name="${dept.name || dept.label}" title="${lang === 'ar' ? 'حذف القسم' : 'Delete Department'}">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                </button>
-                            ` : ''}
+                <div class="dept-summary-card ${isActive ? 'active' : ''} dept-theme-${theme.classKey}" data-dept="${dept.id}" style="--dept-accent:${theme.color};">
+                    <div class="dept-card-top-row">
+                        <div class="dept-card-icon-box" style="color:${theme.color}; background:${theme.bg}; border-color:${theme.border};">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">${deptIconSvg}</svg>
                         </div>
-                        <div class="dept-card-short">${displayShort}</div>
-                        <div class="dept-card-stats">${deptFilesCount.toLocaleString()} ${filesText} &bull; ${dept.programs ? dept.programs.length : dept.categories} ${catText}</div>
+                        ${!isGuest ? `
+                            <button class="delete-dept-btn" data-id="${dept.dbId ?? dept.id}" data-name="${dept.name || dept.label}" title="${lang === 'ar' ? 'حذف القسم' : 'Delete Department'}">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        ` : ''}
                     </div>
-                    <div class="dept-card-icon" style="margin-left:12px; flex-shrink:0;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${deptIconSvg}</svg>
+                    
+                    <div class="dept-card-content">
+                        <div class="dept-card-short">${displayShort}</div>
+                        <div class="dept-card-label" title="${displayLabel}">${displayLabel}</div>
+                    </div>
+
+                    <div class="dept-card-footer">
+                        <span class="dept-stat-pill">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            ${deptFilesCount.toLocaleString()} ${filesText}
+                        </span>
+                        <span class="dept-stat-pill">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                            ${(dept.programs ? dept.programs.length : dept.categories)} ${catText}
+                        </span>
                     </div>
                 </div>
             `;
@@ -722,16 +776,26 @@ export async function initRepository() {
                 : `${getDeptDisplayName(dept.shortName)} DEPT`;
             html += `
                 <div class="program-card" data-dept="${dept.id}" data-program="${prog.id}">
+                    <div class="program-card-top-row">
+                        <span class="program-card-badge">${formattedBadge}</span>
+                        ${!isGuest ? `
+                            <button class="delete-category-btn" data-id="${prog.dbId ?? prog.id}" data-name="${prog.name}" title="${isAr ? 'حذف التخصص' : 'Delete Category'}">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
                     <div class="program-card-icon">
-                        <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="var(--primary-dark)" stroke-width="1.8">${iconSvg}</svg>
+                        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#1565C0" stroke-width="1.8">${iconSvg}</svg>
                     </div>
                     <div class="program-card-name">${prog.name}</div>
-                    <div class="program-card-meta">
-                        <span class="program-card-count">${totalFiles.toLocaleString()} ${filesLabel}</span>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="program-card-badge">${formattedBadge}</span>
-                            ${!isGuest ? `<button class="delete-category-btn" data-id="${prog.dbId ?? prog.id}" data-name="${prog.name}" title="Delete Category" style="background:none; border:none; color:#dc2626; cursor:pointer; padding:0; display:flex; align-items:center;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
-                        </div>
+                    <div class="program-card-footer">
+                        <span class="program-card-count">
+                            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            ${totalFiles.toLocaleString()} ${filesLabel}
+                        </span>
                     </div>
                 </div>
             `;
@@ -933,6 +997,7 @@ export async function initRepository() {
                 renderFilterChips();
                 applyFilters();
             };
+            enhanceSelect(typeSelect);
         }
 
         const sortSelect = document.getElementById('sortOrderSelect');
@@ -943,6 +1008,7 @@ export async function initRepository() {
                 renderFilterChips();
                 applyFilters();
             };
+            enhanceSelect(sortSelect);
         }
 
         const filterBtn = document.getElementById('repoFilterBtn');
@@ -1547,12 +1613,18 @@ if (currentProgram) {
         `;
 
         const dlModal = document.getElementById('downloadModal');
-        if (dlModal) dlModal.classList.add('active');
+        if (dlModal) {
+            dlModal.style.display = 'flex';
+            dlModal.classList.add('active');
+        }
     }
 
     function hideDownloadModal() {
         const dlModal = document.getElementById('downloadModal');
-        if (dlModal) dlModal.classList.remove('active');
+        if (dlModal) {
+            dlModal.classList.remove('active');
+            dlModal.style.display = 'none';
+        }
     }
 
     const closeDlModal = document.getElementById('closeDownloadModal');

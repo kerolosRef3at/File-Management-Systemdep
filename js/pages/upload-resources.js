@@ -4,6 +4,7 @@ import { fileService, logService, folderService } from '../shared/services.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 import { escapeHTML, sanitizeFileName, validateFile } from '../shared/utils.js';
+import { enhanceSelect } from '../shared/custom-select.js';
 
 /**
  * Opens the Upload Resources modal on top of the current page.
@@ -192,14 +193,14 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
             <div class="upload-global-destination" style="background:white; padding:20px; border-radius:12px; margin-bottom:20px; border:1px solid #e2e8f0; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                 <div>
                     <label style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px; display:block;">${t('upload_target_dept')} <span style="color:#ef4444">*</span></label>
-                    <select id="globalDeptSelect" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);">
+                    <select id="globalDeptSelect" class="cc-select" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);">
                         <option value="">${t('upload_select_dept')}</option>
                         ${mockDepartments.map(d => `<option value="${d.id}" ${globalDept === d.id ? 'selected' : ''}>${d.name}</option>`).join('')}
                     </select>
                 </div>
                 <div>
                     <label style="font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:8px; display:block;">${t('upload_target_prog')} <span style="color:#ef4444">*</span></label>
-                    <select id="globalProgSelect" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);" ${!globalDept ? 'disabled' : ''}>
+                    <select id="globalProgSelect" class="cc-select" style="width:100%; padding:12px; border:1px solid #cbd5e1; border-radius:8px; font-size:14px; background:#f8fafc; color:var(--primary-dark);" ${!globalDept ? 'disabled' : ''}>
                         <option value="">${t('upload_select_prog')}</option>
                         ${globalDept ? mockDepartments.find(d => d.id === globalDept)?.programs.map(p => `<option value="${p.id}" ${globalProg === p.id ? 'selected' : ''}>${p.name}</option>`).join('') : ''}
                     </select>
@@ -395,6 +396,10 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
                 render();
             });
         }
+
+        // Enhance selects with executive custom dropdown
+        if (globalDeptSelect) enhanceSelect(globalDeptSelect);
+        if (globalProgSelect) enhanceSelect(globalProgSelect);
 
         // Select Files button
         const selectBtn = overlay.querySelector('#selectFilesBtn');

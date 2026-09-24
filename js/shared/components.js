@@ -250,7 +250,8 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
     `;
 
     const isDanger = type === 'danger';
-    const btnColor = isDanger ? '#ef4444' : '#1e40af';
+    const btnGradient = isDanger ? '#DC2626' : 'linear-gradient(135deg, #0B3B70 0%, #1565C0 100%)';
+    const btnShadow = isDanger ? '0 4px 14px rgba(220, 38, 38, 0.25)' : '0 4px 14px rgba(11, 59, 112, 0.25)';
 
     function renderStep1() {
         overlay.innerHTML = `
@@ -261,7 +262,7 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
             <div style="
                 background: #ffffff; border-radius: 16px; max-width: 440px; width: 100%;
                 padding: 28px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: inherit;
+                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: 'Cairo', sans-serif;
             ">
                 <div style="
                     width: 56px; height: 56px; border-radius: 50%;
@@ -272,22 +273,22 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
                 ">
                     ${isDanger ? '⚠️' : 'ℹ️'}
                 </div>
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0 0 10px; line-height: 1.3;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 10px; line-height: 1.3; font-family: 'Cairo', sans-serif;">
                     ${title}
                 </h3>
-                <p style="font-size: 0.95rem; color: #475569; margin: 0 0 24px; line-height: 1.6;">
+                <p style="font-size: 0.92rem; color: #475569; margin: 0 0 24px; line-height: 1.6; font-family: 'Cairo', sans-serif; font-weight: 500;">
                     ${message}
                 </p>
                 <div style="display: flex; gap: 12px; justify-content: center;">
                     <button id="aituConfirmCancelBtn" style="
-                        flex: 1; padding: 11px 18px; border: 1px solid #cbd5e1; background: #ffffff;
-                        color: #475569; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-                        cursor: pointer; transition: background 0.2s;
+                        flex: 1; padding: 10px 18px; border: 1.5px solid #cbd5e1; background: #ffffff;
+                        color: #0f172a; border-radius: 10px; font-weight: 700; font-size: 13.5px;
+                        cursor: pointer; transition: all 0.2s; font-family: 'Cairo', sans-serif;
                     ">${cancelText}</button>
                     <button id="aituConfirmActionBtn" style="
-                        flex: 1; padding: 11px 18px; border: none; background: ${btnColor};
-                        color: #ffffff; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-                        cursor: pointer; transition: background 0.2s; box-shadow: 0 4px 12px ${isDanger ? 'rgba(239, 68, 68, 0.25)' : 'rgba(37, 99, 235, 0.25)'};
+                        flex: 1; padding: 10px 18px; border: none; background: ${btnGradient};
+                        color: #ffffff; border-radius: 10px; font-weight: 700; font-size: 13.5px;
+                        cursor: pointer; transition: all 0.2s; box-shadow: ${btnShadow}; font-family: 'Cairo', sans-serif;
                     ">${confirmText}</button>
                 </div>
             </div>
@@ -308,7 +309,7 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
             <div style="
                 background: #ffffff; border-radius: 16px; max-width: 440px; width: 100%;
                 padding: 28px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: inherit;
+                animation: popInModal 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; text-align: center; font-family: 'Cairo', sans-serif;
             ">
                 <div style="
                     width: 56px; height: 56px; border-radius: 50%; background: #fef2f2;
@@ -317,31 +318,31 @@ export function showConfirmModal({ title, message, confirmText, cancelText, type
                 ">
                     🔒
                 </div>
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: #0f172a; margin: 0 0 8px; line-height: 1.3;">
+                <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0 0 8px; line-height: 1.3; font-family: 'Cairo', sans-serif;">
                     ${isAr ? 'تأكيد الأمان بكلمة المرور' : 'Security Password Verification'}
                 </h3>
-                <p style="font-size: 0.9rem; color: #475569; margin: 0 0 18px; line-height: 1.5;">
+                <p style="font-size: 0.92rem; color: #475569; margin: 0 0 18px; line-height: 1.5; font-family: 'Cairo', sans-serif; font-weight: 500;">
                     ${isAr ? 'الرجاء إدخال كلمة المرور الخاصة بحسابك لتأكيد إتمام الحذف.' : 'Please enter your account password to confirm permanent deletion.'}
                 </p>
                 <div style="text-align: right; margin-bottom: 6px;">
-                    <label style="font-size: 0.85rem; font-weight: 600; color: #334155; ${isAr ? 'text-align: right;' : 'text-align: left;'} display: block;">${isAr ? 'كلمة المرور:' : 'Password:'}</label>
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #334155; ${isAr ? 'text-align: right;' : 'text-align: left;'} display: block; font-family: 'Cairo', sans-serif;">${isAr ? 'كلمة المرور:' : 'Password:'}</label>
                     <input type="password" id="aituConfirmPasswordInput" name="confirm_password_no_autofill" placeholder="${isAr ? 'أدخل كلمة المرور الحالية' : 'Enter your password'}" style="
-                        width: 100%; padding: 11px 14px; border: 1px solid #cbd5e1; border-radius: 8px;
-                        margin-top: 4px; font-size: 0.95rem; outline: none; box-sizing: border-box;
+                        width: 100%; padding: 11px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px;
+                        margin-top: 4px; font-size: 13.5px; font-family: 'Cairo', sans-serif; outline: none; box-sizing: border-box;
                     " autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');">
                 </div>
-                <div id="aituConfirmPasswordError" style="color: #ef4444; font-size: 0.85rem; text-align: ${isAr ? 'right' : 'left'}; margin-bottom: 16px; display: none;"></div>
+                <div id="aituConfirmPasswordError" style="color: #ef4444; font-size: 0.85rem; text-align: ${isAr ? 'right' : 'left'}; margin-bottom: 16px; display: none; font-family: 'Cairo', sans-serif;"></div>
 
                 <div style="display: flex; gap: 12px; justify-content: center; margin-top: 10px;">
                     <button id="aituConfirmCancelBtn2" style="
-                        flex: 1; padding: 11px 18px; border: 1px solid #cbd5e1; background: #ffffff;
-                        color: #475569; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-                        cursor: pointer;
+                        flex: 1; padding: 10px 18px; border: 1.5px solid #cbd5e1; background: #ffffff;
+                        color: #0f172a; border-radius: 10px; font-weight: 700; font-size: 13.5px;
+                        cursor: pointer; font-family: 'Cairo', sans-serif;
                     ">${cancelText}</button>
                     <button id="aituConfirmFinalBtn" style="
-                        flex: 1; padding: 11px 18px; border: none; background: #dc2626;
-                        color: #ffffff; border-radius: 8px; font-weight: 600; font-size: 0.95rem;
-                        cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+                        flex: 1; padding: 10px 18px; border: none; background: #dc2626;
+                        color: #ffffff; border-radius: 10px; font-weight: 700; font-size: 13.5px;
+                        cursor: pointer; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.25); font-family: 'Cairo', sans-serif;
                     ">${isAr ? 'تأكيد وإتمام الحذف' : 'Confirm & Delete'}</button>
                 </div>
             </div>

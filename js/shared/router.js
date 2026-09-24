@@ -5,25 +5,145 @@ import { getCurrentUser } from './auth.js';
 // Mark SPA environment
 window.__spa_initialized = true;
 
+const PAGE_STYLES = {
+    dashboard: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/dashboard.css',
+        'css/repository.css'
+    ],
+    repository: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/repository.css',
+        'css/upload-resources.css'
+    ],
+    courses: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/repository.css',
+        'css/courses.css'
+    ],
+    'course-details': [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/courses.css'
+    ],
+    'create-course': [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/courses.css'
+    ],
+    'upload-resources': [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/repository.css',
+        'css/upload-resources.css'
+    ],
+    users: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css'
+    ],
+    logs: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/logs.css'
+    ],
+    profile: [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css'
+    ],
+};
+
+/**
+ * Loads a stylesheet dynamically and returns a Promise that resolves when loaded
+ */
+export function loadStylesheet(href) {
+    const cleanHref = href.split('?')[0];
+    const existing = document.querySelector(`link[rel="stylesheet"][href*="${cleanHref}"]`);
+    if (existing) {
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        let settled = false;
+        link.onload = () => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        };
+        link.onerror = () => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        };
+        setTimeout(() => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        }, 1200);
+        document.head.appendChild(link);
+    });
+}
+
+/**
+ * Ensures all stylesheets for a given pageId are loaded and ready before rendering
+ */
+export async function ensurePageStyles(pageId) {
+    const styles = PAGE_STYLES[pageId] || ['css/app-shell.css', 'css/style.css', 'css/components.css', 'css/rtl.css'];
+    await Promise.all(styles.map(loadStylesheet));
+}
+
+// Immediately ensure styles for the currently active HTML page
+if (typeof window !== 'undefined') {
+    const initialPage = getPageFromLocation();
+    ensurePageStyles(initialPage);
+}
+
+const BUILD_V = 'v=9_' + Date.now();
+
 const pageLoaders = {
     dashboard: async () => {
-        const mod = await import('../pages/dashboard.js');
+        const mod = await import('../pages/dashboard.js?' + BUILD_V);
         if (mod.initDashboard) await mod.initDashboard();
     },
     repository: async () => {
-        const mod = await import('../pages/repository.js');
+        const mod = await import('../pages/repository.js?' + BUILD_V);
         if (mod.initRepository) await mod.initRepository();
     },
     courses: async () => {
-        const mod = await import('../pages/courses.js');
+        const mod = await import('../pages/courses.js?' + BUILD_V);
         if (mod.initCourses) await mod.initCourses();
     },
     'course-details': async () => {
-        const mod = await import('../pages/course-details.js');
+        const mod = await import('../pages/course-details.js?' + BUILD_V);
         if (mod.initCourseDetails) await mod.initCourseDetails();
     },
     'create-course': async () => {
-        const mod = await import('../pages/create-course.js');
+        const mod = await import('../pages/create-course.js?' + BUILD_V);
         const content = document.getElementById('page-content');
         if (mod.initCourseBuilder && content) {
             content.innerHTML = '<div id="builderContainer" style="background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.04);"></div>';
@@ -31,19 +151,19 @@ const pageLoaders = {
         }
     },
     'upload-resources': async () => {
-        const mod = await import('../pages/upload-resources.js');
+        const mod = await import('../pages/upload-resources.js?' + BUILD_V);
         if (mod.openUploadModal) await mod.openUploadModal();
     },
     users: async () => {
-        const mod = await import('../pages/users.js');
+        const mod = await import('../pages/users.js?' + BUILD_V);
         if (mod.initUsers) await mod.initUsers();
     },
     logs: async () => {
-        const mod = await import('../pages/logs.js');
+        const mod = await import('../pages/logs.js?' + BUILD_V);
         if (mod.initLogs) await mod.initLogs();
     },
     profile: async () => {
-        const mod = await import('../pages/profile.js');
+        const mod = await import('../pages/profile.js?' + BUILD_V);
         if (mod.initProfile) await mod.initProfile();
     },
 };
@@ -98,7 +218,10 @@ export async function navigateTo(pageId, options = {}) {
         `;
     }
 
-    // 4. Load & Initialize the Page Module
+    // 4. Ensure all required stylesheets for target page are loaded into <head>
+    await ensurePageStyles(pageId);
+
+    // 5. Load & Initialize the Page Module
     try {
         const loader = pageLoaders[pageId];
         if (loader) {

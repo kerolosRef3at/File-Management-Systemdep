@@ -6,6 +6,7 @@ import { courseService, folderService, fileService } from '../shared/services.js
 import { showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
+import { enhanceSelect } from '../shared/custom-select.js';
 
 let isUploadingGlobal = false;
 
@@ -178,6 +179,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         `;
 
         bindEvents();
+
+        // Enhance all cc-select dropdowns with executive custom dropdown
+        document.querySelectorAll('.cc-select').forEach(sel => enhanceSelect(sel));
+
         if (editCourseId) loadCourseForEdit(editCourseId);
         else if (draftCourseId) loadCourseForEdit(draftCourseId, true);
     }

@@ -47,15 +47,45 @@ export async function initCourseDetails() {
     let body = document.getElementById('courseDetailBody');
     if (!body) return;
 
-    // If admin, switch to admin layout and sidebar
+    // Switch layouts
+    const publicShell = document.getElementById('publicShell');
+    const app = document.getElementById('app');
+
     if (isAdmin) {
-        const publicShell = document.getElementById('publicShell');
-        const app = document.getElementById('app');
         if (publicShell) publicShell.style.display = 'none';
         if (app) app.style.display = 'block';
         renderLayout('courses');
         body = document.getElementById('page-content');
         if (body) body.className = 'course-detail-body';
+    } else {
+        if (publicShell) publicShell.style.display = 'block';
+        if (app) app.style.display = 'none';
+
+        // If user is logged in as Public User, update public navbar
+        if (user) {
+            const repoNavRight = document.querySelector('.repo-nav-right');
+            if (repoNavRight) {
+                const lang = getCurrentLang();
+                const isAr = lang === 'ar';
+                repoNavRight.innerHTML = `
+                    <button class="lang-toggle-btn" id="langToggleBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                        <span class="lang-btn-text">${isAr ? 'English' : 'عربي'}</span>
+                    </button>
+                    <button class="repo-login-btn" id="publicLogoutBtn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:600;">
+                        ${isAr ? 'تسجيل خروج' : 'Logout'}
+                    </button>
+                `;
+                document.getElementById('publicLogoutBtn')?.addEventListener('click', () => {
+                    import('../shared/auth.js').then(a => a.logout());
+                });
+                document.getElementById('langToggleBtn')?.addEventListener('click', () => {
+                    const cur = localStorage.getItem('aitu_lang') || 'en';
+                    localStorage.setItem('aitu_lang', cur === 'ar' ? 'en' : 'ar');
+                    window.location.reload();
+                });
+            }
+        }
     }
 
     // Get Course ID
@@ -210,65 +240,91 @@ export async function initCourseDetails() {
         const dynamicTypesString = Array.from(typesSet).map(formatTypeLabel).join(isAr ? '، ' : ', ');
 
         body.innerHTML = `
-            <!-- Breadcrumb -->
-            <div class="course-detail-breadcrumb">
-                <a href="index.html">${isAr ? 'الرئيسية' : 'Home'}</a>
-                <span class="bc-separator">&rsaquo;</span>
-                <a href="courses.html">${isAr ? 'الكورسات' : 'Courses'}</a>
-                <span class="bc-separator">&rsaquo;</span>
-                <span class="bc-current">${escapeHtml(course.title)}</span>
-            </div>
-
-            <!-- Title -->
-            <div class="course-detail-title" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h1>${escapeHtml(course.title)}</h1>
-                    <div class="course-detail-badges">
-                        ${(course.isCertified !== false && course.certified !== false) ? `
-                        <span class="cd-badge-certified">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                            ${isAr ? 'مناهج AITU المعتمدة' : 'AITU Certified Materials'}
-                        </span>
-                        ` : ''}
-                        <span class="cd-meta-text">${isAr ? 'مصدر مؤرشف' : 'Archived Resource'}</span>
-                        <span class="cd-meta-dot"></span>
-                        <span class="cd-meta-text">${isAr ? 'آخر تحديث' : 'Last updated'} ${course.lastUpdated || 'N/A'}</span>
+            <!-- Executive Course Hero Banner -->
+            <div class="cd-hero-banner">
+                <!-- Top Row: Glass Breadcrumbs & Admin Actions -->
+                <div class="cd-hero-top-row">
+                    <div class="cd-hero-breadcrumbs">
+                        <a href="index.html" class="cd-bc-link">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            <span>${isAr ? 'الرئيسية' : 'Home'}</span>
+                        </a>
+                        <span class="cd-bc-sep">/</span>
+                        <a href="courses.html" class="cd-bc-link">
+                            <span>${isAr ? 'الكورسات' : 'Courses'}</span>
+                        </a>
+                        <span class="cd-bc-sep">/</span>
+                        <span class="cd-bc-current">${escapeHtml(course.title)}</span>
                     </div>
-                </div>
-                ${isAdmin ? `
-                <div class="admin-course-actions" style="display: flex; gap: 10px;">
-                    <button id="btnAdminEditCourse" class="btn-upload" style="background: white; color: var(--primary-dark); border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        ${isAr ? 'تعديل الكورس' : 'Edit Course'}
-                    </button>
-                    <button id="btnAdminDeleteCourse" class="btn-upload" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                        ${isAr ? 'حذف' : 'Delete'}
-                    </button>
-                </div>
-                ` : ''}
-            </div>
 
-            <!-- Hero Banner -->
-            <div class="course-detail-hero">
-<img
-    id="courseDetailHeroImg"
-    src="${resolveCourseImg(course.img)}"
-    alt="${escapeHtml(course.title)}"
-    loading="lazy"
-    onerror="this.onerror=null; this.src='assets/images/default-course.png';">
-                <div class="course-detail-hero-overlay">
-                    <div class="hero-package-info">
-                        <div class="hero-package-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                            ${isAr ? 'حزمة الموارد الأكاديمية الكاملة' : 'Complete Resource Package'}
+                    ${isAdmin ? `
+                    <div class="cd-hero-admin-actions">
+                        <button id="btnAdminEditCourse" class="cd-btn-hero-secondary" title="${isAr ? 'تعديل الكورس' : 'Edit Course'}">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            <span>${isAr ? 'تعديل الكورس' : 'Edit Course'}</span>
+                        </button>
+                        <button id="btnAdminDeleteCourse" class="cd-btn-hero-danger" title="${isAr ? 'حذف' : 'Delete'}">
+                            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            <span>${isAr ? 'حذف' : 'Delete'}</span>
+                        </button>
+                    </div>
+                    ` : ''}
+                </div>
+
+                <!-- Main Hero Split: Left Info + Right Media Card -->
+                <div class="cd-hero-main">
+                    <div class="cd-hero-content">
+                        <div class="cd-hero-badge-pill">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                            <span>${isAr ? 'حزمة المناهج والموارد الأكاديمية' : 'Complete Resource Package'}</span>
                         </div>
-                        <div class="hero-package-title">${escapeHtml(course.title)}</div>
-                        <div class="hero-package-desc">${isAr ? 'جميع مواد المنهج، البيانات والدلائل الفنية متوفرة للتنزيل.' : 'All syllabus materials, datasets, and technical documentation included in one download.'}</div>
+
+                        <h1 class="cd-hero-title">${escapeHtml(course.title)}</h1>
+
+                        <p class="cd-hero-desc">
+                            ${course.description || (isAr ? 'جميع مواد المنهج، المحاضرات، البيانات، والدلائل الفنية والتعليمية متوفرة للتحميل المباشر.' : 'All syllabus materials, datasets, and technical documentation included in one download.')}
+                        </p>
+
+                        <!-- Metadata Chips Row -->
+                        <div class="cd-hero-chips">
+                            ${(course.isCertified !== false && course.certified !== false) ? `
+                            <div class="cd-hero-chip cd-chip-certified">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                <span>${isAr ? 'مناهج AITU المعتمدة' : 'AITU Certified Materials'}</span>
+                            </div>
+                            ` : ''}
+                            <div class="cd-hero-chip">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                <span>${isAr ? 'مصدر مؤرشف' : 'Archived Resource'}</span>
+                            </div>
+                            <div class="cd-hero-chip">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <span>${isAr ? 'آخر تحديث' : 'Last updated'} ${course.lastUpdated || 'Jul 2026'}</span>
+                            </div>
+                            <div class="cd-hero-chip">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                <span dir="ltr">${course.size || '30.0 MB'}</span>
+                            </div>
+                            <div class="cd-hero-chip">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                                <span>${totalCategories} ${isAr ? 'أقسام' : 'Categories'} • ${totalLessons} ${isAr ? 'ملفات' : 'Files'}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="hero-size-badge">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                        <span dir="ltr">${course.size}</span> ${isAr ? 'الحجم الإجمالي' : 'Total Size'}
+
+                    <!-- Right Side Media Thumbnail Card -->
+                    <div class="cd-hero-media-wrapper">
+                        <div class="cd-hero-media-card">
+                            <img id="courseDetailHeroImg"
+                                 src="${resolveCourseImg(course.img)}"
+                                 alt="${escapeHtml(course.title)}"
+                                 loading="lazy"
+                                 onerror="this.onerror=null; this.src='assets/images/default-course.png';">
+                            <div class="cd-hero-media-badge">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                <span dir="ltr">${course.size || '30.0 MB'}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -276,26 +332,46 @@ export async function initCourseDetails() {
             <!-- Two Column Layout -->
             <div class="course-detail-layout">
                 <div>
-                    <!-- Package Overview -->
+                    <!-- Package Overview Card -->
                     <div class="package-overview">
-                        <h2>${isAr ? 'نظرة عامة على الكورس' : 'Package Overview'}</h2>
+                        <div class="cd-section-header">
+                            <div class="cd-section-icon-box">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                            </div>
+                            <h2>${isAr ? 'نظرة عامة على الكورس' : 'Package Overview'}</h2>
+                        </div>
                         <p>${course.description || (isAr ? 'لا يوجد وصف متاح لهذا الكورس.' : 'No description available.')}</p>
                         <div class="package-overview-stats">
                             <div class="po-stat">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                <strong>${isAr ? 'نوع المحتوى' : 'Content Type'}</strong> ${dynamicTypesString}.
+                                <div class="po-stat-icon blue">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                </div>
+                                <div>
+                                    <span class="po-stat-label">${isAr ? 'نوع المحتوى المتاح' : 'Content Types'}</span>
+                                    <strong class="po-stat-value">${dynamicTypesString}</strong>
+                                </div>
                             </div>
                             <div class="po-stat">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <strong>${isAr ? 'المحتوى المؤرشف' : 'Archived Content'}</strong> ${totalCategories} ${isAr ? 'وحدات دراسية' : 'Modules'} • ${totalLessons} ${isAr ? 'موارد فنية' : 'Technical Resources'}.
+                                <div class="po-stat-icon green">
+                                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                </div>
+                                <div>
+                                    <span class="po-stat-label">${isAr ? 'المحتوى المؤرشف' : 'Archived Content'}</span>
+                                    <strong class="po-stat-value">${totalCategories} ${isAr ? 'أقسام' : 'Modules'} • ${totalLessons} ${isAr ? 'ملفات تعليمية' : 'Lessons'}</strong>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Resource List -->
+                    <!-- Resource List / Modules Accordion -->
                     <div class="resource-list-section">
                         <div class="resource-list-header">
-                            <h2>${isAr ? 'قائمة الموارد والدروس' : 'Resource List'}</h2>
+                            <div class="cd-section-header" style="margin-bottom: 0;">
+                                <div class="cd-section-icon-box" style="background: #EFF6FF; color: #1565C0;">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                </div>
+                                <h2>${isAr ? 'قائمة الموارد والدروس' : 'Resource List'}</h2>
+                            </div>
                             <span class="resource-list-count">${totalCategories} ${isAr ? 'أقسام' : 'Categories'} • ${totalLessons} ${isAr ? 'ملفات' : 'Files'}</span>
                         </div>
                         <div id="moduleAccordion"></div>
@@ -304,31 +380,43 @@ export async function initCourseDetails() {
 
                 <!-- Right Sidebar -->
                 <div class="course-detail-sidebar">
-                    <!-- Download Bundle -->
+                    <!-- Download Bundle Card -->
                     <div class="download-bundle-card">
                         <h3>${isAr ? 'تحميل حزمة الكورس' : 'Download Bundle'}</h3>
-                        <div class="db-size-badge">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                            <span dir="ltr">${course.size}</span> ${isAr ? 'الأرشيف المتاح' : 'Archive Available'}
+                        
+                        <div class="db-size-highlight-box">
+                            <div class="db-sh-left">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                                <span>${isAr ? 'حجم الأرشيف المتاح' : 'Archive Available'}</span>
+                            </div>
+                            <span class="db-sh-value" dir="ltr">${course.size || '30.0 MB'}</span>
                         </div>
-                        <div class="db-feature">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            ${isAr ? 'أدلة الدراسة الرسمية بجامعة AITU' : 'Official AITU Study Guides'}
+
+                        <div class="db-features-list">
+                            <div class="db-feature">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span>${isAr ? 'أدلة الدراسة الرسمية بجامعة AITU' : 'Official AITU Study Guides'}</span>
+                            </div>
+                            <div class="db-feature">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span>${isAr ? 'المقررات الأكاديمية الشاملة والمحاضرات' : 'Complete historical syllabus & notes'}</span>
+                            </div>
+                            <div class="db-feature">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#16A34A" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span>${isAr ? 'تنزيل فوري مضغوط بنقرة واحدة' : 'Instant 1-Click ZIP Archive'}</span>
+                            </div>
                         </div>
-                        <div class="db-feature">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            ${isAr ? 'المقررات الأكاديمية الشاملة' : 'Complete historical syllabus'}
-                        </div>
+
                         <button class="db-download-all-btn" id="downloadAllBtn">
-                            ${isAr ? 'تحميل جميع الموارد' : 'Download All Resources'}
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            <span>${isAr ? 'تحميل جميع الموارد' : 'Download All Resources'}</span>
                         </button>
                     </div>
 
                     <!-- Author Card -->
                     ${course.author ? `
                     <div class="author-card">
-                        <div class="author-card-label">${isAr ? 'معد المنهج' : 'Curriculum Author'}</div>
+                        <div class="author-card-label">${isAr ? 'معد المنهج الأكاديمي' : 'Curriculum Author'}</div>
                         <div class="author-info">
                             <div class="author-avatar">${course.author.name ? course.author.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'A'}</div>
                             <div>
@@ -337,29 +425,34 @@ export async function initCourseDetails() {
                             </div>
                         </div>
                         <p class="author-bio">${course.author.bio || ''}</p>
-                        <a href="#" class="author-profile-link">${isAr ? 'عرض الملف الشخصي للمحاضر' : 'View Faculty Profile'}</a>
+                        <a href="#" class="author-profile-link">
+                            <span>${isAr ? 'عرض الملف الشخصي للمحاضر' : 'View Faculty Profile'}</span>
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
+                        </a>
                     </div>
                     ` : ''}
 
                     <!-- Related Bundles -->
                     ${course.relatedCourses && course.relatedCourses.length > 0 ? `
                     <div class="related-bundles-card">
-                        <h4>${isAr ? 'حزم ذات صلة' : 'Related Resource Bundles'}</h4>
-                        ${course.relatedCourses.map(relId => {
-                            const rel = allCourses.find(c => c.id === relId);
-                            if (!rel) return '';
-                            return `
-                                <div class="related-bundle-item" data-id="${rel.id}">
-                                    <div class="related-bundle-thumb">
-                                        ${resolveCourseImg(rel.img) ? `<img src="${resolveCourseImg(rel.img)}" alt="${escapeHtml(rel.title)}" onerror="this.style.display='none'">` : ''}
+                        <h4>${isAr ? 'حزم مقررات ذات صلة' : 'Related Resource Bundles'}</h4>
+                        <div class="related-bundles-list">
+                            ${course.relatedCourses.map(relId => {
+                                const rel = allCourses.find(c => c.id === relId);
+                                if (!rel) return '';
+                                return `
+                                    <div class="related-bundle-item" data-id="${rel.id}">
+                                        <div class="related-bundle-thumb">
+                                            ${resolveCourseImg(rel.img) ? `<img src="${resolveCourseImg(rel.img)}" alt="${escapeHtml(rel.title)}" onerror="this.style.display='none'">` : ''}
+                                        </div>
+                                        <div>
+                                            <div class="related-bundle-name">${rel.title}</div>
+                                            <div class="related-bundle-meta">${isAr ? 'أرشيف الموارد' : 'Resource Archive'} • <span dir="ltr">${rel.size}</span></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="related-bundle-name">${rel.title}</div>
-                                        <div class="related-bundle-meta">${isAr ? 'أرشيف الموارد' : 'Resource Archive'} • <span dir="ltr">${rel.size}</span></div>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
                     ` : ''}
                 </div>
@@ -1003,9 +1096,15 @@ deleteCourseBtn.addEventListener('click', () => {
 }
 
 if (typeof window !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.location.pathname.includes('course-details')) {
+                initCourseDetails();
+            }
+        });
+    } else {
         if (window.location.pathname.includes('course-details')) {
             initCourseDetails();
         }
-    });
+    }
 }
