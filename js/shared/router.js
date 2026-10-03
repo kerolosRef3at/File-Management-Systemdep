@@ -71,6 +71,13 @@ const PAGE_STYLES = {
         'css/components.css',
         'css/rtl.css'
     ],
+    'faculty-materials': [
+        'css/app-shell.css',
+        'css/style.css',
+        'css/components.css',
+        'css/rtl.css',
+        'css/faculty-materials.css'
+    ],
 };
 
 /**
@@ -123,27 +130,27 @@ if (typeof window !== 'undefined') {
     ensurePageStyles(initialPage);
 }
 
-const BUILD_V = 'v=9_' + Date.now();
+const getBuildV = () => 'v=10_' + Date.now();
 
 const pageLoaders = {
     dashboard: async () => {
-        const mod = await import('../pages/dashboard.js?' + BUILD_V);
+        const mod = await import('../pages/dashboard.js?' + getBuildV());
         if (mod.initDashboard) await mod.initDashboard();
     },
     repository: async () => {
-        const mod = await import('../pages/repository.js?' + BUILD_V);
+        const mod = await import('../pages/repository.js?' + getBuildV());
         if (mod.initRepository) await mod.initRepository();
     },
     courses: async () => {
-        const mod = await import('../pages/courses.js?' + BUILD_V);
+        const mod = await import('../pages/courses.js?' + getBuildV());
         if (mod.initCourses) await mod.initCourses();
     },
     'course-details': async () => {
-        const mod = await import('../pages/course-details.js?' + BUILD_V);
+        const mod = await import('../pages/course-details.js?' + getBuildV());
         if (mod.initCourseDetails) await mod.initCourseDetails();
     },
     'create-course': async () => {
-        const mod = await import('../pages/create-course.js?' + BUILD_V);
+        const mod = await import('../pages/create-course.js?' + getBuildV());
         const content = document.getElementById('page-content');
         if (mod.initCourseBuilder && content) {
             content.innerHTML = '<div id="builderContainer" style="background:#fff; border-radius:12px; padding:24px; box-shadow:0 2px 8px rgba(0,0,0,0.04);"></div>';
@@ -151,20 +158,25 @@ const pageLoaders = {
         }
     },
     'upload-resources': async () => {
-        const mod = await import('../pages/upload-resources.js?' + BUILD_V);
+        const mod = await import('../pages/upload-resources.js?' + getBuildV());
         if (mod.openUploadModal) await mod.openUploadModal();
     },
     users: async () => {
-        const mod = await import('../pages/users.js?' + BUILD_V);
+        const mod = await import('../pages/users.js?' + getBuildV());
         if (mod.initUsers) await mod.initUsers();
     },
     logs: async () => {
-        const mod = await import('../pages/logs.js?' + BUILD_V);
+        const mod = await import('../pages/logs.js?' + getBuildV());
         if (mod.initLogs) await mod.initLogs();
     },
     profile: async () => {
-        const mod = await import('../pages/profile.js?' + BUILD_V);
+        const mod = await import('../pages/profile.js?' + getBuildV());
         if (mod.initProfile) await mod.initProfile();
+    },
+    'faculty-materials': async () => {
+        const mod = await import('../pages/faculty-materials.js?' + getBuildV());
+        const content = document.getElementById('page-content');
+        if (mod.initFacultyMaterials) await mod.initFacultyMaterials(content);
     },
 };
 
@@ -189,6 +201,9 @@ export async function navigateTo(pageId, options = {}) {
             return;
         }
     }
+
+    // Public / Student guest access is allowed for faculty-materials (read-only mode)
+
 
     // 1. Update/Ensure App Shell layout (Fixed base)
     renderLayout(pageId);
@@ -310,6 +325,7 @@ export function getPageFromLocation() {
     if (pathname.includes('create-course')) return 'create-course';
     if (pathname.includes('upload-resources')) return 'upload-resources';
     if (pathname.includes('profile')) return 'profile';
+    if (pathname.includes('faculty-materials')) return 'faculty-materials';
     if (pathname.includes('repository')) return 'repository';
     return 'dashboard';
 }

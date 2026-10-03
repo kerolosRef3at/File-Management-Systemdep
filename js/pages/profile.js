@@ -219,7 +219,7 @@ export function initProfile() {
                     if (dropdownEmail) dropdownEmail.textContent = freshUser.email;
                 }
             } catch (err) {
-                showAlert(profileAlert, err.message || 'Failed to update profile.', 'error');
+                showAlert(profileAlert, err.message || (isAr ? 'تعذر تحديث بيانات الملف الأكاديمي.' : 'Failed to update profile.'), 'error');
             } finally {
                 saveProfileBtn.disabled = false;
                 saveProfileBtn.innerText = isAr ? 'حفظ التغييرات' : 'Save Changes';
@@ -240,12 +240,12 @@ export function initProfile() {
             const repeatPassword = document.getElementById('repeatPassword').value;
 
             if (newPassword !== repeatPassword) {
-                showAlert(securityAlert, 'New passwords do not match.', 'error');
+                showAlert(securityAlert, isAr ? 'كلمتا المرور الجديدتان غير متطابقتين.' : 'New passwords do not match.', 'error');
                 return;
             }
 
             if (newPassword.length < 8) {
-                showAlert(securityAlert, 'New password must be at least 8 characters long.', 'error');
+                showAlert(securityAlert, isAr ? 'يجب ألا تقل كلمة المرور الجديدة عن 8 أحرف.' : 'New password must be at least 8 characters long.', 'error');
                 return;
             }
 
@@ -280,7 +280,7 @@ export function initProfile() {
                     window.location.href = isManagerOrAdmin ? 'dashboard.html' : 'repository.html';
                 }, 1200);
             } catch (err) {
-                showAlert(securityAlert, err.message || 'Failed to update password.', 'error');
+                showAlert(securityAlert, err.message || (isAr ? 'تعذر تحديث كلمة المرور.' : 'Failed to update password.'), 'error');
             } finally {
                 updatePasswordBtn.disabled = false;
                 updatePasswordBtn.innerText = 'Update Password';
@@ -313,8 +313,16 @@ export function initProfile() {
             </div>
         `;
         const pageHeader = contentArea.querySelector('.page-header-actions');
-        if (pageHeader) {
-            pageHeader.parentNode.insertBefore(banner, pageHeader.nextSibling);
+        if (pageHeader && pageHeader.parentNode) {
+            try {
+                if (typeof pageHeader.after === 'function') {
+                    pageHeader.after(banner);
+                } else {
+                    pageHeader.parentNode.appendChild(banner);
+                }
+            } catch (err) {
+                pageHeader.parentNode.appendChild(banner);
+            }
         }
 
         setTimeout(() => {

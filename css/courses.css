@@ -1,4 +1,4 @@
-\n/* ==========================================================================
+/* ==========================================================================
    AITU File Management System - Executive Course Details Page
    Styled to perfectly match the Enterprise Ticketing & Dashboard Design System
    ========================================================================== */
@@ -143,11 +143,9 @@
     height: 38px;
     padding: 0 16px;
     border-radius: 10px;
-    background: rgba(220, 38, 38, 0.22) !important;
+    background: #DC2626 !important;
     color: #FFFFFF !important;
-    border: 1.5px solid rgba(254, 202, 202, 0.45) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    border: 1.5px solid #EF4444 !important;
     font-size: 13px;
     font-weight: 700;
     font-family: 'Cairo', sans-serif !important;
@@ -155,15 +153,16 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: nowrap;
 }
 
 .cd-btn-hero-danger:hover {
-    background: #DC2626 !important;
+    background: #B91C1C !important;
     border-color: #DC2626 !important;
     transform: translateY(-2px);
-    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.38);
+    box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
 }
 
 /* Main Hero Content Split */
@@ -184,35 +183,47 @@
 .cd-hero-badge-pill {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
     font-size: 12px;
     font-weight: 700;
-    color: #93C5FD;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
+    color: #BFDBFE !important;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(147, 197, 253, 0.35);
+    padding: 4px 14px;
+    border-radius: 999px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    letter-spacing: 0.02em;
+    margin-bottom: 12px;
 }
 
+.cd-hero-banner h1,
+.cd-hero-banner .cd-hero-title,
+h1.cd-hero-title,
 .cd-hero-title {
-    font-size: 2.1rem !important;
+    font-size: 2.15rem !important;
     font-weight: 800 !important;
     color: #FFFFFF !important;
     margin: 0 0 10px 0 !important;
     line-height: 1.25 !important;
     letter-spacing: -0.01em;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.4) !important;
     word-break: break-word;
     font-family: 'Cairo', sans-serif !important;
 }
 
+.cd-hero-banner p,
+.cd-hero-banner .cd-hero-desc,
+p.cd-hero-desc,
 .cd-hero-desc {
     font-size: 0.95rem !important;
-    color: rgba(255, 255, 255, 0.92) !important;
-    margin: 0 0 16px 0 !important;
-    line-height: 1.6 !important;
-    max-width: 740px;
+    color: rgba(255, 255, 255, 0.94) !important;
+    margin: 0 0 18px 0 !important;
+    line-height: 1.65 !important;
+    max-width: 780px;
     font-weight: 500 !important;
     font-family: 'Cairo', sans-serif !important;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* Metadata Chips */
@@ -868,14 +879,16 @@ html[dir="rtl"] .related-bundle-item:hover {
     .cd-hero-banner {
         padding: 20px 18px;
     }
-    .cd-hero-title {
+    .cd-hero-title,
+    .cd-hero-banner h1 {
         font-size: 1.6rem !important;
+        color: #FFFFFF !important;
     }
     .package-overview-stats {
         grid-template-columns: 1fr;
     }
 }
-\n/* =========================================
+/* =========================================
    Courses Pages – Public Guest + Admin Styles
    ========================================= */
 
@@ -885,6 +898,7 @@ html[dir="rtl"] .related-bundle-item:hover {
 
 .courses-public-body {
     display: flex;
+    align-items: flex-start;
     min-height: calc(100vh - 64px - 80px);
     max-width: 1400px;
     margin: 0 auto;
@@ -892,18 +906,16 @@ html[dir="rtl"] .related-bundle-item:hover {
     gap: 30px;
 }
 
-/* Left panel (sidebar + filters + bulk CTA) */
+/* Left panel (departments sidebar) - Unified matching repository dept-sidebar */
 .courses-left-panel {
     width: 220px;
+    min-width: 220px;
     flex-shrink: 0;
     position: sticky;
     top: 94px;
     align-self: flex-start;
     max-height: calc(100vh - 120px);
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
 }
 
 .courses-left-panel::-webkit-scrollbar {
@@ -971,59 +983,131 @@ html[dir="rtl"] .related-bundle-item:hover {
     transform: translate(-50%, -50%);
 }
 
-/* Bulk Downloads CTA */
+/* Bulk Downloads CTA (Executive Dark Cadre) */
 .bulk-download-cta {
-    background: var(--primary-dark);
-    color: var(--white);
-    border-radius: 10px;
-    padding: 20px;
+    background: linear-gradient(135deg, #061A35 0%, #0A2F5E 50%, #114B8C 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    color: #FFFFFF !important;
+    border-radius: 16px !important;
+    padding: 22px 18px !important;
     text-align: left;
+    margin: 12px 0 0 0 !important;
+    box-shadow: 0 10px 25px -5px rgba(6, 26, 53, 0.35) !important;
+    position: relative;
+    overflow: hidden;
 }
 
 .bulk-download-cta .bulk-icon {
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24) !important;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 12px;
+    color: #38BDF8 !important;
+}
+
+.bulk-download-cta .bulk-icon svg {
+    color: #38BDF8 !important;
 }
 
 .bulk-download-cta h4 {
-    font-size: 1rem;
-    font-weight: 700;
-    margin-bottom: 6px;
+    font-size: 1rem !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    margin: 0 0 8px 0 !important;
+    line-height: 1.4 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .bulk-download-cta p {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin-bottom: 15px;
-    line-height: 1.4;
+    font-size: 0.83rem !important;
+    color: #E2E8F0 !important;
+    margin: 0 0 16px 0 !important;
+    line-height: 1.6 !important;
+    opacity: 0.95;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .bulk-download-cta .browse-pkg-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0B3B70 0%, #1565C0 100%) !important;
-    color: #FFFFFF !important;
-    font-weight: 700;
-    font-size: 13.5px;
+    width: 100%;
+    background: #FFFFFF !important;
+    color: #0A2F5E !important;
+    font-weight: 800 !important;
+    font-size: 0.88rem !important;
     font-family: 'Cairo', sans-serif !important;
-    padding: 10px 22px;
-    border-radius: 10px;
+    padding: 10px 18px !important;
+    border-radius: 10px !important;
     border: none;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 14px rgba(11, 59, 112, 0.25);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
     text-decoration: none;
 }
 
 .bulk-download-cta .browse-pkg-btn:hover {
-    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25) !important;
+    background: #F8FAFC !important;
+    color: #061A35 !important;
+}
+
+/* Sidebar Top Heading Styling - Matching components.css */
+.sidebar-top-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px 12px;
+    border-bottom: none;
+}
+
+.sidebar-heading-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: #EFF6FF !important;
+    color: #1565C0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sidebar-heading-icon svg {
+    color: #1565C0 !important;
+}
+
+.sidebar-heading-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-heading-text h4 {
+    margin: 0 0 2px 0 !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    color: #0F172A !important;
+    line-height: 1.25 !important;
+}
+
+.sidebar-heading-text span {
+    font-size: 0.76rem !important;
+    color: #64748B !important;
+    font-weight: 500 !important;
+}
+
+/* Ensure close button never displays on desktop */
+@media (min-width: 993px) {
+    .sidebar-close-btn,
+    #closeCourseSidebarBtn {
+        display: none !important;
+    }
 }
 
 /* === COURSE CARDS GRID === */
@@ -1031,6 +1115,7 @@ html[dir="rtl"] .related-bundle-item:hover {
 .courses-main {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 .courses-title-section h1 {
@@ -3318,7 +3403,7 @@ html[dir="rtl"] .admin-card-delete-btn {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     .courses-card-grid {
         grid-template-columns: 1fr;
     }
@@ -3353,13 +3438,13 @@ html[dir="rtl"] .admin-card-delete-btn {
         width: 290px !important;
         height: 100vh !important;
         max-height: 100vh !important;
-        background: var(--white);
+        background: var(--white) !important;
         z-index: 1000 !important;
         padding: 0 !important;
         display: flex !important;
         flex-direction: column !important;
-        transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 10px 0 35px rgba(0, 0, 0, 0.25);
+        transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1), right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 10px 0 35px rgba(0, 0, 0, 0.25) !important;
         border-right: none;
         overflow: hidden !important;
     }
@@ -3462,8 +3547,7 @@ html[dir="rtl"] .courses-public-body {
 }
 
 html[dir="rtl"] .courses-left-panel {
-    border-left: none;
-    border-right: 1px solid var(--border-color);
+    border: none !important;
     text-align: right;
 }
 
@@ -3560,7 +3644,7 @@ html[dir="rtl"] .cdm-actions {
     justify-content: flex-start;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     html[dir="rtl"] .courses-left-panel {
         left: auto !important;
         right: -310px;

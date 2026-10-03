@@ -438,7 +438,7 @@ export function initBackgroundUploadTracker() {
                 </div>
                 <div class="cc-upb-filename" id="ccUpbFilename">${
                     isCompleted
-                        ? (isAr ? 'تم حفظ الكورس وجميع محتوياته بنجاح' : 'All course files uploaded & saved')
+                        ? (isAr ? 'تم حفظ المقرر الدراسي وجميع محتوياته بنجاح' : 'All course files uploaded & saved')
                         : (job.currentFileName || 'جاري الرفع...')
                 }</div>
                 <div class="cc-upb-bar-bg">

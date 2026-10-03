@@ -27,14 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // TODO: POST /api/Auth/forgot-password
                 await authService.forgotPassword(email);
 
-                showAlert(alertBox, 'Verification code sent! Redirecting to verification page...', 'success');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'تم إرسال رمز التحقق بنجاح! جاري تحويلك لصفحة تأكيد الرمز...' : 'Verification code sent! Redirecting to verification page...', 'success');
 
                 setTimeout(() => {
                     window.location.href = `otp.html?email=${encodeURIComponent(email)}`;
                 }, 1500);
 
             } catch (error) {
-                showAlert(alertBox, error.message || 'Something went wrong. Please try again.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, error.message || (isAr ? 'حدث خطأ أثناء إرسال الرمز، يرجى إعادة المحاولة.' : 'Something went wrong. Please try again.'), 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerText = 'Confirm';

@@ -3,10 +3,13 @@
  * Centralized Logger Module for Production Hardening (CWE-532)
  */
 
-const IS_PRODUCTION = typeof window !== 'undefined' && 
-                      window.location.hostname !== 'localhost' && 
-                      !window.location.hostname.startsWith('127.') && 
-                      !window.location.hostname.startsWith('192.168.');
+const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+const IS_PRODUCTION = Boolean(
+    hostname && 
+    hostname !== 'localhost' && 
+    !hostname.startsWith('127.') && 
+    !hostname.startsWith('192.168.')
+);
 
 export const logger = {
     log: (...args) => {

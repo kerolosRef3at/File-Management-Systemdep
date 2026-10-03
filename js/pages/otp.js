@@ -71,9 +71,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     // TODO: POST /api/Auth/forgot-password (to resend)
                     await authService.forgotPassword(userEmail);
-                    showAlert(alertBox, 'A new code has been sent to your email.', 'success');
+                    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'تم إرسال رمز تحقق مؤقت جديد إلى بريدك الإلكتروني الجامعي.' : 'A new code has been sent to your email.', 'success');
                 } catch (err) {
-                    showAlert(alertBox, err.message || 'Resend failed.', 'error');
+                    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, err.message || (isAr ? 'تعذر إعادة إرسال رمز التحقق.' : 'Resend failed.'), 'error');
                 }
             });
         } else {
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
             inputs.forEach(input => otpCode += input.value);
 
             if (otpCode.length < 6) {
-                showAlert(alertBox, 'Please enter the full 6-digit code.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'يرجى إدخال رمز التحقق كاملاً المكون من 6 أرقام.' : 'Please enter the full 6-digit code.', 'error');
                 return;
             }
 
@@ -103,14 +103,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // TODO: POST /api/Auth/verify-otp
                 await authService.verifyOTP(userEmail, otpCode);
                 
-                showAlert(alertBox, 'OTP Verified! Redirecting to password reset...', 'success');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'تم التحقق بنجاح! جاري تحويلك لتعيين كلمة المرور الجديدة...' : 'OTP Verified! Redirecting to password reset...', 'success');
                 
                 setTimeout(() => {
                     window.location.href = `reset-password.html?email=${encodeURIComponent(userEmail)}&code=${otpCode}`;
                 }, 1500);
 
             } catch (error) {
-                showAlert(alertBox, error.message || 'Invalid verification code.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, error.message || (isAr ? 'رمز التحقق غير صحيح أو منتهي الصلاحية.' : 'Invalid verification code.'), 'error');
             } finally {
                 verifyBtn.disabled = false;
                 verifyBtn.innerText = 'Confirm';

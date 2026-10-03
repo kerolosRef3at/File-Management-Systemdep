@@ -99,12 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
 
             if (!isPasswordValid) {
-                showAlert(alertBox, 'Please meet all password requirements first.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'يرجى استيفاء كافة شروط كلمة المرور الموضحة أولاً.' : 'Please meet all password requirements first.', 'error');
                 return;
             }
 
             if (newPwdInput.value !== confirmPwdInput.value) {
-                showAlert(alertBox, 'Passwords do not match.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.', 'error');
                 return;
             }
 
@@ -150,14 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     await authService.resetPassword(userEmail, resetCode, newPwdInput.value);
                     
-                    showAlert(alertBox, 'Password updated successfully! Redirecting to login...', 'success');
+                    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, isAr ? 'تم تعيين كلمة المرور بنجاح! جاري تحويلك لصفحة تسجيل الدخول...' : 'Password updated successfully! Redirecting to login...', 'success');
 
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
                 }
             } catch (error) {
-                showAlert(alertBox, error.message || 'Failed to update password.', 'error');
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; showAlert(alertBox, error.message || (isAr ? 'تعذر تحديث كلمة المرور.' : 'Failed to update password.'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.innerText = 'Confirm';
             }

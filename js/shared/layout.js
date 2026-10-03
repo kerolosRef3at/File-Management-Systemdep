@@ -21,17 +21,18 @@ function ensureShellStyles() {
 export function getRoleLabel(role, lang = 'ar') {
     const r = String(role || '').trim();
     const map = {
-        Supervisor: { ar: 'مشرف النظام', en: 'System Supervisor' },
-        'IT Manager': { ar: 'مدير قسم IT', en: 'IT Manager' },
-        'EL Manager': { ar: 'مدير قسم الكترونيات', en: 'Electrical Manager' },
-        'Mechanical Manager': { ar: 'مدير قسم ميكانيكا', en: 'Mechanical Manager' },
-        'Public User': { ar: 'مستخدم عام', en: 'Public User' },
-        Employee: { ar: 'موظف', en: 'Staff' },
-        Student: { ar: 'طالب', en: 'Student' },
+        Supervisor: { ar: 'مشرف عام المنظومة', en: 'System Supervisor' },
+        'IT Manager': { ar: 'رئيس قسم تكنولوجيا المعلومات', en: 'IT Department Head' },
+        'EL Manager': { ar: 'رئيس قسم تكنولوجيا الإلكترونيات', en: 'Electronics Department Head' },
+        'Mechanical Manager': { ar: 'رئيس قسم تكنولوجيا الميكاترونكس', en: 'Mechatronics Department Head' },
+        Faculty: { ar: 'عضو هيئة تدريس', en: 'Faculty Member' },
+        'Public User': { ar: 'مستخدم زائر', en: 'Public User' },
+        Employee: { ar: 'كادر إداري', en: 'Administrative Staff' },
+        Student: { ar: 'طالب جامعي', en: 'University Student' },
     };
     if (map[r]) return map[r][lang] || map[r].ar;
     if (/\s+Manager$/i.test(r)) {
-        return lang === 'ar' ? `مدير قسم (${r.replace(/\s+Manager$/i, '')})` : r;
+        return lang === 'ar' ? `رئيس قسم (${r.replace(/\s+Manager$/i, '')})` : r;
     }
     return r || (lang === 'ar' ? 'مستخدم' : 'User');
 }
@@ -80,7 +81,7 @@ export function renderLayout(activePage = 'repository') {
         navItems.push({
             id: 'dashboard',
             href: 'dashboard.html',
-            label: isAr ? 'لوحة التحكم' : 'Dashboard',
+            label: isAr ? 'لوحة المؤشرات' : 'Dashboard',
             icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
             </svg>`
@@ -90,7 +91,7 @@ export function renderLayout(activePage = 'repository') {
     navItems.push({
         id: 'repository',
         href: 'repository.html',
-        label: isAr ? 'البرامج' : 'Programs',
+        label: isAr ? 'المستودع الرقمي' : 'Digital Repository',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>`
@@ -102,6 +103,17 @@ export function renderLayout(activePage = 'repository') {
         label: isAr ? 'المقررات الدراسية' : 'Courses',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>`
+    });
+
+    navItems.push({
+        id: 'faculty-materials',
+        href: 'faculty-materials.html',
+        label: isAr 
+            ? (isPublicUser ? 'المناهج والمقررات الأكاديمية' : 'بوابة المناهج وهيئة التدريس') 
+            : (isPublicUser ? 'Course Materials' : 'Faculty & Materials Portal'),
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
         </svg>`
     });
 
@@ -117,7 +129,7 @@ export function renderLayout(activePage = 'repository') {
         navItems.push({
             id: 'logs',
             href: 'logs.html',
-            label: isAr ? 'سجل العمليات' : 'Audit Logs',
+            label: isAr ? 'سجل العمليات والأنشطة' : 'Audit Logs',
             icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><polyline points="9 12 11 14 15 10"/>
             </svg>`
@@ -128,7 +140,7 @@ export function renderLayout(activePage = 'repository') {
         navItems.push({
             id: 'profile',
             href: 'profile.html',
-            label: isAr ? 'الملف الشخصي' : 'My Profile',
+            label: isAr ? 'الملف الأكاديمي' : 'My Profile',
             icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>`
@@ -183,7 +195,7 @@ export function renderLayout(activePage = 'repository') {
                                     <polyline points="16 17 21 12 16 7" />
                                     <line x1="21" y1="12" x2="9" y2="12" />
                                 </svg>
-                                <span>${isAr ? 'خروج' : 'Logout'}</span>
+                                <span>${isAr ? 'تسجيل الخروج' : 'Logout'}</span>
                             </button>
                         ` : `
                             <div class="hdr-top-sep"></div>
@@ -268,19 +280,19 @@ export function renderLayout(activePage = 'repository') {
         <div class="modal-overlay" id="globalUploadModal">
             <div class="upload-modal" style="background:#fff; border-radius:12px; max-width:520px; width:90%; padding:24px; box-shadow:0 20px 40px rgba(0,0,0,0.15); margin:auto;">
                 <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #E2E8F0; padding-bottom:12px;">
-                    <h3 id="uploadModalTitle" style="font-size:17px; font-weight:700; color:#0F172A;">${isAr ? 'رفع وثيقة جديدة' : 'Upload New Document'}</h3>
+                    <h3 id="uploadModalTitle" style="font-size:17px; font-weight:700; color:#0F172A;">${isAr ? 'رفع مورد أو ملف تعليمي' : 'Upload Academic Resource'}</h3>
                     <span class="close-modal" id="closeUploadModalBtn" style="cursor:pointer; font-size:22px; color:#64748B;">&times;</span>
                 </div>
                 
                 <form id="globalUploadForm">
                     <div class="form-group" style="margin-bottom:14px;">
-                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'عنوان أو اسم الملف' : 'File Title / Name'}</label>
-                        <input type="text" id="uploadFileName" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" placeholder="${isAr ? 'مثال: Project_Blueprint.pdf' : 'e.g. Project_Blueprint.pdf'}" required>
+                        <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'اسم أو عنوان المورد التعليمي' : 'Resource Title / Name'}</label>
+                        <input type="text" id="uploadFileName" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" placeholder="${isAr ? 'مثال: توصيف_المقرر_والمحاضرات.pdf' : 'e.g. Course_Curriculum.pdf'}" required>
                     </div>
                     
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
                         <div class="form-group">
-                            <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'القسم الأكاديمي' : 'Department'}</label>
+                            <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'القسم العلمي' : 'Department'}</label>
                             <select id="uploadFileDept" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" required>
                                 <option value="IT">IT</option>
                                 <option value="EL">EL</option>
@@ -291,23 +303,23 @@ export function renderLayout(activePage = 'repository') {
                             <label style="display:block; font-size:13px; font-weight:600; color:#334155; margin-bottom:5px;">${isAr ? 'نوع الملف' : 'File Type'}</label>
                             <select id="uploadFileType" class="form-control" style="width:100%; padding:9px 12px; border:1px solid #CBD5E1; border-radius:6px; font-family:'Cairo',sans-serif;" required>
                                 <option value="PDF">PDF</option>
-                                <option value="XLSX">Excel (XLSX)</option>
-                                <option value="DOCX">Word (DOCX)</option>
-                                <option value="DWG">CAD (DWG)</option>
-                                <option value="MP4">Video (MP4)</option>
+                                <option value="DOCX">${isAr ? 'مستند Word (DOCX/DOC)' : 'Word Document (DOCX/DOC)'}</option>
+                                <option value="TXT">${isAr ? 'ملف نصي (TXT)' : 'Text File (TXT)'}</option>
+                                <option value="MP4">${isAr ? 'فيديو (MP4/MKV/AVI)' : 'Video (MP4/MKV/AVI)'}</option>
+                                <option value="ZIP">${isAr ? 'ملف مضغوط (ZIP/RAR/7Z)' : 'Compressed Archive (ZIP/RAR/7Z)'}</option>
                             </select>
                         </div>
                     </div>
 
                     <div class="drop-zone" id="uploadDropZone" style="border:2px dashed #CBD5E1; border-radius:8px; padding:24px; text-align:center; cursor:pointer; background:#F8FAFC; margin-bottom:18px;">
                         <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#64748B" stroke-width="2" style="margin:0 auto 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                        <div style="font-size:13.5px; font-weight:600; color:#475569;">${isAr ? 'اضغط هنا لاختيار ملف من جهازك' : 'Click to select a file for upload'}</div>
-                        <input type="file" id="globalFileInput" style="display:none;">
+                        <div style="font-size:13.5px; font-weight:600; color:#475569;">${isAr ? 'اضغط لاختيار ملف تعليمي من جهازك' : 'Click to select a file for upload'}</div>
+                        <input type="file" id="globalFileInput" accept=".pdf,.doc,.docx,.rtf,.txt,.mp4,.mkv,.avi,.mov,.webm,.wmv,.flv,.m4v,.3gp,.ts,.zip,.rar,.7z,.tar,.gz,.tgz,.bz2,.xz,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/x-7z-compressed" style="display:none;">
                     </div>
 
                     <div style="display:flex; justify-content:flex-end; gap:10px;">
                         <button type="button" id="cancelUploadModalBtn" style="padding:8px 16px; border:1px solid #CBD5E1; background:#fff; border-radius:6px; cursor:pointer; font-family:'Cairo',sans-serif; font-weight:600;">${isAr ? 'إلغاء' : 'Cancel'}</button>
-                        <button type="submit" id="submitUploadModalBtn" style="padding:8px 20px; border:none; background:#1565C0; color:#fff; border-radius:6px; cursor:pointer; font-family:'Cairo',sans-serif; font-weight:700;">${isAr ? 'تأكيد الرفع' : 'Upload File'}</button>
+                        <button type="submit" id="submitUploadModalBtn" style="padding:8px 20px; border:none; background:#1565C0; color:#fff; border-radius:6px; cursor:pointer; font-family:'Cairo',sans-serif; font-weight:700;">${isAr ? 'تأكيد رفع المورد' : 'Upload File'}</button>
                     </div>
                 </form>
             </div>
@@ -437,8 +449,12 @@ function initShellEventHandlers(initialPage) {
                     if (nameInput) nameInput.value = file.name;
                     const ext = file.name.split('.').pop().toUpperCase();
                     const typeDropdown = document.getElementById('uploadFileType');
-                    if (typeDropdown && ['PDF', 'XLSX', 'DOCX', 'DWG', 'MP4'].includes(ext)) {
-                        typeDropdown.value = ext;
+                    if (typeDropdown) {
+                        if (['PDF'].includes(ext)) typeDropdown.value = 'PDF';
+                        else if (['DOCX', 'DOC', 'RTF'].includes(ext)) typeDropdown.value = 'DOCX';
+                        else if (['TXT'].includes(ext)) typeDropdown.value = 'TXT';
+                        else if (['MP4', 'MKV', 'AVI', 'MOV', 'WEBM', 'WMV', 'FLV', '3GP'].includes(ext)) typeDropdown.value = 'MP4';
+                        else if (['ZIP', 'RAR', '7Z', 'TAR', 'GZ', 'TGZ', 'BZ2', 'XZ'].includes(ext)) typeDropdown.value = 'ZIP';
                     }
                 }
             });
@@ -447,9 +463,10 @@ function initShellEventHandlers(initialPage) {
         if (globalUploadForm) {
             globalUploadForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
                 const submitBtn = document.getElementById('submitUploadModalBtn');
                 submitBtn.disabled = true;
-                submitBtn.innerText = "Uploading...";
+                submitBtn.innerText = isAr ? "جاري الرفع والمعالجة..." : "Uploading...";
 
                 const customName = document.getElementById('uploadFileName')?.value || '';
                 const dept = document.getElementById('uploadFileDept')?.value || 'IT';
@@ -457,9 +474,9 @@ function initShellEventHandlers(initialPage) {
                 const file = fileInput?.files?.[0];
 
                 if (!file) {
-                    alert("Please select a file to upload.");
+                    alert(isAr ? "يرجى اختيار ملف لرفعه إلى المنظومة الأكاديمية." : "Please select a file to upload.");
                     submitBtn.disabled = false;
-                    submitBtn.innerText = "Upload File";
+                    submitBtn.innerText = isAr ? "تأكيد رفع المورد" : "Upload File";
                     return;
                 }
 
@@ -471,10 +488,10 @@ function initShellEventHandlers(initialPage) {
                     hideModal();
                     document.dispatchEvent(new CustomEvent('fileUploaded'));
                 } catch (err) {
-                    alert("Upload failed: " + err.message);
+                    alert((isAr ? "تعذر إكمال الرفع: " : "Upload failed: ") + (err.message || 'خطأ في الاتصال'));
                 } finally {
                     submitBtn.disabled = false;
-                    submitBtn.innerText = "Upload File";
+                    submitBtn.innerText = isAr ? "تأكيد رفع المورد" : "Upload File";
                 }
             });
         }

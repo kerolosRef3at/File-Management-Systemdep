@@ -148,16 +148,19 @@ export function renderEmptyState(container, message, actionText = '', actionCall
     const el = typeof container === 'string' ? document.getElementById(container) : container;
     if (!el) return;
 
+    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
+    const displayMsg = message || (isAr ? 'لم يتم العثور على أي نتائج مطابقة لمعايير البحث الحالية.' : 'No records found matching current criteria.');
+
     el.innerHTML = `
-        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-gray);">
+        <div class="empty-state" style="text-align: center; padding: 40px 20px; color: var(--text-gray); direction: ${isAr ? 'rtl' : 'ltr'}; font-family: 'Cairo', sans-serif;">
             <div style="margin-bottom: 20px; display: inline-flex; justify-content: center; align-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e2e8f0; color: var(--primary-dark);">
                 <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="8" y1="12" x2="16" y2="12"/>
                 </svg>
             </div>
-            <h3 style="color: var(--primary-dark); font-size: 1.2rem; margin-bottom: 8px; font-weight: 600;">No items found</h3>
-            <p style="font-size: 0.95rem; max-width: 320px; margin: 0 auto 20px auto;">${message}</p>
+            <h3 style="color: var(--primary-dark); font-size: 1.2rem; margin-bottom: 8px; font-weight: 700;">${isAr ? 'لا توجد عناصر أو ملفات متاحة حالياً' : 'No items found'}</h3>
+            <p style="font-size: 0.95rem; max-width: 340px; margin: 0 auto 20px auto; line-height: 1.6;">${displayMsg}</p>
             ${actionText ? `<button class="btn-primary" id="emptyStateActionBtn">${actionText}</button>` : ''}
         </div>
     `;
@@ -174,6 +177,7 @@ export function renderPagination(container, totalItems, itemsPerPage, currentPag
     const el = typeof container === 'string' ? document.getElementById(container) : container;
     if (!el) return;
 
+    const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     if (totalPages <= 1) {
         el.innerHTML = '';
@@ -181,7 +185,7 @@ export function renderPagination(container, totalItems, itemsPerPage, currentPag
     }
 
     let buttonsHTML = `
-        <button class="btn-outline page-prev" ${currentPage === 1 ? 'disabled' : ''} style="padding: 6px 12px; font-size: 0.85rem;">Prev</button>
+        <button class="btn-outline page-prev" ${currentPage === 1 ? 'disabled' : ''} style="padding: 6px 14px; font-size: 0.85rem; font-family: 'Cairo', sans-serif; font-weight: 600;">${isAr ? 'السابق' : 'Prev'}</button>
     `;
 
     for (let i = 1; i <= totalPages; i++) {
@@ -193,19 +197,20 @@ export function renderPagination(container, totalItems, itemsPerPage, currentPag
                 font-weight: 600;
                 padding: 6px 12px;
                 cursor: pointer;
-                border-radius: 4px;
+                border-radius: 6px;
                 font-size: 0.85rem;
                 transition: 0.2s;
+                font-family: 'Cairo', sans-serif;
             ">${i}</button>
         `;
     }
 
     buttonsHTML += `
-        <button class="btn-outline page-next" ${currentPage === totalPages ? 'disabled' : ''} style="padding: 6px 12px; font-size: 0.85rem;">Next</button>
+        <button class="btn-outline page-next" ${currentPage === totalPages ? 'disabled' : ''} style="padding: 6px 14px; font-size: 0.85rem; font-family: 'Cairo', sans-serif; font-weight: 600;">${isAr ? 'التالي' : 'Next'}</button>
     `;
 
     el.innerHTML = `
-        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); direction: ${isAr ? 'rtl' : 'ltr'};">
             ${buttonsHTML}
         </div>
     `;

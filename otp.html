@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,7 @@
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>Verify OTP - AITU Portal</title>
+    <title>تأكيد رمز التحقق - جامعة أسيوط التكنولوجية الدولية</title>
     <link rel="stylesheet" href="css/style.css?v=17">
     <link rel="stylesheet" href="css/components.css?v=17">
     <link rel="stylesheet" href="css/rtl.css?v=17">
@@ -29,8 +29,8 @@
             <div class="auth-brand">
                 <div class="auth-brand-header">
                         <img src="logos/logo_AITU.jpg" alt="AITU Logo" class="auth-brand-logo" onerror="this.src='logos/aitu_logo.png'" onclick="window.location.href='index.html'" style="cursor: pointer;" title="Back to Home">                    <div class="auth-brand-header-text">
-                        <div class="auth-brand-uni-name" data-i18n="auth_uni_name">Assiut International Technological University - AITU</div>
-                        <div class="auth-brand-system-name" data-i18n="auth_system_name">File Management System</div>
+                        <div class="auth-brand-uni-name" data-i18n="auth_uni_name">جامعة أسيوط التكنولوجية الدولية - AITU</div>
+                        <div class="auth-brand-system-name" data-i18n="auth_system_name">نظام إدارة المستودع الرقمي والملفات الأكاديمية</div>
                     </div>
                 </div>
 
@@ -40,24 +40,24 @@
                         File System
                     </div>
 
-                    <h1 class="auth-main-title" data-i18n="auth_main_title">File Management System</h1>
-                    <p class="auth-main-desc" data-i18n="auth_main_desc">Streamline workflows, track progress, and collaborate seamlessly across all AITU departments and teams.</p>
+                    <h1 class="auth-main-title" data-i18n="auth_main_title">نظام إدارة المستودع والملفات الأكاديمية</h1>
+                    <p class="auth-main-desc" data-i18n="auth_main_desc">منظومة مركزية لإدارة سير العمل الأكاديمي، متابعة المقررات والمحاضرات، والتعاون الفعال بين الأقسام العلمية وأعضاء هيئة التدريس والطلاب.</p>
                 </div>
 
                 <div class="auth-brand-footer" data-i18n="auth_footer">
-                    &copy; 2026 Assiut International Technological University
+                    © ٢٠٢٦ جامعة أسيوط التكنولوجية الدولية
                 </div>
             </div>
 
             <div class="auth-form-container">
                 <div class="auth-form-wrapper">
                     <div style="margin-bottom: 35px;">
-                        <h2 style="color: var(--primary-dark); font-size: 2rem; font-weight: 800; margin-bottom: 10px;" data-i18n="otp_title">Verify Your Email</h2>
-                        <p style="color: var(--text-gray); font-size: 0.95rem; line-height: 1.5;" data-i18n="otp_desc">Enter your email address to receive a 6-digit verification code.</p>
+                        <h2 style="color: var(--primary-dark); font-size: 2rem; font-weight: 800; margin-bottom: 10px;" data-i18n="otp_title">التحقق من البريد الإلكتروني</h2>
+                        <p style="color: var(--text-gray); font-size: 0.95rem; line-height: 1.5;" data-i18n="otp_desc">يرجى إدخال رمز التحقق المؤقت (OTP) المكون من 6 أرقام الذي تم إرساله إلى بريدك الجامعي.</p>
                     </div>
 
                     <form id="otpForm">
-                        <div class="otp-input-group" id="otpInputs" style="margin-bottom: 20px;">
+                        <div class="otp-input-group" id="otpInputs" dir="ltr" style="margin-bottom: 20px; display:flex; justify-content:center; gap:10px;">
                             <input type="number" class="otp-input" maxlength="1" required autofocus>
                             <input type="number" class="otp-input" maxlength="1" required>
                             <input type="number" class="otp-input" maxlength="1" required>
@@ -68,13 +68,13 @@
 
                         <div class="otp-timer" id="timerDisplay" style="margin-bottom: 25px;">00:59</div>
 
-                        <button type="submit" class="btn-primary" style="width: 100%; height: 48px; font-size: 1rem; font-weight: 600; border-radius: 8px;" id="verifyBtn" data-i18n="otp_submit">Confirm</button>
+                        <button type="submit" class="btn-primary" style="width: 100%; height: 48px; font-size: 1rem; font-weight: 600; border-radius: 8px;" id="verifyBtn" data-i18n="otp_submit">تأكيد التحقق والمتابعة</button>
                         
                         <div class="form-alert" id="otpAlert" style="margin-top: 15px; display: none;"></div>
 
                         <div class="info-alert-box" style="margin-top: 25px;">
                             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                            <span data-i18n="otp_info">We'll send a 6-digit verification code to your email.</span>
+                            <span data-i18n="otp_info">رمز التحقق صالح لفترة محدودة طبقاً لمعايير الأمان المعتمدة في الجامعة.</span>
                         </div>
                     </form>
 

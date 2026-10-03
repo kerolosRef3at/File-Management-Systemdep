@@ -3,7 +3,7 @@ import { renderLayout } from '../shared/layout.js';
 import { protectPage, getCurrentUser } from '../shared/auth.js';
 import { dashboardService } from '../shared/services.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
-import { enhanceSelect } from '../shared/custom-select.js';
+import { enhanceSelect } from '../shared/custom-select.js?v=10';
 
 function canManageContent(role) {
     const r = String(role || '').trim();
@@ -219,7 +219,7 @@ export async function initDashboard() {
                             </div>
                         </div>
                         <div class="dash-velocity-chart-wrapper" id="velocityChartContainer">
-                            ${renderMultiVelocityChartSVG(courseDownloads, programVelocity, isAr ? 'الكورسات' : 'Courses', isAr ? 'البرامج والمكتبة' : 'Programs', '#E11D48', '#1565C0')}
+                            ${renderMultiVelocityChartSVG(courseDownloads, programVelocity, isAr ? 'المقررات الدراسية' : 'Courses', isAr ? 'البرامج الأكاديمية' : 'Programs', '#E11D48', '#1565C0')}
                         </div>
                     </div>
 
@@ -701,9 +701,9 @@ export async function initDashboard() {
                     try {
                         const cDl = await dashboardService.getCourseDownloads(currentYear);
                         const pDl = await dashboardService.getProgramDownloadsVelocity(currentYear);
-                        chartBox.innerHTML = renderMultiVelocityChartSVG(cDl, pDl, isAr ? 'الكورسات' : 'Courses', isAr ? 'البرامج والمكتبة' : 'Programs', '#E11D48', '#1565C0');
+                        chartBox.innerHTML = renderMultiVelocityChartSVG(cDl, pDl, isAr ? 'المقررات الدراسية' : 'Courses', isAr ? 'البرامج الأكاديمية' : 'Programs', '#E11D48', '#1565C0');
                     } catch (err) {
-                        chartBox.innerHTML = '<div style="color:#E11D48; text-align:center; padding:30px;">Failed to reload chart</div>';
+                        chartBox.innerHTML = `<div style="color:#E11D48; text-align:center; padding:30px;">${isAr ? 'تعذر إعادة تحميل الرسم البياني للمؤشرات الأكاديمية' : 'Failed to reload chart'}</div>`;
                     }
                 }
             });

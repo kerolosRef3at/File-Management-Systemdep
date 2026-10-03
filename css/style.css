@@ -452,41 +452,225 @@ a {
 }
 
 /* =========================================
-   Trust Banner (Footer)
+   Modern Academic Trust Showcase (Executive Card / Cadre)
 ========================================= */
 .trust-banner {
-    background-color: var(--primary-dark);
-    color: var(--white);
-    padding: 40px 0;
-    margin-top: 40px;
+    background: transparent !important;
+    padding: 24px 0 64px 0 !important;
+    margin: 30px auto 0 auto !important;
+    width: 100%;
+    position: relative;
+    z-index: 5;
 }
 
 .trust-banner .container {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.trust-card {
+    position: relative;
+    overflow: hidden;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+    padding: 48px 56px;
+    border-radius: 26px;
+    background: linear-gradient(135deg, #061A35 0%, #0A2F5E 48%, #114B8C 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.18) !important;
+    box-shadow: 0 25px 60px -15px rgba(6, 26, 53, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset !important;
+    color: #FFFFFF !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.trust-content h2 {
-    font-size: 2rem;
-    margin-bottom: 10px;
+.trust-card:hover {
+    box-shadow: 0 32px 70px -18px rgba(6, 26, 53, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.16) inset !important;
+    transform: translateY(-2px);
 }
 
-.trust-content p {
-    color: #94a3b8;
-    max-width: 600px;
-    font-size: 0.95rem;
+/* Ambient glow accents inside the card */
+.trust-card::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -15%;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, rgba(56, 189, 248, 0) 70%);
+    pointer-events: none;
+    border-radius: 50%;
+    z-index: 1;
 }
 
-.trust-stats h3 {
-    font-size: 3rem;
-    line-height: 1;
+.trust-card::after {
+    content: '';
+    position: absolute;
+    bottom: -40%;
+    left: 5%;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, rgba(99, 102, 241, 0) 70%);
+    pointer-events: none;
+    border-radius: 50%;
+    z-index: 1;
 }
 
-.trust-stats p {
-    color: #94a3b8;
-    font-size: 0.9rem;
+.trust-content {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    max-width: 700px;
+}
+
+.trust-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 18px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    margin-bottom: 18px;
+    color: #38BDF8 !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.trust-badge svg {
+    color: #38BDF8;
+    flex-shrink: 0;
+}
+
+.trust-content h2,
+.trust-card h2,
+.trust-banner h2 {
+    font-size: 1.95rem !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    line-height: 1.35 !important;
+    margin: 0 0 14px 0 !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+    letter-spacing: -0.01em;
+}
+
+.trust-content p,
+.trust-card p,
+.trust-banner p {
+    color: #E2E8F0 !important;
+    font-size: 1.02rem !important;
+    line-height: 1.8 !important;
+    margin: 0 !important;
+    font-weight: 500 !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Frosted Stat Cadre (كادر الإحصائية الزجاجي) */
+.trust-stat-box {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 220px;
+    padding: 30px 40px;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 18px 40px -8px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    text-align: center;
+    flex-shrink: 0;
+    transition: transform 0.3s ease;
+}
+
+.trust-stat-box:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.11) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.trust-stat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(56, 189, 248, 0.18);
+    border: 1px solid rgba(56, 189, 248, 0.32);
+    color: #38BDF8;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+}
+
+.trust-stat-icon svg {
+    color: #38BDF8;
+}
+
+.trust-stat-box h3,
+.trust-card .trust-stat-box h3 {
+    font-size: 3.2rem !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    margin: 0 0 6px 0 !important;
+    color: #FFFFFF !important;
+    letter-spacing: -0.02em;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.trust-stat-box p,
+.trust-card .trust-stat-box p {
+    color: #BAE6FD !important;
+    font-size: 0.92rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    letter-spacing: 0.02em;
+}
+
+/* RTL Specific Enhancements */
+html[dir="rtl"] .trust-card {
     text-align: right;
+}
+
+html[dir="rtl"] .trust-content {
+    text-align: right;
+}
+
+html[dir="rtl"] .trust-stat-box {
+    text-align: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .trust-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 38px 26px;
+        gap: 32px;
+    }
+
+    html[dir="rtl"] .trust-card,
+    html[dir="rtl"] .trust-content {
+        text-align: center;
+    }
+
+    .trust-content {
+        text-align: center;
+    }
+
+    .trust-stat-box {
+        width: 100%;
+        max-width: 320px;
+    }
 }
 
 /* ØªÙ†Ø³ÙŠÙ‚ Ø£ÙŠÙ‚ÙˆÙ†Ø§Øª Ø§Ù„Ø£Ù‚Ø³Ø§Ù… (SVG) */
@@ -1313,7 +1497,7 @@ html, body, button, input, select, textarea, optgroup, option {
 }
 
 /* Headings Typography Hierarchy */
-h1:not(.dash-banner h1):not(.dash-banner-left h1), .page-title {
+h1:not(.dash-banner h1):not(.dash-banner-left h1):not(.cd-hero-banner h1):not(.cd-hero-title):not(.hero-banner h1):not(.hero-content h1):not(.fm-hero h1):not(.fm-hero-title), .page-title:not(.cd-hero-title) {
     font-size: 1.75rem !important;
     font-weight: 800 !important;
     color: #0F172A !important;
@@ -1409,7 +1593,8 @@ button.primary,
 .cb-upload-multi-btn,
 .browse-pkg-btn,
 .add-lesson-btn,
-.cc-add-lesson-btn {
+.cc-add-lesson-btn,
+.repo-login-btn {
     background: linear-gradient(135deg, #0B3B70 0%, #1565C0 100%) !important;
     color: #FFFFFF !important;
     border: none !important;
@@ -1446,7 +1631,9 @@ button.primary:hover,
 .cb-upload-multi-btn:hover,
 .browse-pkg-btn:hover,
 .add-lesson-btn:hover,
-.cc-add-lesson-btn:hover {
+.cc-add-lesson-btn:hover,
+.repo-login-btn:hover {
+    background: linear-gradient(135deg, #092C56 0%, #0D47A1 100%) !important;
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 20px rgba(11, 59, 112, 0.38) !important;
     color: #FFFFFF !important;
@@ -1456,7 +1643,8 @@ button.primary:hover,
 .repo-upload-btn:active,
 .confirm-btn:active,
 .cdm-download-btn:active,
-.browse-pkg-btn:active {
+.browse-pkg-btn:active,
+.repo-login-btn:active {
     transform: translateY(0) !important;
     box-shadow: 0 2px 6px rgba(11, 59, 112, 0.2) !important;
 }
@@ -1477,8 +1665,7 @@ button.primary:hover,
 .cdm-cancel-btn,
 .repo-control-btn,
 .repo-view-btn,
-.dash-table-view-all,
-.repo-login-btn {
+.dash-table-view-all {
     background: #FFFFFF !important;
     color: #0F172A !important;
     border: 1.5px solid #CBD5E1 !important;
@@ -1513,8 +1700,7 @@ button.primary:hover,
 .cdm-cancel-btn:hover,
 .repo-control-btn:hover,
 .repo-view-btn:hover,
-.dash-table-view-all:hover,
-.repo-login-btn:hover {
+.dash-table-view-all:hover {
     background: #F8FAFC !important;
     border-color: #94A3B8 !important;
     color: #0B3B70 !important;
@@ -1688,3 +1874,73 @@ textarea:focus,
 }
 
 /* End Platform-wide Unified */
+
+/* ==========================================================================
+   Comprehensive Device Responsiveness (Smartphones, Tablets, Desktops, 4K & TVs)
+   ========================================================================== */
+
+/* Touch Target Minimum Sizes (44px standard) for Phones & Tablets */
+@media screen and (max-width: 768px) {
+    button, 
+    .btn,
+    .repo-login-btn,
+    .repo-mobile-menu-btn,
+    .page-num,
+    .repo-page-btn,
+    .logs-page-btn,
+    .mobile-nav-item {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Fluid Typography & Container Caps for Ultra-Wide / 4K / TV Monitors */
+@media screen and (min-width: 1920px) {
+    .container,
+    .repo-navbar-inner,
+    .repo-body,
+    .course-detail-body,
+    .courses-public-body,
+    .admin-body,
+    .repo-footer-inner,
+    .footer-content {
+        max-width: 1600px !important;
+        margin-inline: auto !important;
+    }
+}
+
+@media screen and (min-width: 2560px) {
+    :root {
+        font-size: 18px !important;
+    }
+
+    .container,
+    .repo-navbar-inner,
+    .repo-body,
+    .course-detail-body,
+    .courses-public-body,
+    .admin-body,
+    .repo-footer-inner,
+    .footer-content {
+        max-width: 2000px !important;
+        margin-inline: auto !important;
+    }
+}
+
+@media screen and (min-width: 3400px) {
+    :root {
+        font-size: 21px !important;
+    }
+
+    .container,
+    .repo-navbar-inner,
+    .repo-body,
+    .course-detail-body,
+    .courses-public-body,
+    .admin-body,
+    .repo-footer-inner,
+    .footer-content {
+        max-width: 2600px !important;
+        margin-inline: auto !important;
+    }
+}

@@ -4,7 +4,7 @@ import { logService } from '../shared/services.js';
 import { renderLayout } from '../shared/layout.js';
 import { renderSkeleton, showAlert } from '../shared/components.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
-import { enhanceSelect } from '../shared/custom-select.js';
+import { enhanceSelect } from '../shared/custom-select.js?v=10';
 
 export async function initLogs() {
     // Guards access: Logs Page is strictly restricted to Supervisor role
@@ -487,8 +487,8 @@ export async function initLogs() {
             applyFilters();
         } catch (error) {
             if (seq !== loadSeq) return;
-            showAlert(alertsContainer, error.message || 'Failed to fetch system logs.', 'error');
-            logsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color:#EF4444;">Failed to load logs from server.</td></tr>`;
+            showAlert(alertsContainer, error.message || (isAr ? 'تعذر جلب سجلات الأنشطة من المنظومة.' : 'Failed to fetch system logs.'), 'error');
+            logsTableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 30px; color:#EF4444;">${isAr ? 'تعذر تحميل سجلات الأنشطة والعمليات من الخادم المركزي.' : 'Failed to load logs from server.'}</td></tr>`;
         } finally {
             if (seq === loadSeq) {
                 if (refreshSpinIcon) {
@@ -905,7 +905,7 @@ export async function initLogs() {
         csvBtn.addEventListener('click', () => {
             const recordsToExport = (filteredLogs && filteredLogs.length > 0) ? filteredLogs : allLogs;
             if (!recordsToExport || recordsToExport.length === 0) {
-                showAlert(alertsContainer, 'No log records available to export.', 'warning');
+                showAlert(alertsContainer, isAr ? 'لا توجد سجلات أنشطة متاحة للتصدير حالياً.' : 'No log records available to export.', 'warning');
                 return;
             }
 
@@ -927,7 +927,7 @@ export async function initLogs() {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            showAlert(alertsContainer, 'System logs exported to CSV successfully.', 'success');
+            showAlert(alertsContainer, isAr ? 'تم تصدير سجل الأنشطة والعمليات كملف CSV بنجاح.' : 'System logs exported to CSV successfully.', 'success');
         });
     }
 

@@ -126,6 +126,14 @@ export function initCourses() {
         if (mobileBtn && leftPanel && overlay) mobileBtn.addEventListener('click', togglePanel);
         if (filterBtn && leftPanel && overlay) filterBtn.addEventListener('click', togglePanel);
 
+        const closeBtn = document.getElementById('closeCourseSidebarBtn');
+        if (closeBtn && leftPanel && overlay) {
+            closeBtn.addEventListener('click', () => {
+                leftPanel.classList.remove('open');
+                overlay.classList.remove('active');
+            });
+        }
+
         if (overlay) {
             overlay.addEventListener('click', () => {
                 leftPanel.classList.remove('open');
@@ -285,7 +293,7 @@ export function initCourses() {
         const isAr = getCurrentLang() === 'ar';
 
         if (total === 0) {
-            grid.innerHTML = `<p style="text-align:center;color:var(--text-gray);padding:40px;">${isAr ? 'لا توجد كورسات تطابق معاييرك.' : 'No courses match your criteria.'}</p>`;
+            grid.innerHTML = `<p style="text-align:center;color:var(--text-gray);padding:40px;">${isAr ? 'لا توجد مقررات دراسية تطابق معايير البحث المحددة.' : 'No courses match your criteria.'}</p>`;
             document.getElementById('coursesPagination').innerHTML = '';
             return;
         }
@@ -388,8 +396,8 @@ export function initCourses() {
         contentArea.innerHTML = `
             <div class="admin-courses-header">
                 <div>
-                    <h1>${isAr ? 'مستودع الكورسات الأكاديمية' : 'Course Repository'}</h1>
-                    <p>${isAr ? 'استكشف وادر المناهج الأكاديمية المعتمدة لكلية الهندسة وتكنولوجيا المعلومات.' : 'Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.'}</p>
+                    <h1>${isAr ? 'مستودع المقررات الدراسية المعتمدة' : 'Course Repository'}</h1>
+                    <p>${isAr ? 'استكشف وأدِر المناهج والمقررات الأكاديمية المعتمدة لجامعة أسيوط التكنولوجية الدولية.' : 'Explore and manage standardized academic curriculums for the Faculty of Engineering and Information Technology.'}</p>
                 </div>
                 <div class="admin-dept-tabs" id="adminDeptTabs">
                     <button class="admin-dept-tab active" data-dept="all">${isAr ? 'جميع الأقسام' : 'All Departments'}</button>
@@ -405,7 +413,7 @@ export function initCourses() {
             <div id="adminAlerts"></div>
             <div class="admin-course-grid" id="adminCourseGrid"></div>
             <div class="admin-course-footer" id="adminCourseFooter" style="display:none;">
-                <p>${isAr ? 'عرض' : 'Showing'} <span id="adminVisibleCount">0</span> ${isAr ? 'من أصل' : 'of'} <span id="adminTotalCount">0</span> ${isAr ? 'كورس' : 'Courses'}</p>
+                <p>${isAr ? 'عرض' : 'Showing'} <span id="adminVisibleCount">0</span> ${isAr ? 'من إجمالي' : 'of'} <span id="adminTotalCount">0</span> ${isAr ? 'مقرراً دراسياً' : 'Courses'}</p>
                 <button class="btn-outline" id="adminLoadMoreBtn">${isAr ? 'تحميل المزيد من الموارد' : 'Load More Resources'}</button>
             </div>
         `;
@@ -432,7 +440,7 @@ export function initCourses() {
         const loadMoreBtn = document.getElementById('adminLoadMoreBtn');
         if (loadMoreBtn) {
             loadMoreBtn.addEventListener('click', () => {
-                alert('Loading additional archived curriculum entries...');
+                alert(isAr ? 'جاري استدعاء سجلات إضافية من أرشيف المنظومة الأكاديمية...' : 'Loading additional archived curriculum entries...');
             });
         }
 
@@ -470,8 +478,8 @@ export function initCourses() {
             allCourses = normalizeCourses(rawCourses);
             renderAdminCourses();
         } catch (error) {
-            showAlert(alertsContainer, error.message || 'Failed to fetch course repository.', 'error');
-            renderEmptyState(grid, 'Unable to load courses.');
+            showAlert(alertsContainer, error.message || (isAr ? 'تعذر جلب المقررات الدراسية من المنظومة الأكاديمية.' : 'Failed to fetch course repository.'), 'error');
+            renderEmptyState(grid, isAr ? 'تعذر تحميل المقررات الدراسية حالياً.' : 'Unable to load courses.');
         } finally {
             // Hide Global Loader
             const loader = document.getElementById('global-page-loader');
@@ -513,13 +521,13 @@ export function initCourses() {
         if (footer) footer.style.display = 'none';
         if (!grid) return;
 
-        grid.innerHTML = '<p style="padding:20px;color:#64748b;">Loading drafts...</p>';
+        grid.innerHTML = `<p style="padding:20px;color:#64748b;">${isAr ? 'جاري تحميل المسودات غير المنشورة...' : 'Loading drafts...'}</p>`;
 
         let drafts = [];
         try {
             drafts = await courseService.getDrafts();
         } catch (e) {
-            grid.innerHTML = '<p style="padding:20px;color:#dc2626;">Could not load drafts.</p>';
+            grid.innerHTML = `<p style="padding:20px;color:#dc2626;">${isAr ? 'تعذر تحميل المسودات غير المنشورة.' : 'Could not load drafts.'}</p>`;
             return;
         }
 
@@ -544,24 +552,24 @@ export function initCourses() {
                 box-shadow:0 1px 3px rgba(0,0,0,0.06);">
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span style="background:#fef3c7;color:#92400e;font-size:0.7rem;
-                        font-weight:700;letter-spacing:0.03em;padding:3px 8px;border-radius:5px;">DRAFT</span>
+                        font-weight:700;letter-spacing:0.03em;padding:3px 8px;border-radius:5px;">${isAr ? 'مسودة' : 'DRAFT'}</span>
                     <span style="background:#eff6ff;color:#1e40af;font-size:0.7rem;
                         font-weight:700;padding:3px 8px;border-radius:5px;">${escapeHtml(d.dept || '')}</span>
                 </div>
                 <div>
                     <h3 style="font-size:1.15rem;font-weight:700;color:#0f172a;margin:0 0 4px;">
-                        ${escapeHtml(d.title || 'Untitled')}</h3>
+                        ${escapeHtml(d.title || (isAr ? 'مقرر بدون عنوان' : 'Untitled'))}</h3>
                     <p style="font-size:0.88rem;color:#64748b;margin:0;line-height:1.5;
                         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-                        ${escapeHtml(d.description || 'No description yet.')}</p>
+                        ${escapeHtml(d.description || (isAr ? 'لا يوجد توصيف متاح حالياً.' : 'No description yet.'))}</p>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:4px;">
                     <button class="draft-continue" data-id="${d.id}" style="
                         flex:1;background:#0b3b70;color:#fff;border:none;border-radius:8px;
-                        padding:10px;font-weight:600;cursor:pointer;">Continue</button>
+                        padding:10px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;">${isAr ? 'استكمال الإعداد' : 'Continue'}</button>
                     <button class="draft-delete" data-id="${d.id}" data-title="${escapeHtml(d.title || 'Untitled')}" style="
                         background:#fff;color:#dc2626;border:1px solid #dc2626;border-radius:8px;
-                        padding:10px 16px;font-weight:600;cursor:pointer;">Delete</button>
+                        padding:10px 16px;font-weight:700;cursor:pointer;font-family:'Cairo',sans-serif;">${isAr ? 'حذف' : 'Delete'}</button>
                 </div>
             </div>
         `).join('');
@@ -672,7 +680,7 @@ export function initCourses() {
                             class="admin-card-delete-btn"
                             data-id="${course.id}"
                             data-title="${escapeHtml(course.title)}"
-                            title="${isAr ? 'حذف الكورس' : 'Delete Course'}">
+                            title="${isAr ? 'حذف المقرر الدراسي' : 'Delete Course'}">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -703,8 +711,8 @@ export function initCourses() {
                     <div class="admin-add-icon">
                         <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </div>
-                    <h3>${isAr ? 'رفع كورس جديد' : 'Upload New Course'}</h3>
-                    <p>${isAr ? 'قم بتوحيد المناهج الأكاديمية عن طريق إضافة كورسات جديدة لمستودع النظام.' : 'Standardize curriculum by adding new course modules to the central repository.'}</p>
+                    <h3>${isAr ? 'إضافة مقرر دراسي جديد' : 'Upload New Course'}</h3>
+                    <p>${isAr ? 'توحيد وإدارة المناهج واللوائح الأكاديمية عن طريق إضافة مقررات جديدة للمستودع الرقمي.' : 'Standardize curriculum by adding new course modules to the central repository.'}</p>
                 </div>
             `;
             document.getElementById('addNewCourseCard').addEventListener('click', () => {
@@ -719,9 +727,9 @@ export function initCourses() {
                 const id = btn.dataset.id;
                 const title = btn.dataset.title;
                 showConfirmModal({
-                    title: isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion',
+                    title: isAr ? 'تأكيد حذف المقرر الدراسي' : 'Confirm Course Deletion',
                     message: isAr 
-                        ? `هل أنت متأكد من رغبتك في حذف كورس "${title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.` 
+                        ? `هل أنت متأكد من رغبتك في حذف المقرر الدراسي "${title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف كافة المحتويات التابعة له.` 
                         : `Are you sure you want to delete course "${title}"? This cannot be undone.`,
                     confirmText: isAr ? 'تأكيد الحذف' : 'Confirm Delete',
                     cancelText: isAr ? 'إلغاء' : 'Cancel',
@@ -733,7 +741,7 @@ export function initCourses() {
                             logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete Course', title);
                             await loadAndRenderAdmin();
                         } catch (e) {
-                            alert(isAr ? 'تعذر حذف الكورس.' : 'Could not delete the course.');
+                            alert(isAr ? 'تعذر حذف المقرر الدراسي. يرجى المحاولة لاحقاً.' : 'Could not delete the course.');
                         }
                     }
                 });

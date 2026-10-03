@@ -41,9 +41,20 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
     const lang = getCurrentLang();
     const t = (key) => (translations[lang] || translations.en)[key] || translations.en[key] || key;
 
-    // Accepted file types
-    const ACCEPTED_TYPES = ['.mp4', '.pdf', '.zip', '.docx', '.xlsx', '.dwg', '.pptx', '.doc'];
-    const MAX_FILE_SIZE = 2 * 1024 * 1024 * 2048; // 2GB
+    // Accepted file types: All compressed archives, all videos, PDF, Word, and TXT only
+    const ACCEPTED_TYPES = [
+        // 1. All Compressed Archives (جميع صيغ الملفات المضغوطة)
+        '.zip', '.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.bzip2', '.xz', '.iso', '.cab', '.z',
+        // 2. All Video Formats (الفيديوهات بكل الصيغ)
+        '.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv', '.flv', '.m4v', '.3gp', '.ts', '.mpg', '.mpeg',
+        // 3. PDF
+        '.pdf',
+        // 4. Word Documents (الورد)
+        '.docx', '.doc', '.rtf',
+        // 5. Text Files (الـ TXT)
+        '.txt'
+    ];
+    const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
     // ── Create the modal overlay ──
     const overlay = document.createElement('div');
@@ -82,37 +93,47 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
     }
 
     function getFileIcon(type) {
-        const ext = type.toLowerCase();
-        if (ext.includes('mp4') || ext.includes('video')) {
-            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        const ext = String(type || '').toLowerCase();
+        if (ext.includes('mp4') || ext.includes('mkv') || ext.includes('avi') || ext.includes('mov') || ext.includes('webm') || ext.includes('wmv') || ext.includes('flv') || ext.includes('video')) {
+            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#9333EA" stroke-width="2">
                 <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>`;
         }
         if (ext.includes('pdf')) {
-            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#DC2626" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
             </svg>`;
         }
-        if (ext.includes('zip') || ext.includes('rar')) {
-            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        if (ext.includes('doc') || ext.includes('rtf') || ext.includes('word')) {
+            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#2563EB" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>`;
+        }
+        if (ext.includes('txt') || ext.includes('text')) {
+            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#059669" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>`;
+        }
+        if (ext.includes('zip') || ext.includes('rar') || ext.includes('7z') || ext.includes('tar') || ext.includes('gz') || ext.includes('bz2') || ext.includes('xz') || ext.includes('archive')) {
+            return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#D97706" stroke-width="2">
                 <path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/>
             </svg>`;
         }
-        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#64748B" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
         </svg>`;
     }
 
     function getFileTypeName(filename) {
-        const ext = filename.split('.').pop().toLowerCase();
+        const ext = String(filename || '').split('.').pop().toLowerCase();
         const types = {
-            'mp4': 'Video Content', 'avi': 'Video Content', 'mov': 'Video Content',
-            'pdf': 'PDF Document', 'docx': 'Word Document', 'doc': 'Word Document',
-            'xlsx': 'Excel Spreadsheet', 'xls': 'Excel Spreadsheet',
-            'zip': 'Compressed Archive', 'rar': 'Compressed Archive',
-            'dwg': 'CAD Drawing', 'pptx': 'Presentation'
+            'mp4': 'Video Content', 'mkv': 'Video Content', 'avi': 'Video Content', 'mov': 'Video Content', 'webm': 'Video Content', 'wmv': 'Video Content', 'flv': 'Video Content', 'm4v': 'Video Content', '3gp': 'Video Content', 'ts': 'Video Content',
+            'pdf': 'PDF Document',
+            'docx': 'Word Document', 'doc': 'Word Document', 'rtf': 'Word Document',
+            'txt': 'Text Document',
+            'zip': 'Compressed Archive', 'rar': 'Compressed Archive', '7z': 'Compressed Archive', 'tar': 'Compressed Archive', 'gz': 'Compressed Archive', 'tgz': 'Compressed Archive', 'bz2': 'Compressed Archive', 'xz': 'Compressed Archive', 'iso': 'Compressed Archive', 'cab': 'Compressed Archive'
         };
-        return types[ext] || 'Document';
+        return types[ext] || 'Academic Resource';
     }
 
     function formatSize(bytes) {
@@ -358,7 +379,7 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
     function attachEvents() {
         const checkDestination = () => {
             if (!globalDept || !globalProg) {
-                alert('Please select a Target Department and Program before uploading files.');
+                alert(isAr ? 'يرجى اختيار القسم الأكاديمي والبرنامج الدراسي المستهدف أولاً قبل رفع الملفات.' : 'Please select a Target Department and Program before uploading files.');
                 return false;
             }
             return true;
@@ -446,8 +467,8 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
             discardBtn.addEventListener('click', () => {
                 const anyActive = isUploading || fileQueue.some(f => f.status === 'uploading');
                 const msg = anyActive
-                    ? 'An upload is in progress. Discard and stop it?'
-                    : 'Are you sure you want to discard all uploads?';
+                    ? (isAr ? 'هناك عملية رفع جارية حالياً. هل تريد بالتأكيد إلغاء العملية وإيقافها؟' : 'An upload is in progress. Discard and stop it?')
+                    : (isAr ? 'هل أنت متأكد من رغبتك في إلغاء كافة الملفات المحددة للرفع؟' : 'Are you sure you want to discard all uploads?');
                 if (fileQueue.length === 0 || confirm(msg)) {
                     // Signal the upload loop to stop, then clear.
                     uploadCancelled = true;
@@ -472,13 +493,13 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
                 }
                 
                 if (!globalDept || !globalProg) {
-                    alert('Please ensure a Target Department and Program are selected.');
+                    alert(isAr ? 'يرجى التأكد من اختيار القسم الأكاديمي والبرنامج الدراسي المستهدف.' : 'Please ensure a Target Department and Program are selected.');
                     return;
                 }
                 
                 const invalidFiles = draftFiles.filter(f => !f.title);
                 if (invalidFiles.length > 0) {
-                    alert('Please ensure all files have a Title, Department, and Program selected before saving.');
+                    alert(isAr ? 'يرجى التأكد من تحديد عنوان مناسب لكل ملف واختيار القسم والبرنامج الدراسي قبل الحفظ.' : 'Please ensure all files have a Title, Department, and Program selected before saving.');
                     return;
                 }
                 
@@ -529,7 +550,7 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
         files.forEach(file => {
             const validation = validateFile(file);
             if (!validation.valid) {
-                alert(`File "${file.name}" rejected:\n` + validation.errors.join('\n'));
+                alert((isAr ? `تم رفض الملف "${file.name}":\n` : `File "${file.name}" rejected:\n`) + validation.errors.join('\n'));
                 return;
             }
 
@@ -583,7 +604,7 @@ export async function openUploadModal(defaultDept = '', defaultProg = '') {
             if (fileQueue.length > 0 && fileQueue.every(f => f.status === 'complete')) {
                 const completedCount = fileQueue.length;
                 setTimeout(() => {
-                    alert(`Successfully saved ${completedCount} file(s) to the repository!`);
+                    alert(isAr ? `تم حفظ وفهرسة ${completedCount} من الموارد الأكاديمية بنجاح في المستودع!` : `Successfully saved ${completedCount} file(s) to the repository!`);
                     fileQueue.forEach(f => {
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Add File', f.name);
                     });
@@ -895,7 +916,7 @@ export function initPersistentUploadWidget() {
             return;
         }
 
-        const lang = localStorage.getItem('aitu_lang') || 'en';
+        const lang = localStorage.getItem('aitu_lang') || 'ar';
         const isAr = lang === 'ar';
 
         let widget = document.getElementById('floatingUploadWidget');
@@ -918,8 +939,8 @@ export function initPersistentUploadWidget() {
         const isCollapsed = widget.dataset.collapsed === 'true';
 
         const titleText = isDone 
-            ? (isAr ? `تم اكتمال رفع ${completedFiles} ملف(ات)` : `${completedFiles} uploads complete`)
-            : (isAr ? `جاري رفع ${totalFiles - completedFiles} ملفات...` : `Uploading ${totalFiles - completedFiles} item(s)...`);
+            ? (isAr ? `تم اكتمال رفع وفهرسة ${completedFiles} ملف بنجاح` : `${completedFiles} uploads complete`)
+            : (isAr ? `جاري رفع وفهرسة ${totalFiles - completedFiles} ملف...` : `Uploading ${totalFiles - completedFiles} item(s)...`);
 
         let filesListHtml = '';
         if (!isCollapsed) {

@@ -81,10 +81,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     const repoNavRight = document.querySelector('.repo-nav-right');
     if (repoNavRight && user) {
-        const portalUrl = user.role === 'Public User' ? 'repository.html' : 'dashboard.html';
+        const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
+        const isManager = user.role === 'Supervisor' || /\s+Manager$/i.test(user.role || '');
+        const portalUrl = isManager ? 'dashboard.html' : 'repository.html';
+        const portalLabel = isManager 
+            ? (isAr ? 'لوحة المؤشرات الأكاديمية' : 'Dashboard') 
+            : (isAr ? 'المستودع الرقمي' : 'Repository');
+        const logoutLabel = isAr ? 'تسجيل الخروج' : 'Logout';
+        
+        const langToggleBtn = repoNavRight.querySelector('#langToggleBtn');
+        const langHtml = langToggleBtn ? langToggleBtn.outerHTML : `
+            <button class="lang-toggle-btn" id="langToggleBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1-4-10z" />
+                </svg>
+                <span class="lang-btn-text">${isAr ? 'English' : 'عربي'}</span>
+            </button>
+        `;
+
         repoNavRight.innerHTML = `
-            <button class="repo-login-btn" id="goToPortalBtn" style="background:var(--primary-blue); color:white; font-weight:600;">Go to Portal</button>
-            <button class="repo-login-btn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:600;" id="publicLogoutBtn">Logout</button>
+            ${langHtml}
+            <button class="repo-login-btn" id="goToPortalBtn" style="background:var(--primary-blue); color:white; font-weight:700; font-family:'Cairo',sans-serif;">${portalLabel}</button>
+            <button class="repo-login-btn" style="background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2); font-weight:700; font-family:'Cairo',sans-serif;" id="publicLogoutBtn">${logoutLabel}</button>
         `;
         const goToPortalBtn = document.getElementById('goToPortalBtn');
         if (goToPortalBtn) {
@@ -97,6 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
             logoutBtn.addEventListener('click', () => {
                 authService.logout();
                 window.location.href = 'login.html';
+            });
+        }
+        const newLangBtn = repoNavRight.querySelector('#langToggleBtn');
+        if (newLangBtn) {
+            newLangBtn.addEventListener('click', () => {
+                const nextLang = (localStorage.getItem('aitu_lang') || 'ar') === 'ar' ? 'en' : 'ar';
+                localStorage.setItem('aitu_lang', nextLang);
+                window.location.reload();
             });
         }
     }

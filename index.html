@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +7,19 @@
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>AITU Repository - Academic Infrastructure</title>
-    <link rel="stylesheet" href="css/style.css?v=17">
-    <link rel="stylesheet" href="css/components.css?v=17">
-    <link rel="stylesheet" href="css/rtl.css?v=17">
-    <link rel="stylesheet" href="css/repository.css?v=17">
+    <title>المستودع الرقمي المركزي - جامعة أسيوط التكنولوجية الدولية</title>
+    <link rel="icon" type="image/png" href="logos/logo.png">
+    <link rel="stylesheet" href="css/style.css?v=22">
+    <link rel="stylesheet" href="css/components.css?v=22">
+    <link rel="stylesheet" href="css/rtl.css?v=22">
+    <link rel="stylesheet" href="css/repository.css?v=22">
     <script>
         // Instant language direction apply (prevent flash)
-        (function(){var l=localStorage.getItem('aitu_lang');if(l==='ar'){document.documentElement.setAttribute('dir','rtl');document.documentElement.setAttribute('lang','ar');}})();
+        (function(){
+            var l = localStorage.getItem('aitu_lang') || 'ar';
+            document.documentElement.setAttribute('dir', l === 'ar' ? 'rtl' : 'ltr');
+            document.documentElement.setAttribute('lang', l);
+        })();
     </script>
 </head>
 <body>
@@ -23,50 +28,87 @@
     <header class="repo-navbar" id="repoNavbar">
         <div class="repo-navbar-inner">
             <div class="repo-nav-brand" onclick="window.location.href='index.html'" style="cursor:pointer; display:flex; align-items:center; gap:12px;">
-                <img src="logos/logo_AITU.jpg" alt="AITU Logo" width="48" height="48" onerror="this.src='logos/aitu_logo.png'" style="border-radius:50%; border:1px solid #e2e8f0;">
+                <img src="logos/logo.png" alt="AITU Logo" width="48" height="48" onerror="this.src='logos/logo_AITU.jpg'" style="border-radius:50%; border:1px solid #e2e8f0; object-fit:cover;">
                 <div style="display:flex; flex-direction:column; line-height:1.2;">
                     <span class="repo-brand-name" style="font-size:1.3rem; font-weight:800; color:var(--primary-dark);">AITU</span>
                     <span class="repo-brand-sub" data-i18n="nav_brand_sub" style="font-size:0.75rem; letter-spacing:0.05em; font-weight:600; color:var(--text-gray);">FILE MANAGEMENT SYSTEM</span>
                 </div>
             </div>
             <nav class="repo-nav-links" id="repoNavLinks">
-                <a href="index.html" class="active" data-i18n="nav_home">Home</a>
-                <a href="repository.html" data-i18n="nav_programs">Programs</a>
-                <a href="courses.html" data-i18n="nav_courses">Courses</a>
+                <a href="index.html" class="active" data-i18n="nav_home">الرئيسية</a>
+                <a href="repository.html" data-i18n="nav_programs">البرامج الأكاديمية</a>
+                <a href="courses.html" data-i18n="nav_courses">المقررات الدراسية</a>
             </nav>
             <div class="repo-nav-right">
-                <button class="lang-toggle-btn" id="langToggleBtn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                    <span class="lang-btn-text" data-i18n="lang_btn">عربي</span>
+                <button class="lang-toggle-btn" id="langToggleBtn" type="button" aria-label="Toggle Language">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span class="lang-btn-text" data-i18n="lang_btn">English</span>
                 </button>
-                <button class="repo-login-btn" id="loginBtn" data-i18n="nav_login" onclick="window.location.href='login.html'">Login</button>
+                <button class="repo-login-btn" id="loginBtn" data-i18n="nav_login" onclick="window.location.href='login.html'">تسجيل الدخول</button>
             </div>
+            <button class="repo-mobile-menu-btn" id="repoMobileMenuBtn" aria-label="Open Navigation Menu">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+            </button>
         </div>
     </header>
+
+    <!-- Mobile Drawer for Index Page -->
+    <div class="mobile-nav-drawer-overlay dept-sidebar-overlay" id="indexSidebarOverlay"></div>
+    <aside class="mobile-nav-drawer" id="indexSidebar" aria-label="Mobile Navigation">
+        <div class="sidebar-top-heading" style="padding: 16px; border-bottom: 1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <img src="logos/logo.png" alt="AITU Logo" width="36" height="36" onerror="this.src='logos/logo_AITU.jpg'" style="border-radius:50%;">
+                <span style="font-weight:800; font-size:1.1rem; color:var(--primary-dark);">AITU</span>
+            </div>
+            <button id="closeIndexSidebarBtn" class="sidebar-close-btn" aria-label="Close Navigation Menu">&times;</button>
+        </div>
+        <div class="mobile-main-nav">
+            <a href="index.html" class="mobile-nav-item active">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+                <span data-i18n="nav_home">Home</span>
+            </a>
+            <a href="repository.html" class="mobile-nav-item">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+                <span data-i18n="nav_programs">Programs</span>
+            </a>
+            <a href="courses.html" class="mobile-nav-item">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+                <span data-i18n="nav_courses">Courses</span>
+            </a>
+        </div>
+    </aside>
 
     <main>
         <section class="hero">
             <div class="container">
                 <div class="hero-content">
-                    <h1 data-i18n="hero_title">Academic Infrastructure Repository</h1>
-                    <p data-i18n="hero_desc">The institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for IT, Electrical, and Mechanical Engineering departments.</p>
+                    <h1 data-i18n="hero_title">المستودع الرقمي للبنية التحتية الأكاديمية</h1>
+                    <p data-i18n="hero_desc">المنظومة الرقمية المركزية لإدارة الوثائق والملفات الأكاديمية لجامعة أسيوط التكنولوجية الدولية. منصة موحدة وآمنة لإتاحة المناهج والمحاضرات لكليات وتخصصات تكنولوجيا المعلومات، وتكنولوجيا الكهرباء، وتكنولوجيا الميكانيكا.</p>
                     <div class="hero-buttons">
-                        <button class="btn-primary" id="browseRepoBtn" data-i18n="hero_btn_browse" onclick="window.location.href='repository.html'">Browse Programs</button>
+                        <button class="btn-primary" id="browseRepoBtn" data-i18n="hero_btn_browse" onclick="window.location.href='repository.html'">تصفح البرامج الأكاديمية</button>
                     </div>
                 </div>
-                <section class="hero">
-            <div class="container">
                 <div class="hero-image">
                     <img src="images/img.jpg" alt="AITU Infrastructure 3D Concept">
                 </div>
             </div>
         </section>
-            </div>
-        </section>
 
       <section class="departments-section">
             <div class="container">
-                <h2 data-i18n="dept_section_title">Supported Departments</h2>
+                <h2 data-i18n="dept_section_title">الأقسام العلمية والبرامج الدراسية</h2>
                 <div class="cards-grid">
                     
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=IT'" style="cursor: pointer;">
@@ -79,9 +121,9 @@
                                 <polyline points="14 10 16 12 14 14"></polyline>
                             </svg>
                         </div>
-                        <h3 data-i18n="dept_it_title">Information Tech (IT)</h3>
-                        <p data-i18n="dept_it_desc">Code repositories, system documentation, and software/network development resources.</p>
-                        <a href="repository.html?dept=IT" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_it_title">تكنولوجيا المعلومات (IT)</h3>
+                        <p data-i18n="dept_it_desc">مستودعات الأكواد، التوثيق الهندسي للأنظمة، ومصادر تطوير البرمجيات والشبكات.</p>
+                        <a href="repository.html?dept=IT" class="view-files-link" data-i18n="dept_view_files">استعراض الموارد &larr;</a>
                     </div>
 
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=EL'" style="cursor: pointer;">
@@ -90,9 +132,9 @@
                                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                             </svg>
                         </div>
-                        <h3 data-i18n="dept_el_title">Electrical Eng (EL)</h3>
-                        <p data-i18n="dept_el_desc">Circuit diagrams, lab reports, and research on embedded systems and power.</p>
-                        <a href="repository.html?dept=EL" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_el_title">تكنولوجيا الكهرباء (EL)</h3>
+                        <p data-i18n="dept_el_desc">مخططات الدوائر، تقارير المعامل العملية، ومصادر أبحاث أنظمة القوى والأنظمة المدمجة.</p>
+                        <a href="repository.html?dept=EL" class="view-files-link" data-i18n="dept_view_files">استعراض الموارد &larr;</a>
                     </div>
 
                     <div class="dept-card" onclick="window.location.href='repository.html?dept=ME'" style="cursor: pointer;">
@@ -102,9 +144,9 @@
                                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                             </svg>
                         </div>
-                        <h3 data-i18n="dept_me_title">Mechanical Eng (ME)</h3>
-                        <p data-i18n="dept_me_desc">3D CAD models, dynamic analysis, and materials and manufacturing specs.</p>
-                        <a href="repository.html?dept=ME" class="view-files-link" data-i18n="dept_view_files">VIEW FILES &rarr;</a>
+                        <h3 data-i18n="dept_me_title">تكنولوجيا الميكانيكا (ME)</h3>
+                        <p data-i18n="dept_me_desc">نماذج التصميم ثلاثي الأبعاد CAD، تحليلات الأنظمة الديناميكية، ومواصفات علوم المواد والتصنيع.</p>
+                        <a href="repository.html?dept=ME" class="view-files-link" data-i18n="dept_view_files">استعراض الموارد &larr;</a>
                     </div>
 
                 </div>
@@ -113,19 +155,51 @@
 
         <section class="trust-banner">
             <div class="container">
-                <div class="trust-content">
-                    <h2 data-i18n="trust_title">Trusted Platform for Academic<br>Research</h2>
-                    <p data-i18n="trust_desc">AITU Drive ensures fast and secure access to thousands of academic documents, fostering collaboration across all technological departments.</p>
-                </div>
-                <div class="trust-stats">
-                    <h3 data-i18n="trust_stat">100%</h3>
-                    <p data-i18n="trust_stat_label">Secure Encryption</p>
+                <div class="trust-card">
+                    <div class="trust-content">
+                        <div class="trust-badge">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                            <span data-i18n="trust_badge">تشفير وحماية مؤسسية معتمدة</span>
+                        </div>
+                        <h2 data-i18n="trust_title">منصة موثوقة ومعتمدة<br>للتعليم التكنولوجي والبحث الأكاديمي</h2>
+                        <p data-i18n="trust_desc">تتيح المنظومة لأعضاء هيئة التدريس والطلاب وصولاً آمناً وفورياً لآلاف الوثائق والمقررات والمراجع المعتمدة، مع تطبيق أعلى معايير الخصوصية والأمان الأكاديمي.</p>
+                    </div>
+                    <div class="trust-stat-box">
+                        <div class="trust-stat-icon">
+                            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h3 data-i18n="trust_stat">١٠٠٪</h3>
+                        <p data-i18n="trust_stat_label">تشفير وأمان معتمد</p>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <script type="module" src="js/pages/main.js?v=17"></script>
+    <!-- Unified University Footer -->
+    <footer class="repo-footer" id="repoFooter">
+        <div class="repo-footer-inner">
+            <div class="repo-footer-brand">
+                <img src="logos/logo.png" alt="AITU Logo" width="44" height="44" style="border-radius:50%; object-fit:cover;"
+                    onerror="this.src='logos/logo_AITU.jpg'">
+                <div>
+                    <strong data-i18n="footer_brand">جامعة أسيوط التكنولوجية الدولية - AITU</strong>
+                    <span data-i18n="footer_desc">المنظومة الرقمية المركزية لإدارة وتوثيق الملفات والمقررات الأكاديمية.</span>
+                </div>
+            </div>
+            <div class="repo-footer-copy" data-i18n="footer_copy">
+                &copy; 2026 Assiut International Technological University. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script type="module" src="js/pages/main.js?v=18"></script>
     <script type="module">
         import { initLanguage } from './js/shared/jssharedi18n.js';
         document.addEventListener('DOMContentLoaded', initLanguage);

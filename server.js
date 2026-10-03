@@ -1,9 +1,11 @@
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
+const BACKEND_HOST = 'filesystemapi.runasp.net';
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -34,6 +36,39 @@ const server = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
         res.end();
+        return;
+    }
+
+    // Proxy /api and /swagger requests to the live backend
+    if (req.url.startsWith('/api/') || req.url.startsWith('/swagger')) {
+        const proxyHeaders = { ...req.headers };
+        proxyHeaders.host = BACKEND_HOST;
+        delete proxyHeaders['origin'];
+        delete proxyHeaders['referer'];
+
+        const proxyReq = https.request({
+            hostname: BACKEND_HOST,
+            port: 443,
+            path: req.url,
+            method: req.method,
+            headers: proxyHeaders
+        }, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, {
+                ...proxyRes.headers,
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS, PATCH',
+                'Access-Control-Allow-Headers': '*'
+            });
+            proxyRes.pipe(res);
+        });
+
+        proxyReq.on('error', (err) => {
+            console.error('[API Proxy Error]:', err.message);
+            res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Backend API unreachable', details: err.message }));
+        });
+
+        req.pipe(proxyReq);
         return;
     }
 

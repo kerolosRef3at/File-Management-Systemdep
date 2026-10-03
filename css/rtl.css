@@ -319,14 +319,14 @@ html[dir="rtl"] .dash-skeleton {
 /* --- Mobile Responsive RTL --- */
 @media (max-width: 1024px) {
     html[dir="rtl"] .sidebar {
-        right: auto !important;
-        left: -300px !important;
-        transform: none;
+        right: 0 !important;
+        left: auto !important;
+        transform: translateX(100%) !important;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     html[dir="rtl"] .sidebar.open {
-        left: auto !important;
-        right: 0 !important;
+        transform: translateX(0) !important;
     }
 
     html[dir="rtl"] .admin-layout .main-wrapper {

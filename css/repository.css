@@ -115,21 +115,45 @@
 .repo-login-btn {
     background: linear-gradient(135deg, #0B3B70 0%, #1565C0 100%) !important;
     color: #FFFFFF !important;
-    border: none;
-    padding: 8px 22px;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 13.5px;
+    border: none !important;
+    padding: 9px 22px !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    font-size: 13.5px !important;
     font-family: 'Cairo', sans-serif !important;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(11, 59, 112, 0.25);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer !important;
+    box-shadow: 0 4px 14px rgba(11, 59, 112, 0.25) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    line-height: 1.2 !important;
 }
 
 .repo-login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(11, 59, 112, 0.38);
+    background: linear-gradient(135deg, #092C56 0%, #0D47A1 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(11, 59, 112, 0.38) !important;
     color: #FFFFFF !important;
+    border: none !important;
+}
+
+.repo-login-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 6px rgba(11, 59, 112, 0.2) !important;
+}
+
+#publicLogoutBtn {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+}
+
+#publicLogoutBtn:hover {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border-color: #ef4444 !important;
 }
 
 .repo-mobile-menu-btn {
@@ -1393,9 +1417,32 @@
 
 /* --- Footer --- */
 .repo-footer {
-    background-color: var(--primary-dark);
+    background-color: #061830 !important;
     color: var(--white);
-    padding: 25px 0;
+    padding: 32px 0 28px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.09);
+    position: relative;
+    z-index: 10;
+}
+
+.repo-footer-brand strong {
+    display: block;
+    font-size: 0.96rem;
+    color: #FFFFFF !important;
+    font-weight: 700;
+}
+
+.repo-footer-brand span {
+    display: block;
+    font-size: 0.82rem;
+    color: #94A3B8 !important;
+    margin-top: 2px;
+}
+
+.repo-footer-copy {
+    font-size: 0.84rem;
+    color: #94A3B8 !important;
+    text-align: right;
 }
 
 .repo-footer-inner {
@@ -1458,8 +1505,8 @@
     }
 }
 
-@media (max-width: 768px) {
-    /* Mobile-only: Hide non-active department cards when a department is selected */
+@media (max-width: 992px) {
+    /* Mobile & Tablet: Hide non-active department cards when a department is selected */
     .dept-summary-cards.has-active-card .dept-summary-card:not(.active),
     .dept-summary-cards:has(.dept-summary-card.active) .dept-summary-card:not(.active) {
         display: none !important;
@@ -1492,18 +1539,18 @@
     }
 
     .repo-login-btn {
-    background: linear-gradient(135deg, #0B3B70 0%, #1565C0 100%) !important;
-    color: #FFFFFF !important;
-    border: none;
-    padding: 8px 22px;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 13.5px;
-    font-family: 'Cairo', sans-serif !important;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(11, 59, 112, 0.25);
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
+        background: linear-gradient(135deg, #0B3B70 0%, #1565C0 100%) !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        padding: 8px 18px !important;
+        border-radius: 10px !important;
+        font-weight: 700 !important;
+        font-size: 13.5px !important;
+        font-family: 'Cairo', sans-serif !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 14px rgba(11, 59, 112, 0.25) !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
 
     .repo-body {
         padding: 15px;
@@ -1869,7 +1916,7 @@ html[dir="rtl"] .repo-footer-brand {
     text-align: right;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     html[dir="rtl"] .dept-sidebar {
         left: auto !important;
         right: -310px;

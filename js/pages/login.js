@@ -153,8 +153,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lpCardName) lpCardName.textContent = isRtl ? UNIV_AR : UNIV_EN;
         if (lpCardSub) lpCardSub.textContent = isRtl ? UNIV_EN : UNIV_AR;
 
-        // Language pill button: matches LoginPage.jsx
-        if (lpLangLabel) lpLangLabel.textContent = isRtl ? 'عربي' : 'English';
+        // Language pill button: shows target language to switch to
+        if (lpLangLabel) lpLangLabel.textContent = isRtl ? 'English' : 'عربي';
 
         // Hero lines
         if (lpHeroLines) {
@@ -166,11 +166,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Placeholders & Form labels
-        if (usernameInput) usernameInput.placeholder = isRtl ? 'اسم المستخدم أو البريد الإلكتروني' : 'Username or email';
+        if (usernameInput) usernameInput.placeholder = isRtl ? 'اسم المستخدم أو البريد الإلكتروني الجامعي' : 'University username or email';
         if (passwordInput) passwordInput.placeholder = isRtl ? 'كلمة المرور' : 'Password';
-        if (lpRememberLabel) lpRememberLabel.textContent = isRtl ? 'تذكرني' : 'Remember me';
+        if (lpRememberLabel) lpRememberLabel.textContent = isRtl ? 'تذكرني على هذا الجهاز' : 'Remember me';
         if (lpForgotBtn) lpForgotBtn.textContent = isRtl ? 'نسيت كلمة المرور؟' : 'Forgot password?';
-        if (btnText) btnText.textContent = isRtl ? 'تسجيل الدخول' : 'Login';
+        if (btnText) btnText.textContent = isRtl ? 'تسجيل الدخول' : 'Sign In';
         if (lpBtnArrow) lpBtnArrow.innerHTML = isRtl ? ARROW_LEFT : ARROW_RIGHT;
 
         // Password toggles with eye icon pill
@@ -179,15 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPasswordToggle(toggleFpConfirmPasswordBtn, fpConfirmPassword && fpConfirmPassword.getAttribute('type') === 'text', lang);
 
         // Forgot password texts
-        if (fpHint) fpHint.textContent = isRtl ? 'أدخل بريدك الإلكتروني وسنرسل لك رمز تحقق لإعادة تعيين كلمة المرور.' : 'Enter your email to receive a password reset verification code.';
-        if (fpEmail) fpEmail.placeholder = isRtl ? 'البريد الإلكتروني' : 'Email';
+        if (fpHint) fpHint.textContent = isRtl ? 'أدخل بريدك الإلكتروني الجامعي وسنرسل لك رمز تحقق مؤقت (OTP) لإعادة تعيين كلمة المرور.' : 'Enter your registered university email to receive a password reset code.';
+        if (fpEmail) fpEmail.placeholder = isRtl ? 'البريد الإلكتروني الجامعي' : 'University Email';
         if (sendOtpBtnText) sendOtpBtnText.textContent = isRtl ? 'إرسال رمز التحقق' : 'Send Verification Code';
-        if (backToLoginText1) backToLoginText1.textContent = isRtl ? '→ رجوع لتسجيل الدخول' : '← Back to Login';
-        if (backToLoginText2) backToLoginText2.textContent = isRtl ? '→ رجوع لتسجيل الدخول' : '← Back to Login';
+        if (backToLoginText1) backToLoginText1.textContent = isRtl ? 'العودة لتسجيل الدخول' : 'Back to Login';
+        if (backToLoginText2) backToLoginText2.textContent = isRtl ? 'العودة لتسجيل الدخول' : 'Back to Login';
         if (fpOtp) fpOtp.placeholder = isRtl ? 'رمز التحقق (6 أرقام)' : 'Verification Code (6 digits)';
         if (fpNewPassword) fpNewPassword.placeholder = isRtl ? 'كلمة المرور الجديدة' : 'New Password';
         if (fpConfirmPassword) fpConfirmPassword.placeholder = isRtl ? 'تأكيد كلمة المرور' : 'Confirm Password';
-        if (resetPasswordBtnText) resetPasswordBtnText.textContent = isRtl ? 'حفظ كلمة المرور الجديدة' : 'Reset Password';
+        if (resetPasswordBtnText) resetPasswordBtnText.textContent = isRtl ? 'حفظ وتحديث كلمة المرور' : 'Save & Update Password';
     }
 
     // Initialize Language

@@ -61,7 +61,17 @@ export function enhanceSelect(selectEl) {
     if (!wrap) {
         wrap = document.createElement('div');
         wrap.className = 'executive-select-wrap';
-        selectEl.parentNode.insertBefore(wrap, selectEl);
+        if (selectEl.parentNode) {
+            try {
+                if (typeof selectEl.before === 'function') {
+                    selectEl.before(wrap);
+                } else {
+                    selectEl.parentNode.appendChild(wrap);
+                }
+            } catch (e) {
+                selectEl.parentNode.appendChild(wrap);
+            }
+        }
         wrap.appendChild(selectEl);
     }
 
@@ -72,10 +82,16 @@ export function enhanceSelect(selectEl) {
         labelSpan.className = 'custom-select-label-text';
         // Insert right after prefix icon if exists, else at start
         const prefix = wrap.querySelector('.select-prefix-icon, svg:not(.select-chevron-icon)');
-        if (prefix && prefix.nextSibling) {
-            wrap.insertBefore(labelSpan, prefix.nextSibling);
-        } else {
-            wrap.insertBefore(labelSpan, wrap.firstChild);
+        try {
+            if (prefix && prefix.parentNode === wrap && typeof prefix.after === 'function') {
+                prefix.after(labelSpan);
+            } else if (typeof wrap.prepend === 'function') {
+                wrap.prepend(labelSpan);
+            } else {
+                wrap.appendChild(labelSpan);
+            }
+        } catch (e) {
+            wrap.appendChild(labelSpan);
         }
     }
 

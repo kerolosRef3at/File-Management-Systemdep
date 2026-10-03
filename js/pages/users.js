@@ -291,7 +291,7 @@ export async function initUsers() {
             applyFilters();
             updateStats();
         } catch (error) {
-            showAlert(alertsContainer, error.message || 'Failed to fetch user accounts.', 'error');
+            showAlert(alertsContainer, error.message || (isAr ? 'تعذر جلب بيانات وحسابات المستخدمين من المنظومة.' : 'Failed to fetch user accounts.'), 'error');
             usersTableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color:var(--text-gray);">Failed to load users from server.</td></tr>';
         } finally {
             const loader = document.getElementById('global-page-loader');
@@ -800,7 +800,7 @@ export async function initUsers() {
 
                 const chosenDept = departments.find(d => String(d.id) === String(department));
                 if (!chosenDept) {
-                    showAlert(alertBox, isAr ? 'يرجى اختيار القسم.' : 'Please select a department.', 'error');
+                    showAlert(alertBox, isAr ? 'يرجى اختيار القسم العلمي.' : 'Please select a department.', 'error');
                     return;
                 }
 
@@ -832,7 +832,7 @@ export async function initUsers() {
                         showAlert(listAlert, isAr ? `تم إنشاء حساب المستخدم "${fullName}" بنجاح.` : `User account "${fullName}" successfully created.`, 'success');
                     }
                 } catch (err) {
-                    showAlert(alertBox, err.message || (isAr ? 'فشل إنشاء حساب المستخدم.' : 'Failed to create user account.'), 'error');
+                    showAlert(alertBox, err.message || (isAr ? 'تعذر إنشاء الحساب الأكاديمي للمستخدم.' : 'Failed to create user account.'), 'error');
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = 'Create User';
                 }

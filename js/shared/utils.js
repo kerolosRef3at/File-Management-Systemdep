@@ -32,14 +32,23 @@ export function sanitizeFileName(name) {
 
 /**
  * Validates files on the client-side before upload (CWE-434).
+ * Supports: All compressed archives, all video formats, PDF, Word documents, and TXT files only.
  */
 export const ALLOWED_EXTENSIONS = [
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-    '.dwg', '.dxf',
-    '.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp',
-    '.mp4', '.avi', '.mov', '.mkv',
-    '.zip', '.rar', '.7z',
-    '.txt', '.csv', '.json'
+    // 1. All Compressed Archive Formats (كل ملفات المضغوطة بكل الصيغ)
+    '.zip', '.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.bzip2', '.xz', '.iso', '.cab', '.z',
+    
+    // 2. All Video Formats (الفيديوهات بكل الصيغ)
+    '.mp4', '.mkv', '.avi', '.mov', '.webm', '.wmv', '.flv', '.m4v', '.3gp', '.ts', '.mpg', '.mpeg',
+    
+    // 3. PDF (الـ PDF)
+    '.pdf',
+    
+    // 4. Word Documents (الورد)
+    '.docx', '.doc', '.rtf',
+    
+    // 5. Text Files (الـ TXT)
+    '.txt'
 ];
 
 export const BLOCKED_EXTENSIONS = [
@@ -76,7 +85,7 @@ export function validateFile(file) {
     
     // Check allowed extensions
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-        errors.push(`File format (${ext}) is not supported.`);
+        errors.push(`File format (${ext}) is not supported. Supported formats: PDF, Word (DOCX/DOC), Text (TXT), Videos, and Compressed Archives (ZIP, RAR, 7Z, TAR, GZ).`);
     }
     
     // Check file size limit

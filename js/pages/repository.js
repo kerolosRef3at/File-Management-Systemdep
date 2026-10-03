@@ -5,27 +5,28 @@ import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 
 import { renderLayout } from '../shared/layout.js';
 import { translations, getCurrentLang, getDeptDisplayName } from '../shared/jssharedi18n.js';
-import { enhanceSelect } from '../shared/custom-select.js';
+import { enhanceSelect } from '../shared/custom-select.js?v=10';
 
 function ensureDownloadModal() {
     if (!document.getElementById('downloadModal')) {
+        const isAr = getCurrentLang() === 'ar';
         const div = document.createElement('div');
         div.className = 'repo-modal-overlay';
         div.id = 'downloadModal';
         div.style.display = 'none';
         div.innerHTML = `
-            <div class="repo-download-modal">
+            <div class="repo-download-modal" style="direction: ${isAr ? 'rtl' : 'ltr'}; text-align: ${isAr ? 'right' : 'left'};">
                 <div class="repo-modal-header">
                     <div class="repo-modal-title-group">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--primary-dark)"
                             stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
-                        <h3>Confirm Download</h3>
+                        <h3 data-i18n="repo_modal_confirm_title">${isAr ? 'تأكيد تحميل الموارد الأكاديمية' : 'Confirm Download'}</h3>
                     </div>
                     <button class="repo-modal-close" id="closeDownloadModal">&times;</button>
                 </div>
-                <p class="repo-modal-desc">You are about to download the following academic resources for offline use.</p>
+                <p class="repo-modal-desc" data-i18n="repo_modal_desc">${isAr ? 'أنت على وشك تنزيل الموارد والوثائق المحددة للاستخدام التعليمي والأكاديمي.' : 'You are about to download the following academic resources for offline use.'}</p>
                 <div class="repo-modal-file-list" id="modalFileList"></div>
                 <div class="repo-modal-summary" id="modalSummary"></div>
                 <div class="repo-modal-notice">
@@ -33,17 +34,15 @@ function ensureDownloadModal() {
                         <circle cx="12" cy="12" r="10" />
                         <path d="M12 16v-4M12 8h.01" />
                     </svg>
-                    <p>By proceeding, you agree to the <a href="#">University Terms of Use</a>. Materials provided via
-                        ScholarVault are for academic research and personal study only. Unauthorized commercial
-                        redistribution is strictly prohibited.</p>
+                    <p data-i18n="repo_modal_terms">${isAr ? 'بمتابعة التحميل، فإنك تقر بالالتزام بلوائح جامعة أسيوط التكنولوجية الدولية وسياسة حقوق الملكية الفكرية. الموارد التعليمية مخصصة للبحث الأكاديمي والدراسة الشخصية، ويُمنع منعاً باتاً أي نشر تجاري أو توزيع غير مصرح به.' : 'By proceeding, you agree to Assiut International Technological University Terms of Use and Intellectual Property regulations. Materials provided via AITU Academic Repository are for academic research and personal study only. Unauthorized commercial redistribution is strictly prohibited.'}</p>
                 </div>
-                <div class="repo-modal-actions">
-                    <button class="repo-modal-cancel" id="cancelDownloadModal">Cancel</button>
+                <div class="repo-modal-actions" style="justify-content: flex-end;">
+                    <button class="repo-modal-cancel" id="cancelDownloadModal" data-i18n="repo_modal_cancel">${isAr ? 'إلغاء' : 'Cancel'}</button>
                     <button class="repo-modal-confirm" id="confirmDownloadModal">
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                         </svg>
-                        Download Now
+                        <span data-i18n="repo_modal_download_now">${isAr ? 'بدء التنزيل الآن' : 'Download Now'}</span>
                     </button>
                 </div>
             </div>
@@ -107,15 +106,15 @@ export async function initRepository() {
                             <div class="repo-selection-bar" id="selectionBar">
                                 <div class="repo-selection-left">
                                     <span class="repo-selection-badge" id="selectedCount">0</span>
-                                    <span>Files Selected</span>
+                                    <span data-i18n="repo_selected_files">${getCurrentLang() === 'ar' ? 'ملفات تم تحديدها' : 'Files Selected'}</span>
                                 </div>
                                 <div class="repo-selection-divider"></div>
-                                <button id="clearSelectionBtn">Clear Selection</button>
+                                <button id="clearSelectionBtn" data-i18n="repo_clear_selection">${getCurrentLang() === 'ar' ? 'إلغاء التحديد' : 'Clear Selection'}</button>
                                 <button class="repo-download-bundle-btn" id="downloadSelectedBtn">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
                                     </svg>
-                                    Download Selected Bundle
+                                    <span data-i18n="repo_download_selected">${getCurrentLang() === 'ar' ? 'تحميل الملفات المحددة' : 'Download Selected Bundle'}</span>
                                 </button>
                                 <button id="deleteSelectedBtn"
                                     style="background:#dc2626; color:white; border:none; padding:9px 20px; border-radius:8px; font-size:0.82rem; font-weight:700; cursor:pointer; display:none; align-items:center; gap:7px; transition:all 0.2s;">
@@ -123,7 +122,7 @@ export async function initRepository() {
                                         <polyline points="3 6 5 6 21 6" />
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                     </svg>
-                                    Delete Selected
+                                    <span data-i18n="repo_delete_selected">${getCurrentLang() === 'ar' ? 'حذف الملفات المحددة' : 'Delete Selected'}</span>
                                 </button>
                             </div>
                             <div class="repo-pagination" id="repoPagination"></div>
@@ -144,7 +143,7 @@ export async function initRepository() {
         if (user) {
             if (joinBtn) joinBtn.style.display = 'none';
             if (loginBtn) {
-                loginBtn.textContent = 'Logout';
+                loginBtn.textContent = getCurrentLang() === 'ar' ? 'تسجيل الخروج' : 'Logout';
                 loginBtn.style.backgroundColor = '#E63946';
                 loginBtn.onclick = () => {
                     import('../shared/auth.js').then(auth => auth.logout());
@@ -196,8 +195,17 @@ export async function initRepository() {
     if (!categoriesContainer) {
         categoriesContainer = document.createElement('div');
         categoriesContainer.id = 'categoriesContainer';
-        if (deptSummaryCards && deptSummaryCards.parentNode) {
-            deptSummaryCards.parentNode.insertBefore(categoriesContainer, deptSummaryCards.nextSibling);
+        const targetSummary = document.getElementById('deptSummaryCards') || deptSummaryCards;
+        if (targetSummary && targetSummary.parentNode) {
+            try {
+                if (typeof targetSummary.after === 'function') {
+                    targetSummary.after(categoriesContainer);
+                } else {
+                    targetSummary.parentNode.appendChild(categoriesContainer);
+                }
+            } catch (err) {
+                targetSummary.parentNode.appendChild(categoriesContainer);
+            }
         }
     }
 
@@ -211,6 +219,14 @@ export async function initRepository() {
             deptSidebar.classList.toggle('open');
             deptSidebarOverlay.classList.toggle('active');
         };
+        const closeDeptBtn = document.getElementById('closeDeptSidebarBtn');
+        if (closeDeptBtn) {
+            closeDeptBtn.onclick = () => {
+                deptSidebar.classList.remove('open');
+                deptSidebarOverlay.classList.remove('active');
+            };
+        }
+
         deptSidebarOverlay.onclick = () => {
             deptSidebar.classList.remove('open');
             deptSidebarOverlay.classList.remove('active');
@@ -420,11 +436,14 @@ export async function initRepository() {
             `;
         });
 
-        deptSummaryCards.innerHTML = html;
-        deptSummaryCards.classList.toggle('has-active-card', !!currentDept);
+        const deptSummaryCardsEl = document.getElementById('deptSummaryCards') || deptSummaryCards;
+        if (!deptSummaryCardsEl) return;
+
+        deptSummaryCardsEl.innerHTML = html;
+        deptSummaryCardsEl.classList.toggle('has-active-card', !!currentDept);
 
         // Delete department handler
-        deptSummaryCards.querySelectorAll('.delete-dept-btn').forEach(btn => {
+        deptSummaryCardsEl.querySelectorAll('.delete-dept-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const deptId = btn.dataset.id;
@@ -484,7 +503,7 @@ export async function initRepository() {
         });
 
         // Click handlers
-        deptSummaryCards.querySelectorAll('.dept-summary-card').forEach(card => {
+        deptSummaryCardsEl.querySelectorAll('.dept-summary-card').forEach(card => {
             card.addEventListener('click', () => {
                 const deptId = card.dataset.dept;
 
@@ -608,7 +627,7 @@ export async function initRepository() {
                 title = t('repo_title'); subtitle = t('repo_subtitle');
             } else {
                 title = lang === 'ar' ? `موارد ${prog.name}` : `${prog.name} Resources`;
-                subtitle = lang === 'ar' ? `مواد الكورسات الرسمية، الأدلة المعروضة، والمخططات الهندسية.` : `Official course materials, peer-reviewed manuals, and architecture blueprints.`;
+                subtitle = lang === 'ar' ? `المقررات الدراسية الرسمية المعتمدة، الأدلة العلمية، والمخططات التقنية والهندسية.` : `Official course materials, peer-reviewed manuals, and architecture blueprints.`;
                 showToggle = true;
             }
         } else if (browsingMode === 'files' && currentDept) {
@@ -958,9 +977,9 @@ export async function initRepository() {
                     <option value="all" ${currentFilterType === 'all' ? 'selected' : ''}>${isAr ? 'كل الأنواع' : 'All Types'}</option>
                     <option value="PDF" ${currentFilterType === 'PDF' ? 'selected' : ''}>PDF</option>
                     <option value="DOCX" ${currentFilterType === 'DOCX' ? 'selected' : ''}>Word (DOCX)</option>
-                    <option value="XLSX" ${currentFilterType === 'XLSX' ? 'selected' : ''}>Excel (XLSX)</option>
-                    <option value="DWG" ${currentFilterType === 'DWG' ? 'selected' : ''}>AutoCAD (DWG)</option>
+                    <option value="TXT" ${currentFilterType === 'TXT' ? 'selected' : ''}>Text (TXT)</option>
                     <option value="MP4" ${currentFilterType === 'MP4' ? 'selected' : ''}>Video (MP4)</option>
+                    <option value="ZIP" ${currentFilterType === 'ZIP' ? 'selected' : ''}>${isAr ? 'ملفات مضغوطة (ZIP)' : 'Archives (ZIP)'}</option>
                 </select>
                 <svg class="select-chevron-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline points="6 9 12 15 18 9"/>
@@ -1032,44 +1051,47 @@ export async function initRepository() {
     function getFileTypeIcon(type, size = 48) {
         const colors = {
             'PDF': '#dc2626',
-            'XLSX': '#16a34a',
-            'DWG': '#2563eb',
-            'DOCX': '#ea580c',
-            'MP4': '#9333ea'
+            'DOCX': '#2563eb',
+            'DOC': '#2563eb',
+            'TXT': '#059669',
+            'MP4': '#9333ea',
+            'ZIP': '#d97706',
+            'RAR': '#d97706',
+            '7Z': '#d97706'
         };
-        const color = colors[type] || '#64748b';
+        const uType = String(type || '').toUpperCase();
+        const color = colors[uType] || '#64748b';
 
-        if (type === 'PDF') {
+        if (uType === 'PDF') {
             return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
                 <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#fef2f2"/>
                 <path d="M16 4V14H8" stroke="${color}" stroke-width="2"/>
                 <text x="24" y="30" text-anchor="middle" fill="${color}" font-size="10" font-weight="bold">PDF</text>
             </svg>`;
-        } else if (type === 'XLSX') {
-            return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
-                <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#f0fdf4"/>
-                <rect x="14" y="16" width="20" height="18" rx="1" stroke="${color}" stroke-width="1.5"/>
-                <line x1="14" y1="22" x2="34" y2="22" stroke="${color}" stroke-width="1"/>
-                <line x1="14" y1="28" x2="34" y2="28" stroke="${color}" stroke-width="1"/>
-                <line x1="24" y1="16" x2="24" y2="34" stroke="${color}" stroke-width="1"/>
-            </svg>`;
-        } else if (type === 'DWG') {
+        } else if (uType === 'DOCX' || uType === 'DOC' || uType === 'RTF' || uType === 'WORD') {
             return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
                 <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#eff6ff"/>
-                <path d="M18 30L24 18L30 30" stroke="${color}" stroke-width="2" fill="none"/>
-                <line x1="20" y1="26" x2="28" y2="26" stroke="${color}" stroke-width="1.5"/>
+                <line x1="16" y1="16" x2="32" y2="16" stroke="${color}" stroke-width="2"/>
+                <line x1="16" y1="22" x2="32" y2="22" stroke="${color}" stroke-width="2"/>
+                <line x1="16" y1="28" x2="28" y2="28" stroke="${color}" stroke-width="2"/>
             </svg>`;
-        } else if (type === 'DOCX') {
+        } else if (uType === 'TXT' || uType === 'TEXT') {
             return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
-                <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#fff7ed"/>
-                <line x1="16" y1="16" x2="32" y2="16" stroke="${color}" stroke-width="1.5"/>
-                <line x1="16" y1="22" x2="32" y2="22" stroke="${color}" stroke-width="1.5"/>
-                <line x1="16" y1="28" x2="28" y2="28" stroke="${color}" stroke-width="1.5"/>
+                <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#ecfdf5"/>
+                <line x1="16" y1="16" x2="32" y2="16" stroke="${color}" stroke-width="1.8"/>
+                <line x1="16" y1="22" x2="32" y2="22" stroke="${color}" stroke-width="1.8"/>
+                <line x1="16" y1="28" x2="26" y2="28" stroke="${color}" stroke-width="1.8"/>
             </svg>`;
-        } else if (type === 'MP4') {
+        } else if (['MP4', 'MKV', 'AVI', 'MOV', 'WEBM', 'WMV', 'FLV', '3GP', 'VIDEO'].includes(uType)) {
             return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
                 <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#faf5ff"/>
                 <polygon points="20,17 20,31 32,24" fill="${color}"/>
+            </svg>`;
+        } else if (['ZIP', 'RAR', '7Z', 'TAR', 'GZ', 'TGZ', 'BZ2', 'XZ', 'ARCHIVE'].includes(uType)) {
+            return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" fill="none">
+                <rect x="8" y="4" width="32" height="40" rx="3" stroke="${color}" stroke-width="2" fill="#fffbeb"/>
+                <path d="M20 14h8M20 20h8M20 26h8M20 32h8" stroke="${color}" stroke-width="2"/>
+                <rect x="22" y="32" width="4" height="6" fill="${color}"/>
             </svg>`;
         }
         return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="${color}" stroke-width="2">
@@ -1098,23 +1120,31 @@ export async function initRepository() {
         }
 
         // Program filter
-        // Program filter
-if (currentProgram) {
-    const currentProg = mockDepartments
-        .flatMap(d => d.programs)
-        .find(p => p.id === currentProgram);
-    const progName = currentProg ? currentProg.name : currentProgram;
-    
-    filtered = filtered.filter(f => {
-        const fProgram = String(f.program || '').toLowerCase();
-        return fProgram === String(progName).toLowerCase() ||
-               fProgram === String(currentProgram).toLowerCase();
-    });
-}
+        if (currentProgram) {
+            const currentProg = mockDepartments
+                .flatMap(d => d.programs)
+                .find(p => p.id === currentProgram);
+            const progName = currentProg ? currentProg.name : currentProgram;
+            
+            filtered = filtered.filter(f => {
+                const fProgram = String(f.program || '').toLowerCase();
+                return fProgram === String(progName).toLowerCase() ||
+                       fProgram === String(currentProgram).toLowerCase();
+            });
+        }
 
         // Type filter
         if (currentFilterType && currentFilterType !== 'all') {
-            filtered = filtered.filter(f => String(f.type || f.fileType || '').toUpperCase() === currentFilterType.toUpperCase());
+            const wantType = currentFilterType.toUpperCase();
+            filtered = filtered.filter(f => {
+                const fType = String(f.type || f.fileType || f.name?.split('.').pop() || '').toUpperCase();
+                if (wantType === 'ZIP') return ['ZIP', 'RAR', '7Z', 'TAR', 'GZ', 'TGZ', 'BZ2', 'XZ', 'ARCHIVE'].includes(fType);
+                if (wantType === 'DOCX') return ['DOCX', 'DOC', 'RTF', 'WORD'].includes(fType);
+                if (wantType === 'MP4') return ['MP4', 'MKV', 'AVI', 'MOV', 'WEBM', 'WMV', 'FLV', '3GP', 'VIDEO'].includes(fType);
+                if (wantType === 'TXT') return ['TXT', 'TEXT'].includes(fType);
+                if (wantType === 'PDF') return fType === 'PDF';
+                return fType === wantType;
+            });
         }
 
         // Search
@@ -1532,8 +1562,13 @@ if (currentProgram) {
         deleteSelectedBtn.onclick = async () => {
             if (selectedFiles.size === 0) return;
             
+            const isAr = getCurrentLang() === 'ar';
             const count = selectedFiles.size;
-            if (confirm(`Are you sure you want to permanently delete the ${count} selected file(s)?`)) {
+            const confirmMsg = isAr 
+                ? `هل أنت متأكد من الحذف النهائي لعدد ${count} من الملفات المحددة من المنظومة الأكاديمية؟`
+                : `Are you sure you want to permanently delete the ${count} selected file(s)?`;
+
+            if (confirm(confirmMsg)) {
                 const ids = Array.from(selectedFiles).map(id => parseInt(id));
                 
                 // Get file names before delete for logging
@@ -1554,14 +1589,14 @@ if (currentProgram) {
                         allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
                     }
                     
-                    alert(`Successfully deleted ${count} file(s).`);
+                    alert(isAr ? `تم حذف عدد ${count} ملف بنجاح من المستودع الأكاديمي.` : `Successfully deleted ${count} file(s).`);
                 } catch (err) {
                     // Even if API fails, delete locally from allFiles in-memory for demo
                     filesToDelete.forEach(f => {
                         logService.addLog(user?.username || 'admin', user?.role || 'Supervisor', 'Delete File', f.name);
                     });
                     allFiles = allFiles.filter(f => !selectedFiles.has(f.id.toString()));
-                    alert(`Successfully deleted ${count} file(s).`);
+                    alert(isAr ? `تم حذف عدد ${count} ملف بنجاح من المستودع الأكاديمي.` : `Successfully deleted ${count} file(s).`);
                 }
                 
                 selectedFiles.clear();
@@ -1607,9 +1642,10 @@ if (currentProgram) {
             }
         });
 
+        const isAr = getCurrentLang() === 'ar';
         modalSummary.innerHTML = `
-            <span>${selected.length} items selected</span>
-            <span>Total Size: <strong>${totalSizeMB.toFixed(1)} MB</strong></span>
+            <span>${isAr ? `تم تحديد ${selected.length} ملف` : `${selected.length} items selected`}</span>
+            <span>${isAr ? 'إجمالي الحجم:' : 'Total Size:'} <strong>${totalSizeMB.toFixed(1)} ${isAr ? 'ميجابايت' : 'MB'}</strong></span>
         `;
 
         const dlModal = document.getElementById('downloadModal');
@@ -1824,11 +1860,11 @@ if (currentProgram) {
                 const id = document.getElementById('newCatId').value.trim().toUpperCase();
                 const icon = document.getElementById('newCatIcon').value;
                 if (!name || !id) {
-                    alert('Please fill out all fields.');
+                    alert(isAr ? 'يرجى استيفاء كافة الحقول المطلوبة أولاً.' : 'Please fill out all fields.');
                     return;
                 }
                 if (mockDepartments.some(d => d.id === id)) {
-                    alert('A category with this Abbreviation already exists.');
+                    alert(isAr ? 'يوجد قسم علمي مسجل بهذا الرمز المختصر بالفعل.' : 'A category with this Abbreviation already exists.');
                     return;
                 }
                 
@@ -1845,11 +1881,9 @@ if (currentProgram) {
                 } catch (e) {
                     console.error('createFolder (category) failed:', e);
                     alert(
-                        'The category was not created.\n\n' +
+                        (isAr ? 'تعذر إنشاء القسم العلمي في المنظومة:\n\n' : 'The category was not created.\n\n') +
                         (e && e.message ? e.message : e) +
-                        '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
-                        ', and cannot be blank, a plain number, or a GUID.' +
-                        '\n\nNothing was changed. Fix the name and try again.'
+                        (isAr ? '\n\nلا يمكن أن يحتوي اسم القسم على رموز خاصة / \\ : * ? " < > | ولا يمكن تركه فارغاً.' : '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."')
                     );
                     return;   // keep the modal open so the name can be corrected
                 }
@@ -1857,7 +1891,7 @@ if (currentProgram) {
                 // Saved in the database, but the drive folder could not be made.
                 if (apiResult && apiResult.warning) {
                     alert(
-                        'The category was created, but the folder on the drive was not:\n\n' +
+                        (isAr ? 'تم تسجيل القسم العلمي في قاعدة البيانات، ولكن تعذر إنشاء المجلد على وحدة التخزين:\n\n' : 'The category was created, but the folder on the drive was not:\n\n') +
                         apiResult.warning
                     );
                 }
@@ -1958,7 +1992,7 @@ if (currentProgram) {
             document.getElementById('confirmAddProgram').addEventListener('click', async () => {
                 const name = document.getElementById('newProgName').value.trim();
                 if (!name) {
-                    alert('Please enter a program name.');
+                    alert(isAr ? 'يرجى إدخال اسم البرنامج الدراسي أولاً.' : 'Please enter a program name.');
                     return;
                 }
                 const progId = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString().slice(-4);
@@ -1966,7 +2000,7 @@ if (currentProgram) {
                 const activeDept = mockDepartments.find(d => d.id === currentDept);
                 if (activeDept) {
                     if (activeDept.programs.some(p => p.id === progId)) {
-                        alert('A program with this ID already exists in this department.');
+                        alert(isAr ? 'يوجد برنامج دراسي مسجل بهذا الاسم بالفعل في هذا القسم العلمي.' : 'A program with this ID already exists in this department.');
                         return;
                     }
                     // Creates the real subfolder on the QNAP drive. Same rule as
@@ -1977,18 +2011,16 @@ if (currentProgram) {
                     } catch (e) {
                         console.error('createFolder (program) failed:', e);
                         alert(
-                            'The program was not created.\n\n' +
+                            (isAr ? 'تعذر إنشاء البرنامج الدراسي في المنظومة:\n\n' : 'The program was not created.\n\n') +
                             (e && e.message ? e.message : e) +
-                            '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."' +
-                            ', and cannot be blank, a plain number, or a GUID.' +
-                            '\n\nNothing was changed. Fix the name and try again.'
+                            (isAr ? '\n\nلا يمكن أن يحتوي اسم البرنامج على رموز خاصة / \\ : * ? " < > |.' : '\n\nA folder name cannot contain / \\ : * ? " < > | or ".."')
                         );
                         return;
                     }
 
                     if (progResult && progResult.warning) {
                         alert(
-                            'The program was created, but the folder on the drive was not:\n\n' +
+                            (isAr ? 'تم تسجيل البرنامج الدراسي في المنظومة، ولكن تعذر إنشاء المجلد على وحدة التخزين:\n\n' : 'The program was created, but the folder on the drive was not:\n\n') +
                             progResult.warning
                         );
                     }

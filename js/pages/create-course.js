@@ -7,6 +7,7 @@ import { showAlert } from '../shared/components.js';
 import { mockDepartments, hydrateDepartments } from '../shared/mockData.js';
 import { translations, getCurrentLang } from '../shared/jssharedi18n.js';
 import { enhanceSelect } from '../shared/custom-select.js';
+import { validateFile } from '../shared/utils.js';
 
 let isUploadingGlobal = false;
 
@@ -86,10 +87,10 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                                 <label class="cc-label">${t('cc_program_label')}</label>
                                 <select id="ccCategory" class="cc-select">
                                     <option value="">${t('cc_program_select')}</option>
-                                    <option value="UNDERGRAD">${isAr ? 'البكالوريوس' : 'Undergraduate'}</option>
-                                    <option value="POSTGRAD">${isAr ? 'الدراسات العليا' : 'Postgraduate'}</option>
-                                    <option value="DIPLOMA">${isAr ? 'الدبلوم' : 'Diploma'}</option>
-                                    <option value="PROFESSIONAL">${isAr ? 'المستوى المهني' : 'Professional'}</option>
+                                    <option value="UNDERGRAD">${isAr ? 'مرحلة البكالوريوس التكنولوجي' : 'Undergraduate'}</option>
+                                    <option value="POSTGRAD">${isAr ? 'مرحلة الدراسات العليا والبحوث' : 'Postgraduate'}</option>
+                                    <option value="DIPLOMA">${isAr ? 'مرحلة الدبلوم التكنولوجي العالي' : 'Diploma'}</option>
+                                    <option value="PROFESSIONAL">${isAr ? 'البرامج المهنية المتخصصة' : 'Professional'}</option>
                                 </select>
                             </div>
                         </div>
@@ -152,7 +153,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                         <!-- BULK MODE CONTAINER -->
                         <div id="ccBulkContainer">
                             <div class="cc-file-drop" id="ccBulkDrop" style="margin-bottom:16px;">
-                                <input type="file" id="ccBulkInput" multiple accept="video/*,.mp4,.mkv,.avi,.mov,.pdf,.zip" style="display:none;">
+                                <input type="file" id="ccBulkInput" multiple accept=".pdf,.doc,.docx,.rtf,.txt,.mp4,.mkv,.avi,.mov,.webm,.wmv,.flv,.m4v,.3gp,.ts,.mpg,.mpeg,.zip,.rar,.7z,.tar,.gz,.tgz,.bz2,.bzip2,.xz,.iso,.cab,.z,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/x-7z-compressed" style="display:none;">
                                 <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" style="margin:0 auto 8px;color:#3b82f6;display:block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                                 <p style="font-weight:600;color:var(--text-dark);">${t('cc_bulk_drop_title')}</p>
                                 <p style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">${t('cc_bulk_drop_sub')}</p>
@@ -193,7 +194,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         // Cancel Button
         document.getElementById('ccCancelBtn')?.addEventListener('click', () => {
             if (isUploadingGlobal) {
-                if (!confirm('هناك ملفات قيد الرفع، هل أنت تأكد من الإلغاء؟')) return;
+                if (!confirm(isAr ? 'توجد عمليات رفع جارية حالياً، هل أنت متأكد من الإلغاء والعودة لقائمة المقررات؟' : 'Files are currently uploading. Are you sure you want to cancel?')) return;
             }
             if (onSuccessCallback) onSuccessCallback(false);
             window.location.href = 'courses.html';
@@ -228,7 +229,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         document.getElementById('tabBulk')?.addEventListener('click', () => {
             const hasLessonFiles = lessons.some(l => l.files.length > 0);
             if (uploadMode === 'lesson' && hasLessonFiles) {
-                showAlert(alertsEl, isAr ? 'تمت إضافة ملفات في وضع "إنشاء درس بدرس". يرجى حذف جميع الملفات أولاً للتغيير إلى وضع الرفع الدفعي.' : 'You have added files in Lesson mode. Delete all files first to switch to Bulk mode.', 'warning');
+                showAlert(alertsEl, isAr ? 'تمت إضافة ملفات في وضع "المحاضرات المجدولة". يرجى حذف الملفات أولاً للتحويل إلى وضع "الرفع دفعة واحدة".' : 'You have added files in Lesson mode. Delete all files first to switch to Bulk mode.', 'warning');
                 return;
             }
             switchMode('bulk');
@@ -237,7 +238,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         document.getElementById('tabLesson')?.addEventListener('click', () => {
             const hasBulkFiles = bulkFiles.length > 0;
             if (uploadMode === 'bulk' && hasBulkFiles) {
-                showAlert(alertsEl, isAr ? 'تمت إضافة ملفات في وضع "الرفع الدفعي". يرجى حذف جميع الملفات أولاً للتغيير إلى وضع إنشاء درس بدرس.' : 'You have added files in Bulk mode. Delete all files first to switch to Lesson mode.', 'warning');
+                showAlert(alertsEl, isAr ? 'تمت إضافة ملفات في وضع "الرفع دفعة واحدة". يرجى حذف الملفات أولاً للتحويل إلى وضع "المحاضرات المجدولة".' : 'You have added files in Bulk mode. Delete all files first to switch to Lesson mode.', 'warning');
                 return;
             }
             switchMode('lesson');
@@ -273,7 +274,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                     if (note) { note.textContent = t('cc_thumb_change'); note.style.color = 'var(--primary-blue)'; }
                 }
             } catch (err) {
-                showAlert(alertsContainer, 'Could not upload the thumbnail. Try a smaller image.', 'error');
+                showAlert(alertsContainer, isAr ? 'تعذر رفع الصورة المصغرة للمقرر. يرجى اختيار صورة ذات حجم مناسب.' : 'Could not upload the thumbnail. Try a smaller image.', 'error');
                 thumbnailDataUrl = '';
                 document.getElementById('ccThumbContent').innerHTML =
                     `<p style="font-size:0.85rem;color:#dc2626;">Upload failed. Click to try again.</p>`;
@@ -347,7 +348,13 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
     // BULK FILES LOGIC
     function addBulkFiles(filesList) {
+        const alertsEl = document.getElementById('ccAlerts');
         filesList.forEach(f => {
+            const validation = validateFile(f);
+            if (!validation.valid) {
+                showAlert(alertsEl, (isAr ? 'الملف غير مدعوم: ' : 'Unsupported file: ') + (f.name || '') + ' - ' + (isAr ? 'الصيغ المدعومة: PDF، مستندات Word، الملفات النصية TXT، مقاطع الفيديو، وجميع الملفات المضغوطة.' : validation.errors.join(', ')), 'error');
+                return;
+            }
             const cleanName = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
             bulkFiles.push({
                 id: Math.random().toString(36).substr(2, 9),
@@ -482,7 +489,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
                 </div>
 
                 <div class="lesson-file-drop" data-lidx="${lIdx}">
-                    <input type="file" class="lesson-file-input" data-lidx="${lIdx}" multiple accept="video/*,.mp4,.pdf,.zip" style="display:none;">
+                    <input type="file" class="lesson-file-input" data-lidx="${lIdx}" multiple accept=".pdf,.doc,.docx,.rtf,.txt,.mp4,.mkv,.avi,.mov,.webm,.wmv,.flv,.m4v,.3gp,.ts,.mpg,.mpeg,.zip,.rar,.7z,.tar,.gz,.tgz,.bz2,.bzip2,.xz,.iso,.cab,.z,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/zip,application/x-zip-compressed,application/x-rar-compressed,application/x-7z-compressed" style="display:none;">
                     <div style="display:flex;align-items:center;justify-content:center;gap:8px;color:#2563eb;font-weight:600;font-size:0.86rem;">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                         <span>+ ${t('cc_lesson_add_files')}</span>
@@ -542,7 +549,13 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             const inp = drop.querySelector('.lesson-file-input');
             drop.addEventListener('click', () => inp.click());
             inp.addEventListener('change', (e) => {
+                const alertsEl = document.getElementById('ccAlerts');
                 Array.from(e.target.files).forEach(f => {
+                    const validation = validateFile(f);
+                    if (!validation.valid) {
+                        showAlert(alertsEl, (isAr ? 'الملف غير مدعوم: ' : 'Unsupported file: ') + (f.name || '') + ' - ' + (isAr ? 'الصيغ المدعومة: PDF، مستندات Word، الملفات النصية TXT، مقاطع الفيديو، وجميع الملفات المضغوطة.' : validation.errors.join(', ')), 'error');
+                        return;
+                    }
                     const cleanName = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
                     lessons[lIdx].files.push({
                         id: Math.random().toString(36).substr(2, 9),
@@ -701,11 +714,11 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
         const isCertified = document.getElementById('ccIsCertified')?.checked ?? true;
 
         if (!title) {
-            showAlert(alertsEl, isAr ? 'يرجى إدخال عنوان الكورس.' : 'Please enter a course title.', 'error');
+            showAlert(alertsEl, isAr ? 'يرجى إدخال عنوان المقرر الدراسي.' : 'Please enter a course title.', 'error');
             return;
         }
         if (title.length > 50) {
-            showAlert(alertsEl, isAr ? 'عنوان الكورس يجب ألا يتجاوز 50 حرف.' : 'Course title must not exceed 50 characters.', 'error');
+            showAlert(alertsEl, isAr ? 'عنوان المقرر الدراسي يجب ألا يتجاوز 50 حرفاً.' : 'Course title must not exceed 50 characters.', 'error');
             return;
         }
 
@@ -715,14 +728,14 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             showAlert(
                 alertsEl,
                 isAr
-                    ? 'عنوان الكورس يحتوي على رموز غير مسموح بها. المسموح فقط الحروف والأرقام والرموز الأكاديمية (مثل: - _ : ( ) & / + .).'
+                    ? 'عنوان المقرر الدراسي يحتوي على رموز غير مسموح بها. المسموح به فقط الحروف والأرقام والرموز الأكاديمية (مثل: - _ : ( ) & / + .).'
                     : 'Course title contains invalid characters. Only letters, numbers, and basic academic symbols (- _ : ( ) & / + .) are allowed.',
                 'error'
             );
             return;
         }
         if (!dept) {
-            showAlert(alertsEl, isAr ? 'يرجى اختيار القسم الأكاديمي.' : 'Please select a department.', 'error');
+            showAlert(alertsEl, isAr ? 'يرجى اختيار القسم العلمي.' : 'Please select a department.', 'error');
             return;
         }
 
@@ -731,7 +744,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
         if (uploadMode === 'bulk') {
             if (bulkFiles.length === 0 && targetStatus === 'published') {
-                showAlert(alertsEl, isAr ? 'يرجى إضافة دروس أو فيديوهات للكورس قبل النشر.' : 'Please add at least one file or lesson before publishing.', 'error');
+                showAlert(alertsEl, isAr ? 'يرجى إضافة محاضرات أو ملفات للمقرر الدراسي قبل اعتماده ونشره.' : 'Please add at least one file or lesson before publishing.', 'error');
                 return;
             }
             bulkFiles.forEach((item, idx) => {
@@ -744,7 +757,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             });
         } else {
             if (lessons.length === 0 && targetStatus === 'published') {
-                showAlert(alertsEl, isAr ? 'يرجى إضافة دروس للكورس.' : 'Please add lessons.', 'error');
+                showAlert(alertsEl, isAr ? 'يرجى إضافة محاضرات للمقرر الدراسي.' : 'Please add lessons.', 'error');
                 return;
             }
             lessons.forEach(l => {
@@ -1063,7 +1076,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
             // Header Title and Buttons for Edit Mode
             const headerTitle = containerElement.querySelector('.cc-header h1');
             if (headerTitle) {
-                headerTitle.textContent = isAr ? `تعديل الكورس: ${course.title}` : `Edit Course: ${course.title}`;
+                headerTitle.textContent = isAr ? `تعديل المقرر الدراسي: ${course.title}` : `Edit Course: ${course.title}`;
             }
 
             const draftBtn = document.getElementById('ccDraftBtn');
@@ -1074,7 +1087,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
         } catch (err) {
             console.warn('Failed to load course for edit:', err);
-            showAlert(alertsEl, isAr ? 'تعذر تحميل بيانات الكورس للتعديل.' : 'Failed to load course data for editing.', 'error');
+            showAlert(alertsEl, isAr ? 'تعذر تحميل بيانات المقرر الدراسي للتعديل.' : 'Failed to load course data for editing.', 'error');
         }
     }
 
@@ -1130,7 +1143,7 @@ export async function initCourseBuilder(containerElement, onSuccessCallback, edi
 
         if (isCompleted || (filePercent >= 100 && currentFileIndex >= totalFiles)) {
             if (statusEl) statusEl.textContent = isAr ? `اكتمل الرفع بنجاح (${totalFiles}/${totalFiles})` : `Upload Complete (${totalFiles}/${totalFiles})`;
-            if (filenameEl) filenameEl.textContent = isAr ? 'تم حفظ الكورس وجميع محتوياته بنجاح' : 'All course files uploaded & saved';
+            if (filenameEl) filenameEl.textContent = isAr ? 'تم حفظ المقرر الدراسي وجميع محتوياته بنجاح' : 'All course files uploaded & saved';
             if (percentEl) percentEl.innerHTML = '<span style="color:#22c55e;font-weight:bold;font-size:1.1rem;">✓</span>';
             if (fillEl) {
                 fillEl.style.width = '100%';

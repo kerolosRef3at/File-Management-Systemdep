@@ -24,10 +24,31 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
+function getLessonFileIcon(lesson) {
+    const fn = (lesson.file || lesson.title || lesson.name || '').toLowerCase();
+    const type = (lesson.type || '').toLowerCase();
+    if (type === 'video' || /\.(mp4|mkv|avi|mov|webm|wmv|flv|m4v|3gp|ts|mpg|mpeg)$/i.test(fn)) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#9333ea" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+    }
+    if (type === 'pdf' || /\.pdf$/i.test(fn)) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#dc2626" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    }
+    if (/\.(zip|rar|7z|tar|gz|tgz|bz2|xz|iso|cab)$/i.test(fn)) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#d97706" stroke-width="2"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><path d="M10 12h4"/></svg>`;
+    }
+    if (/\.(docx?|rtf)$/i.test(fn)) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+    }
+    if (/\.txt$/i.test(fn)) {
+        return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#059669" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+}
+
 let courseData = null;
 
 function downloadResource(path, name) {
-    if (!path) { alert('This resource has no file attached.'); return; }
+    if (!path) { const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar'; alert(isAr ? 'لا يوجد ملف مرفق بهذا المورد التعليمي حالياً.' : 'This resource has no file attached.'); return; }
     let url;
     if (/^https?:\/\//i.test(path)) url = path;
     else if (path.startsWith('/api/')) url = BASE_URL + path;
@@ -87,6 +108,55 @@ export async function initCourseDetails() {
             }
         }
     }
+
+    // Mobile navigation toggle for course details page
+    const detailMobileBtn = document.getElementById('detailMobileMenu');
+    const detailSidebar = document.getElementById('detailSidebar');
+    const detailSidebarOverlay = document.getElementById('detailSidebarOverlay');
+    const closeDetailSidebarBtn = document.getElementById('closeDetailSidebarBtn');
+
+    function toggleDetailDrawer(open) {
+        if (detailSidebar && detailSidebarOverlay) {
+            if (open) {
+                detailSidebar.classList.add('open');
+                detailSidebarOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            } else {
+                detailSidebar.classList.remove('open');
+                detailSidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+    }
+
+    if (detailMobileBtn) {
+        detailMobileBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDetailDrawer(true);
+        });
+    }
+    if (closeDetailSidebarBtn) {
+        closeDetailSidebarBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDetailDrawer(false);
+        });
+    }
+    if (detailSidebarOverlay) {
+        detailSidebarOverlay.addEventListener('click', () => toggleDetailDrawer(false));
+    }
+    if (detailSidebar) {
+        detailSidebar.querySelectorAll('.mobile-nav-item').forEach(link => {
+            link.addEventListener('click', () => toggleDetailDrawer(false));
+        });
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') toggleDetailDrawer(false);
+    });
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 992) {
+            toggleDetailDrawer(false);
+        }
+    });
 
     // Get Course ID
     const urlParams = new URLSearchParams(window.location.search);
@@ -239,6 +309,30 @@ export async function initCourseDetails() {
 
         const dynamicTypesString = Array.from(typesSet).map(formatTypeLabel).join(isAr ? '، ' : ', ');
 
+        const formatMonthYear = (rawDate) => {
+            if (!rawDate) return isAr ? 'يوليو 2026' : 'Jul 2026';
+            if (!isAr) return rawDate;
+            const monthsAr = {
+                'jan': 'يناير', 'feb': 'فبراير', 'mar': 'مارس', 'apr': 'أبريل',
+                'may': 'مايو', 'jun': 'يونيو', 'jul': 'يوليو', 'aug': 'أغسطس',
+                'sep': 'سبتمبر', 'oct': 'أكتوبر', 'nov': 'نوفمبر', 'dec': 'ديسمبر'
+            };
+            let s = String(rawDate);
+            for (const [en, ar] of Object.entries(monthsAr)) {
+                s = s.replace(new RegExp(en, 'i'), ar);
+            }
+            return s;
+        };
+
+        const categoriesLabel = totalCategories === 1 ? (isAr ? 'قسم واحد' : '1 Category') :
+                                totalCategories === 2 ? (isAr ? 'قسمان' : '2 Categories') :
+                                `${totalCategories} ${isAr ? 'أقسام' : 'Categories'}`;
+
+        const lessonsLabel = totalLessons === 1 ? (isAr ? 'ملف واحد' : '1 File') :
+                             totalLessons === 2 ? (isAr ? 'ملفان' : '2 Files') :
+                             totalLessons >= 3 && totalLessons <= 10 ? `${totalLessons} ${isAr ? 'ملفات' : 'Files'}` :
+                             `${totalLessons} ${isAr ? 'ملفاً' : 'Files'}`;
+
         body.innerHTML = `
             <!-- Executive Course Hero Banner -->
             <div class="cd-hero-banner">
@@ -251,7 +345,7 @@ export async function initCourseDetails() {
                         </a>
                         <span class="cd-bc-sep">/</span>
                         <a href="courses.html" class="cd-bc-link">
-                            <span>${isAr ? 'الكورسات' : 'Courses'}</span>
+                            <span>${isAr ? 'المقررات الدراسية' : 'Courses'}</span>
                         </a>
                         <span class="cd-bc-sep">/</span>
                         <span class="cd-bc-current">${escapeHtml(course.title)}</span>
@@ -259,9 +353,9 @@ export async function initCourseDetails() {
 
                     ${isAdmin ? `
                     <div class="cd-hero-admin-actions">
-                        <button id="btnAdminEditCourse" class="cd-btn-hero-secondary" title="${isAr ? 'تعديل الكورس' : 'Edit Course'}">
+                        <button id="btnAdminEditCourse" class="cd-btn-hero-secondary" title="${isAr ? 'تعديل المقرر الدراسي' : 'Edit Course'}">
                             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            <span>${isAr ? 'تعديل الكورس' : 'Edit Course'}</span>
+                            <span>${isAr ? 'تعديل المقرر الدراسي' : 'Edit Course'}</span>
                         </button>
                         <button id="btnAdminDeleteCourse" class="cd-btn-hero-danger" title="${isAr ? 'حذف' : 'Delete'}">
                             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -299,7 +393,7 @@ export async function initCourseDetails() {
                             </div>
                             <div class="cd-hero-chip">
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <span>${isAr ? 'آخر تحديث' : 'Last updated'} ${course.lastUpdated || 'Jul 2026'}</span>
+                                <span>${isAr ? 'آخر تحديث' : 'Last updated'}: <bdi>${formatMonthYear(course.lastUpdated || 'Jul 2026')}</bdi></span>
                             </div>
                             <div class="cd-hero-chip">
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
@@ -307,7 +401,7 @@ export async function initCourseDetails() {
                             </div>
                             <div class="cd-hero-chip">
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                                <span>${totalCategories} ${isAr ? 'أقسام' : 'Categories'} • ${totalLessons} ${isAr ? 'ملفات' : 'Files'}</span>
+                                <span>${categoriesLabel} • ${lessonsLabel}</span>
                             </div>
                         </div>
                     </div>
@@ -338,9 +432,9 @@ export async function initCourseDetails() {
                             <div class="cd-section-icon-box">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                             </div>
-                            <h2>${isAr ? 'نظرة عامة على الكورس' : 'Package Overview'}</h2>
+                            <h2>${isAr ? 'نظرة عامة وتوصيف المقرر الدراسي' : 'Package Overview'}</h2>
                         </div>
-                        <p>${course.description || (isAr ? 'لا يوجد وصف متاح لهذا الكورس.' : 'No description available.')}</p>
+                        <p>${course.description || (isAr ? 'لا يوجد توصيف متاح لهذا المقرر الدراسي حالياً.' : 'No description available.')}</p>
                         <div class="package-overview-stats">
                             <div class="po-stat">
                                 <div class="po-stat-icon blue">
@@ -370,9 +464,9 @@ export async function initCourseDetails() {
                                 <div class="cd-section-icon-box" style="background: #EFF6FF; color: #1565C0;">
                                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                 </div>
-                                <h2>${isAr ? 'قائمة الموارد والدروس' : 'Resource List'}</h2>
+                                <h2>${isAr ? 'قائمة المحاضرات والموارد الأكاديمية' : 'Resource List'}</h2>
                             </div>
-                            <span class="resource-list-count">${totalCategories} ${isAr ? 'أقسام' : 'Categories'} • ${totalLessons} ${isAr ? 'ملفات' : 'Files'}</span>
+                            <span class="resource-list-count">${totalCategories} ${isAr ? 'وحدات دراسية' : 'Categories'} • ${totalLessons} ${isAr ? 'محاضرة ومورد' : 'Files'}</span>
                         </div>
                         <div id="moduleAccordion"></div>
                     </div>
@@ -382,12 +476,12 @@ export async function initCourseDetails() {
                 <div class="course-detail-sidebar">
                     <!-- Download Bundle Card -->
                     <div class="download-bundle-card">
-                        <h3>${isAr ? 'تحميل حزمة الكورس' : 'Download Bundle'}</h3>
+                        <h3>${isAr ? 'تحميل الحقيبة التعليمية الكاملة للمقرر' : 'Download Bundle'}</h3>
                         
                         <div class="db-size-highlight-box">
                             <div class="db-sh-left">
                                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                                <span>${isAr ? 'حجم الأرشيف المتاح' : 'Archive Available'}</span>
+                                <span>${isAr ? 'حجم الحقيبة الأكاديمية' : 'Archive Available'}</span>
                             </div>
                             <span class="db-sh-value" dir="ltr">${course.size || '30.0 MB'}</span>
                         </div>
@@ -409,14 +503,14 @@ export async function initCourseDetails() {
 
                         <button class="db-download-all-btn" id="downloadAllBtn">
                             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                            <span>${isAr ? 'تحميل جميع الموارد' : 'Download All Resources'}</span>
+                            <span>${isAr ? 'تحميل الحقيبة التعليمية كاملة' : 'Download All Resources'}</span>
                         </button>
                     </div>
 
                     <!-- Author Card -->
                     ${course.author ? `
                     <div class="author-card">
-                        <div class="author-card-label">${isAr ? 'معد المنهج الأكاديمي' : 'Curriculum Author'}</div>
+                        <div class="author-card-label">${isAr ? 'أستاذ / منسق المقرر الأكاديمي' : 'Curriculum Author'}</div>
                         <div class="author-info">
                             <div class="author-avatar">${course.author.name ? course.author.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'A'}</div>
                             <div>
@@ -426,7 +520,7 @@ export async function initCourseDetails() {
                         </div>
                         <p class="author-bio">${course.author.bio || ''}</p>
                         <a href="#" class="author-profile-link">
-                            <span>${isAr ? 'عرض الملف الشخصي للمحاضر' : 'View Faculty Profile'}</span>
+                            <span>${isAr ? 'الملف الأكاديمي لعضو هيئة التدريس' : 'View Faculty Profile'}</span>
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg>
                         </a>
                     </div>
@@ -483,22 +577,20 @@ export async function initCourseDetails() {
                     ${mod.lessons.map(lesson => `
                         <div class="rl-file-row">
                             <div class="rl-file-name">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="${lesson.type === 'video' ? '#9333ea' : '#2563eb'}" stroke-width="2">
-                                    ${lesson.type === 'video' ? '<polygon points="5 3 19 12 5 21 5 3"/>' : '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>'}
-                                </svg>
-                                ${lesson.title || lesson.name || 'Lesson Resource'}
+                                ${getLessonFileIcon(lesson)}
+                                <span>${escapeHtml(lesson.title || lesson.name || (isAr ? 'مورد المحاضرة' : 'Lesson Resource'))}</span>
                             </div>
                             <div class="rl-file-actions">
                                 <span class="rl-file-size" dir="ltr">${lesson.size || ''}</span>
                                 ${isAdmin ? `
-                                <button class="rl-file-admin-edit-btn" title="Edit File" style="background:transparent; border:none; cursor:pointer; color: var(--primary-blue);">
+                                <button class="rl-file-admin-edit-btn" title="${isAr ? 'تعديل اسم الملف' : 'Edit File'}" style="background:transparent; border:none; cursor:pointer; color: var(--primary-blue);">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                                 </button>
-                                <button class="rl-file-admin-delete-btn" title="Delete File" style="background:transparent; border:none; cursor:pointer; color: #dc2626;">
+                                <button class="rl-file-admin-delete-btn" title="${isAr ? 'حذف الملف' : 'Delete File'}" style="background:transparent; border:none; cursor:pointer; color: #dc2626;">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                 </button>
                                 ` : ''}
-                                <button class="rl-file-download-btn" data-id="${lesson.fileId != null ? lesson.fileId : (lesson.id || '')}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" data-type="${lesson.type || ''}" title="Download">
+                                <button class="rl-file-download-btn" data-id="${lesson.fileId != null ? lesson.fileId : (lesson.id || '')}" data-file="${lesson.file || ''}" data-title="${lesson.title || lesson.name || ''}" data-type="${lesson.type || ''}" title="${isAr ? 'تحميل' : 'Download'}">
                                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                                 </button>
                             </div>
@@ -604,7 +696,7 @@ export async function initCourseDetails() {
                     btn.style.alignItems = '';
                     btn.style.gap = '';
                     btn.innerHTML = originalBtnHtml;
-                    btn.title = 'Download';
+                    btn.title = isAr ? 'تحميل' : 'Download';
                 }
 
                 // If not successful and not cancelled, notify user
@@ -655,9 +747,9 @@ export async function initCourseDetails() {
             }
             if (deleteCourseBtn) {
 deleteCourseBtn.addEventListener('click', () => {
-    const title = isAr ? 'تأكيد حذف الكورس' : 'Confirm Course Deletion';
+    const title = isAr ? 'تأكيد حذف المقرر الدراسي' : 'Confirm Course Deletion';
     const message = isAr
-        ? `هل أنت متأكد من رغبتك في حذف كورس "${course.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف جميع المحاضرات والملفات المتعلقة به.`
+        ? `هل أنت متأكد من رغبتك في حذف المقرر الدراسي "${course.title}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف جميع المحاضرات والملفات المتعلقة به.`
         : `Are you sure you want to permanently delete course "${course.title}"? This action cannot be undone.`;
 
     showConfirmModal({
@@ -672,10 +764,10 @@ deleteCourseBtn.addEventListener('click', () => {
 
             try {
                 await courseService.deleteCourse(course.id);
-                alert(isAr ? 'تم حذف الكورس بنجاح.' : 'Course deleted successfully.');
+                alert(isAr ? 'تم حذف المقرر الدراسي بنجاح.' : 'Course deleted successfully.');
                 window.location.href = 'courses.html';
             } catch (err) {
-                alert(isAr ? 'تعذر حذف الكورس.' : 'Failed to delete course.');
+                alert(isAr ? 'تعذر حذف المقرر الدراسي.' : 'Failed to delete course.');
                 deleteCourseBtn.disabled = false;
                 deleteCourseBtn.innerText = isAr ? 'حذف' : 'Delete';
             }
@@ -708,7 +800,7 @@ deleteCourseBtn.addEventListener('click', () => {
     } catch (error) {
         const lang = getCurrentLang();
         const isAr = lang === 'ar';
-        body.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text-gray);"><h2 style="color:var(--primary-dark);">${isAr ? 'الكورس غير موجود' : 'Course Not Found'}</h2><p>${error.message}</p><a href="courses.html" style="color:var(--primary-blue);margin-top:15px;display:inline-block;">${isAr ? 'العودة لصفحة الكورسات' : 'Back to Courses'}</a></div>`;
+        body.innerHTML = `<div style="text-align:center;padding:80px 20px;color:var(--text-gray);"><h2 style="color:var(--primary-dark);">${isAr ? 'المقرر الدراسي غير متاح أو تم نقله' : 'Course Not Found'}</h2><p>${error.message}</p><a href="courses.html" style="color:var(--primary-blue);margin-top:15px;display:inline-block;">${isAr ? 'العودة لدليل المقررات الدراسية' : 'Back to Courses'}</a></div>`;
     } finally {
         // Hide Global Loader
         const loader = document.getElementById('global-page-loader');
@@ -851,7 +943,7 @@ deleteCourseBtn.addEventListener('click', () => {
             if (filesToDownload.length === 0) {
                 alert(
                     isAr
-                        ? 'لا توجد ملفات لتحميلها في هذا الكورس.'
+                        ? 'لا توجد محاضرات أو موارد متاحة للتحميل في هذا المقرر الدراسي.'
                         : 'This course has no files to download.'
                 );
                 return;
@@ -909,13 +1001,13 @@ deleteCourseBtn.addEventListener('click', () => {
             if (ok === 0 && failed > 0) {
                 alert(
                     isAr
-                        ? 'تعذّر تحميل ملفات هذا الكورس. قد تكون غير متاحة على الخادم.'
+                        ? 'تعذر تحميل ملفات هذا المقرر الدراسي من الخادم المركزي للجامعة.'
                         : "Could not download this course's files. They may be unavailable on the server."
                 );
             } else if (failed > 0) {
                 alert(
                     isAr
-                        ? `تم تحميل ${ok} ملف، وتعذّر تحميل ${failed}.`
+                        ? `تم تحميل ${ok} ملف بنجاح، وتعذر تحميل ${failed} ملف.`
                         : `Downloaded ${ok} file(s); ${failed} could not be downloaded.`
                 );
             }
