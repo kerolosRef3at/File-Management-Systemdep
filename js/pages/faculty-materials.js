@@ -851,9 +851,10 @@ async function loadInitialData() {
         const rawFolders = await folderService.getFolders();
         const folders = Array.isArray(rawFolders) ? rawFolders : [];
         const localFoldersMeta = getLocalFoldersMeta();
+        const deletedFolderIds = getDeletedFolderIds();
 
         const rootDeptNames = ['Information Tech', 'Information Technology', 'Electrical Eng.', 'Mechanical Eng.', 'Design', 'General'];
-        const validApiFolders = folders.filter(f => !f.isDepartment && !rootDeptNames.includes(f.name));
+        const validApiFolders = folders.filter(f => !f.isDepartment && !rootDeptNames.includes(f.name) && !deletedFolderIds.includes(String(f.id)));
 
         allFolders = validApiFolders.map(f => {
             const meta = localFoldersMeta[f.id] || {};
@@ -881,27 +882,31 @@ async function loadInitialData() {
         const rawFiles = await fileService.getFiles();
         const files = Array.isArray(rawFiles) ? rawFiles : [];
         const localFilesMeta = getLocalFilesMeta();
+        const deletedFileIds = getDeletedFileIds();
+        const deletedFolderIds = getDeletedFolderIds();
 
-        allFiles = files.map(f => {
-            const meta = localFilesMeta[f.id] || {};
-            return {
-                id: f.id,
-                name: meta.title || f.name,
-                size: formatFileSize(f.size),
-                type: f.type,
-                dept: f.dept || meta.dept || 'IT',
-                level: meta.level || 1,
-                academicYear: meta.academicYear || '2025/2026',
-                folderId: f.folderId || meta.folderId || null,
-                category: meta.category || 'LECTURE',
-                instructor: meta.instructor || 'د. عضو هيئة تدريس',
-                course: meta.course || f.course || 'مقرر دراسي',
-                deadline: meta.deadline || null,
-                notes: meta.notes || '',
-                uploadedAt: meta.uploadedAt || (f.uploadedAt ? f.uploadedAt.split('T')[0] : '2026-09-28'),
-                downloads: f.downloadCount || f.downloads || 0
-            };
-        });
+        allFiles = files
+            .filter(f => !deletedFileIds.includes(String(f.id)) && (!f.folderId || !deletedFolderIds.includes(String(f.folderId))))
+            .map(f => {
+                const meta = localFilesMeta[f.id] || {};
+                return {
+                    id: f.id,
+                    name: meta.title || f.name,
+                    size: formatFileSize(f.size),
+                    type: f.type,
+                    dept: f.dept || meta.dept || 'IT',
+                    level: meta.level || 1,
+                    academicYear: meta.academicYear || '2025/2026',
+                    folderId: f.folderId || meta.folderId || null,
+                    category: meta.category || 'LECTURE',
+                    instructor: meta.instructor || 'د. عضو هيئة تدريس',
+                    course: meta.course || f.course || 'مقرر دراسي',
+                    deadline: meta.deadline || null,
+                    notes: meta.notes || '',
+                    uploadedAt: meta.uploadedAt || (f.uploadedAt ? f.uploadedAt.split('T')[0] : '2026-09-28'),
+                    downloads: f.downloadCount || f.downloads || 0
+                };
+            });
 
         // Ensure we seed demo files so curriculum is rich
         ensurePreseededFiles();
@@ -1358,6 +1363,10 @@ async function handleCreateFolderSubmit() {
         const res = await folderService.createFolder(folderName, currentFolderId, meta);
         const newFolderId = res?.id || Date.now();
 
+        // Ensure newly created folder ID is not marked as deleted
+        const activeDeletedFolders = getDeletedFolderIds().filter(id => id !== String(newFolderId));
+        localStorage.setItem('aitu_faculty_deleted_folders', JSON.stringify(activeDeletedFolders));
+
         // Save metadata locally
         const localFoldersMeta = getLocalFoldersMeta();
         localFoldersMeta[newFolderId] = meta;
@@ -1398,12 +1407,45 @@ async function handleDeleteFolder(folderId) {
 
     try {
         await folderService.deleteFolder(folderId);
-        allFolders = allFolders.filter(f => String(f.id) !== String(folderId));
-        renderFoldersGrid();
-        showToast(isAr ? 'تم حذف المجلد بنجاح.' : 'Folder deleted.');
     } catch (err) {
-        alert(isAr ? 'تعذر حذف المجلد: ' + err.message : 'Error deleting folder');
+        console.warn('Delete folder API notice:', err);
+        const isIgnorable = err.message && (
+            err.message.includes('404') ||
+            err.message.includes('not found') ||
+            err.message.includes('deleted already') ||
+            err.message.includes('offline') ||
+            err.message.includes('Failed to fetch')
+        );
+        if (!isIgnorable) {
+            alert(isAr ? 'تعذر حذف المجلد: ' + err.message : 'Error deleting folder: ' + err.message);
+            return;
+        }
     }
+
+    // Persist deletion so preseeded / cached folders do not reappear
+    markFolderAsDeleted(folderId);
+
+    // Also mark any files inside this folder as deleted
+    const filesInFolder = allFiles.filter(f => String(f.folderId) === String(folderId));
+    filesInFolder.forEach(f => markFileAsDeleted(f.id));
+
+    allFolders = allFolders.filter(f => String(f.id) !== String(folderId));
+    allFiles = allFiles.filter(f => String(f.folderId) !== String(folderId));
+
+    try { sessionStorage.removeItem('aitu_folders_cache'); } catch (e) {}
+
+    // If currently inside the deleted folder, go back to parent or root
+    if (String(currentFolderId) === String(folderId)) {
+        folderNavigationStack.pop();
+        const parentStep = folderNavigationStack[folderNavigationStack.length - 1];
+        currentFolderId = parentStep ? parentStep.id : null;
+        renderExplorer();
+    } else {
+        renderFoldersGrid();
+        renderFilesGrid();
+    }
+
+    showToast(isAr ? 'تم حذف المجلد بنجاح.' : 'Folder deleted.');
 }
 
 /**
@@ -1552,12 +1594,26 @@ async function handleDeleteFile(item) {
 
     try {
         await fileService.deleteFile(item.id);
-        allFiles = allFiles.filter(f => String(f.id) !== String(item.id));
-        renderFilesGrid();
-        showToast(isAr ? 'تم حذف الملف بنجاح.' : 'File deleted.');
     } catch (err) {
-        alert(isAr ? 'تعذر حذف الملف: ' + err.message : 'Error deleting file');
+        console.warn('Delete file API notice:', err);
+        const isIgnorable = err.message && (
+            err.message.includes('404') ||
+            err.message.includes('not found') ||
+            err.message.includes('deleted already') ||
+            err.message.includes('offline') ||
+            err.message.includes('Failed to fetch')
+        );
+        if (!isIgnorable) {
+            alert(isAr ? 'تعذر حذف الملف: ' + err.message : 'Error deleting file: ' + err.message);
+            return;
+        }
     }
+
+    markFileAsDeleted(item.id);
+    allFiles = allFiles.filter(f => String(f.id) !== String(item.id));
+    renderFilesGrid();
+    renderFoldersGrid();
+    showToast(isAr ? 'تم حذف الملف بنجاح.' : 'File deleted.');
 }
 
 /**
@@ -1594,10 +1650,35 @@ function saveLocalFilesMeta(d) {
     try { localStorage.setItem('aitu_faculty_files_meta', JSON.stringify(d)); } catch (e) {}
 }
 
+function getDeletedFolderIds() {
+    try { return JSON.parse(localStorage.getItem('aitu_faculty_deleted_folders') || '[]'); } catch { return []; }
+}
+function markFolderAsDeleted(id) {
+    const list = getDeletedFolderIds();
+    const strId = String(id);
+    if (!list.includes(strId)) {
+        list.push(strId);
+        try { localStorage.setItem('aitu_faculty_deleted_folders', JSON.stringify(list)); } catch (e) {}
+    }
+}
+
+function getDeletedFileIds() {
+    try { return JSON.parse(localStorage.getItem('aitu_faculty_deleted_files') || '[]'); } catch { return []; }
+}
+function markFileAsDeleted(id) {
+    const list = getDeletedFileIds();
+    const strId = String(id);
+    if (!list.includes(strId)) {
+        list.push(strId);
+        try { localStorage.setItem('aitu_faculty_deleted_files', JSON.stringify(list)); } catch (e) {}
+    }
+}
+
 /**
  * Seed initial academic curriculum folders so the system feels complete immediately
  */
 function ensurePreseededFolders() {
+    const deletedFolderIds = getDeletedFolderIds();
     const preseeded = [
         // Level 1 - IT (2025/2026)
         { id: 101, name: 'محاضرات وسلايدات البرمجة الهيكلية C++', dept: 'IT', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-20' },
@@ -1645,6 +1726,7 @@ function ensurePreseededFolders() {
     ];
 
     preseeded.forEach(pf => {
+        if (deletedFolderIds.includes(String(pf.id))) return;
         if (!allFolders.some(f => String(f.id) === String(pf.id))) {
             allFolders.push(pf);
         }
@@ -1777,7 +1859,12 @@ function ensurePreseededFiles() {
         }
     ];
 
+    const deletedFileIds = getDeletedFileIds();
+    const deletedFolderIds = getDeletedFolderIds();
+
     preseeded.forEach(pf => {
+        if (deletedFileIds.includes(String(pf.id))) return;
+        if (pf.folderId && deletedFolderIds.includes(String(pf.folderId))) return;
         if (!allFiles.some(f => String(f.id) === String(pf.id))) {
             allFiles.push(pf);
         }

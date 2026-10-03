@@ -920,7 +920,10 @@ export const fileService = {
                 method: 'DELETE'
             });
         } catch (err) {
-            console.warn("Delete file API failed:", err);
+            console.warn("Delete file API notice:", err);
+            if (err.message && (err.message.includes('404') || err.message.includes('not found') || err.message.includes('deleted already'))) {
+                return { success: true, notFound: true };
+            }
             throw err;
         }
     },
@@ -1292,11 +1295,17 @@ export const folderService = {
 
     async deleteFolder(id) {
         try {
-            return await fetchAPI(`/api/Folders/${id}`, {
+            const res = await fetchAPI(`/api/Folders/${id}`, {
                 method: 'DELETE'
             });
+            sessionStorage.removeItem('aitu_folders_cache');
+            return res;
         } catch (err) {
-            console.warn("Delete folder API failed:", err);
+            console.warn("Delete folder API notice:", err);
+            if (err.message && (err.message.includes('404') || err.message.includes('not found') || err.message.includes('deleted already'))) {
+                sessionStorage.removeItem('aitu_folders_cache');
+                return { success: true, notFound: true };
+            }
             throw err;
         }
     }
@@ -1416,7 +1425,11 @@ export const courseService = {
             this._invalidateCoursesCache();
             return result;
         } catch (err) {
-            console.warn("Delete course API failed:", err);
+            console.warn("Delete course API notice:", err);
+            if (err.message && (err.message.includes('404') || err.message.includes('not found') || err.message.includes('deleted already'))) {
+                this._invalidateCoursesCache();
+                return { success: true, notFound: true };
+            }
             throw err;
         }
     },

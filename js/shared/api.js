@@ -79,7 +79,9 @@ export async function fetchAPI(endpoint, options = {}) {
             console.warn('Resource not found:', endpoint);
 
             if (isDelete) {
-                throw new Error('Resource not found on server (404). It may have been deleted already.');
+                // If a DELETE operation receives a 404, the resource is already absent on the server.
+                // In REST APIs, DELETE is idempotent: return success so callers can update their UI/cache.
+                return { success: true, notFound: true, message: 'Resource already deleted or not found on server' };
             }
 
             return null;
@@ -136,7 +138,7 @@ export async function fetchAPI(endpoint, options = {}) {
             console.warn('Network/CORS error:', error);
 
             if (isDelete) {
-                throw new Error('CORS or network error - will delete locally only');
+                return { success: true, notFound: true, offline: true, message: 'CORS or network error - deleted locally' };
             }
 
             throw new Error('Network error. Please check your internet connection and try again.');

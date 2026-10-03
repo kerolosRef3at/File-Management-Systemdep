@@ -7,6 +7,7 @@ export const translations = {
         nav_home: "Home",
         nav_programs: "Programs",
         nav_courses: "Courses",
+        nav_faculty_materials: "Faculty & Materials Portal",
         nav_repository: "Repository",
         nav_login: "Login",
         nav_join: "Join AITU",
@@ -17,6 +18,7 @@ export const translations = {
         hero_title: "Academic Infrastructure Repository",
         hero_desc: "The official institutional file management system for Assiut International Technological University. A secure and organized platform to access resources for Information Technology, Electrical, and Mechanical Engineering departments.",
         hero_btn_browse: "Browse Programs",
+        hero_btn_faculty: "Faculty & Materials Portal",
         hero_btn_academy: "Join AITU Academy",
 
         // ===== Departments Section =====
@@ -475,6 +477,7 @@ export const translations = {
         nav_home: "الرئيسية",
         nav_programs: "البرامج الأكاديمية",
         nav_courses: "المقررات الدراسية",
+        nav_faculty_materials: "بوابة المناهج والمواد",
         nav_repository: "المستودع الرقمي",
         nav_login: "تسجيل الدخول",
         nav_join: "بوابة الجامعة",
@@ -485,6 +488,7 @@ export const translations = {
         hero_title: "المستودع الرقمي المركزي للموارد والملفات الأكاديمية",
         hero_desc: "المنظومة المؤسسية المعتمدة لجامعة أسيوط التكنولوجية الدولية لحفظ وإدارة وتداول الموارد العلمية والمقررات الدراسية لأقسام تكنولوجيا المعلومات، وتكنولوجيا الأجهزة الكهربائية والإلكترونية، وتكنولوجيا الميكاترونكس.",
         hero_btn_browse: "استعراض البرامج الأكاديمية",
+        hero_btn_faculty: "بوابة المناهج والمواد",
         hero_btn_academy: "بوابة الجامعة التكنولوجية",
 
         // ===== Departments Section =====

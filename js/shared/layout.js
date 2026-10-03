@@ -88,6 +88,18 @@ export function renderLayout(activePage = 'repository') {
         });
     }
 
+    if (isPublicUser) {
+        navItems.push({
+            id: 'home',
+            href: 'index.html',
+            label: isAr ? 'الرئيسية' : 'Home',
+            icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>`
+        });
+    }
+
     navItems.push({
         id: 'repository',
         href: 'repository.html',
@@ -109,9 +121,7 @@ export function renderLayout(activePage = 'repository') {
     navItems.push({
         id: 'faculty-materials',
         href: 'faculty-materials.html',
-        label: isAr 
-            ? (isPublicUser ? 'المناهج والمقررات الأكاديمية' : 'بوابة المناهج وهيئة التدريس') 
-            : (isPublicUser ? 'Course Materials' : 'Faculty & Materials Portal'),
+        label: isAr ? 'بوابة المناهج والمواد' : 'Faculty & Materials Portal',
         icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
         </svg>`
@@ -393,12 +403,17 @@ function initShellEventHandlers(initialPage) {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             const targetPage = btn.dataset.page;
+            const targetHref = btn.dataset.href;
             if (targetPage) {
                 closeMobileDrawer();
+                if (targetPage === 'home') {
+                    window.location.href = 'index.html';
+                    return;
+                }
                 if (window.navigateTo) {
                     window.navigateTo(targetPage);
                 } else {
-                    window.location.href = `${targetPage}.html`;
+                    window.location.href = targetHref || `${targetPage}.html`;
                 }
             }
         });
