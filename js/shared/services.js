@@ -688,12 +688,15 @@ export function showProgressWidget(items = [], type = 'upload') {
 const defaultFallbackFiles = [];
 
 export const fileService = {
- async getFiles(dept = null, search = null) {
+ async getFiles(dept = null, search = null, kind = null) {
     try {
         let url = '/api/Files';
         const params = [];
         if (dept) params.push(`department=${dept}`);
         if (search) params.push(`search=${search}`);
+        // kind selects which content tree to read: "programs" (repository),
+        // "course_resource" (courses) or "faculty_material" (the portal).
+        if (kind) params.push(`kind=${encodeURIComponent(kind)}`);
         if (params.length > 0) url += '?' + params.join('&');
 
         const backendFiles = await fetchAPI(url);
@@ -708,10 +711,22 @@ export const fileService = {
                     size: formatFileSize(f.size),
                     dept: f.dept || '',
                     deptId: deptId,
+                    folderId: (f.folderId === 0 || f.folderId == null) ? null : f.folderId,
                     downloads: f.downloadCount || 0,
                     uploadDate: f.uploadedAt
                         ? f.uploadedAt.split('T')[0] : new Date().toISOString().split('T')[0],
-                    program: f.program || f.category || f.folderName || null
+                    program: f.program || f.folderName || null,
+                    // Faculty & Materials portal metadata. These come straight
+                    // from the server now (no more per-browser localStorage), so
+                    // the same file shows the same year/level/course everywhere.
+                    fileKind: f.fileKind || null,
+                    category: f.category || null,
+                    academicYear: f.academicYear || null,
+                    level: (f.level == null) ? null : Number(f.level),
+                    course: f.course || null,
+                    instructor: f.instructor || null,
+                    deadline: f.deadline || null,
+                    notes: f.notes || null
                 };
             });
         }
@@ -869,13 +884,25 @@ export const fileService = {
 
     uploadFileWithProgress(formData, params = {}, onProgress = () => {}) {
         return new Promise((resolve, reject) => {
-            const { folderId = 0, type = '', dept = '', customName = '', program = '' } = params;
+            const {
+                folderId = 0, type = '', dept = '', customName = '', program = '',
+                // Faculty & Materials portal metadata (optional).
+                category = '', academicYear = '', level = null,
+                course = '', instructor = '', deadline = '', notes = ''
+            } = params;
 
             let url = `${BASE_URL}/api/Files/upload?folderId=${folderId}`;
             if (type) url += `&type=${encodeURIComponent(type)}`;
             if (dept) url += `&dept=${encodeURIComponent(dept)}`;
             if (customName) url += `&customName=${encodeURIComponent(customName)}`;
             if (program) url += `&program=${encodeURIComponent(program)}`;
+            if (category) url += `&category=${encodeURIComponent(category)}`;
+            if (academicYear) url += `&academicYear=${encodeURIComponent(academicYear)}`;
+            if (level !== null && level !== '' && level !== undefined) url += `&level=${encodeURIComponent(level)}`;
+            if (course) url += `&course=${encodeURIComponent(course)}`;
+            if (instructor) url += `&instructor=${encodeURIComponent(instructor)}`;
+            if (deadline) url += `&deadline=${encodeURIComponent(deadline)}`;
+            if (notes) url += `&notes=${encodeURIComponent(notes)}`;
 
             const xhr = new XMLHttpRequest();
             xhr.open('POST', url, true);
@@ -1217,7 +1244,7 @@ export const folderService = {
         const meta = (deptOrMeta && typeof deptOrMeta === 'object') ? deptOrMeta : {};
         const deptCode = String(
             (deptOrMeta && typeof deptOrMeta === 'object')
-                ? (meta.code || meta.shortName || '')
+                ? (meta.code || meta.shortName || meta.dept || '')
                 : (deptOrMeta || '')
         ).toUpperCase();
 
@@ -1232,7 +1259,13 @@ export const folderService = {
             code: isDepartment ? deptCode : '',
             shortName: isDepartment ? deptCode : '',
             icon: meta.icon || 'monitor',
-            isDepartment: isDepartment
+            isDepartment: isDepartment,
+            // Faculty & Materials portal: pin the folder to a year/level/type so
+            // it shows in the right place for every viewer (null for ordinary
+            // repository departments/programs).
+            category: meta.category || null,
+            academicYear: meta.academicYear || null,
+            level: (meta.level === null || meta.level === undefined) ? null : Number(meta.level)
         };
 
         const storeLocalFolder = () => {

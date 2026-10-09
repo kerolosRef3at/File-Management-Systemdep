@@ -114,8 +114,6 @@ export async function initFacultyMaterials(container) {
 
     renderPortalStructure(container, user, isGuest, userDept);
     bindGlobalEvents();
-    ensurePreseededFolders();
-    ensurePreseededFiles();
     renderExplorer();
     loadInitialData();
 }
@@ -837,7 +835,7 @@ function getCurrentPathString() {
  * Load initial data from APIs and local mirrors
  */
 async function loadInitialData() {
-    // 1. Load courses
+    // Courses are optional context; a failure here must not block the portal.
     try {
         const rawCourses = await courseService.getCourses();
         coursesList = Array.isArray(rawCourses) ? rawCourses : [];
@@ -846,76 +844,74 @@ async function loadInitialData() {
         coursesList = [];
     }
 
-    // 2. Load Folders
+    await Promise.all([loadFoldersFromServer(), loadFilesFromServer()]);
+    renderExplorer();
+}
+
+/**
+ * Load Faculty & Materials folders from the server.
+ *
+ * The server is the single source of truth: there is no more per-browser
+ * localStorage mirror and no hard-coded demo data, so every device sees the
+ * same folders. Portal folders are the ones pinned to a study level (Level
+ * 1-4); repository departments/programs have no level, which cleanly separates
+ * the two trees that share the Folders table.
+ */
+async function loadFoldersFromServer() {
     try {
+        // Force a fresh read: a cache written before the portal columns existed
+        // would be missing level/academicYear and hide every portal folder.
+        try { sessionStorage.removeItem('aitu_folders_cache'); } catch (e) {}
         const rawFolders = await folderService.getFolders();
         const folders = Array.isArray(rawFolders) ? rawFolders : [];
-        const localFoldersMeta = getLocalFoldersMeta();
-        const deletedFolderIds = getDeletedFolderIds();
-
-        const rootDeptNames = ['Information Tech', 'Information Technology', 'Electrical Eng.', 'Mechanical Eng.', 'Design', 'General'];
-        const validApiFolders = folders.filter(f => !f.isDepartment && !rootDeptNames.includes(f.name) && !deletedFolderIds.includes(String(f.id)));
-
-        allFolders = validApiFolders.map(f => {
-            const meta = localFoldersMeta[f.id] || {};
-            return {
+        allFolders = folders
+            .filter(f => !f.isDepartment && f.level != null && Number(f.level) > 0)
+            .map(f => ({
                 id: f.id,
                 name: f.name,
-                dept: f.dept || meta.dept || 'IT',
-                parentFolderId: f.parentFolderId || meta.parentFolderId || null,
-                level: meta.level || 1,
-                academicYear: meta.academicYear || '2025/2026',
-                category: meta.category || 'GENERAL',
-                createdAt: f.createdAt ? f.createdAt.split('T')[0] : '2026-09-25'
-            };
-        });
-
-        // Ensure we seed initial academic curriculum folders
-        ensurePreseededFolders();
+                dept: String(f.dept || '').toUpperCase(),
+                parentFolderId: (f.parentFolderId === 0 || f.parentFolderId == null) ? null : f.parentFolderId,
+                level: Number(f.level),
+                academicYear: f.academicYear || null,
+                category: f.category || 'GENERAL',
+                createdAt: f.createdAt ? String(f.createdAt).split('T')[0] : ''
+            }));
     } catch (e) {
-        console.warn('Folders fetch fallback:', e);
-        ensurePreseededFolders();
+        console.warn('Folders fetch error:', e);
+        allFolders = [];
     }
+}
 
-    // 3. Load Files
+/**
+ * Load Faculty & Materials files from the server (kind = faculty_material).
+ * All the rich metadata (year, level, course, instructor, deadline, notes)
+ * comes back from the API now instead of localStorage.
+ */
+async function loadFilesFromServer() {
     try {
-        const rawFiles = await fileService.getFiles();
+        const rawFiles = await fileService.getFiles(null, null, 'faculty_material');
         const files = Array.isArray(rawFiles) ? rawFiles : [];
-        const localFilesMeta = getLocalFilesMeta();
-        const deletedFileIds = getDeletedFileIds();
-        const deletedFolderIds = getDeletedFolderIds();
-
-        allFiles = files
-            .filter(f => !deletedFileIds.includes(String(f.id)) && (!f.folderId || !deletedFolderIds.includes(String(f.folderId))))
-            .map(f => {
-                const meta = localFilesMeta[f.id] || {};
-                return {
-                    id: f.id,
-                    name: meta.title || f.name,
-                    size: formatFileSize(f.size),
-                    type: f.type,
-                    dept: f.dept || meta.dept || 'IT',
-                    level: meta.level || 1,
-                    academicYear: meta.academicYear || '2025/2026',
-                    folderId: f.folderId || meta.folderId || null,
-                    category: meta.category || 'LECTURE',
-                    instructor: meta.instructor || 'د. عضو هيئة تدريس',
-                    course: meta.course || f.course || 'مقرر دراسي',
-                    deadline: meta.deadline || null,
-                    notes: meta.notes || '',
-                    uploadedAt: meta.uploadedAt || (f.uploadedAt ? f.uploadedAt.split('T')[0] : '2026-09-28'),
-                    downloads: f.downloadCount || f.downloads || 0
-                };
-            });
-
-        // Ensure we seed demo files so curriculum is rich
-        ensurePreseededFiles();
+        allFiles = files.map(f => ({
+            id: f.id,
+            name: f.name,
+            size: f.size,
+            type: f.type,
+            dept: String(f.dept || f.deptId || '').toUpperCase(),
+            level: (f.level == null) ? null : Number(f.level),
+            academicYear: f.academicYear || null,
+            folderId: (f.folderId === 0 || f.folderId == null) ? null : f.folderId,
+            category: f.category || 'LECTURE',
+            instructor: f.instructor || '',
+            course: f.course || '',
+            deadline: f.deadline ? String(f.deadline).split('T')[0] : null,
+            notes: f.notes || '',
+            uploadedAt: f.uploadDate || '',
+            downloads: f.downloads || 0
+        }));
     } catch (e) {
-        console.warn('Files fetch fallback:', e);
-        ensurePreseededFiles();
+        console.warn('Files fetch error:', e);
+        allFiles = [];
     }
-
-    renderExplorer();
 }
 
 /**
@@ -1068,15 +1064,20 @@ function renderFoldersGrid() {
     const isAr = (localStorage.getItem('aitu_lang') || 'ar') === 'ar';
     const canEdit = canEditCurrentLocation();
 
+    // A portal folder created at root level is stored on the server with its
+    // parent pointing at the DEPARTMENT folder (not null). So "root" here means:
+    // no parent, or a parent that is not itself a portal folder.
+    const portalIds = new Set(allFolders.map(f => String(f.id)));
+
     // Filter folders that belong to current Academic Year, Dept, Level, and parentFolderId
     const currentFolders = allFolders.filter(f => {
         if (f.dept !== activeDept) return false;
         if (Number(f.level) !== Number(activeLevel)) return false;
         if (f.academicYear && f.academicYear !== activeAcademicYear) return false;
-        
+
         // Parent folder match
         if (currentFolderId === null) {
-            return f.parentFolderId === null || f.parentFolderId === 0;
+            return f.parentFolderId == null || !portalIds.has(String(f.parentFolderId));
         } else {
             return String(f.parentFolderId) === String(currentFolderId);
         }
@@ -1361,32 +1362,15 @@ async function handleCreateFolderSubmit() {
         };
 
         const res = await folderService.createFolder(folderName, currentFolderId, meta);
-        const newFolderId = res?.id || Date.now();
+        const newFolderId = res?.id || res?.folderId || null;
 
-        // Ensure newly created folder ID is not marked as deleted
-        const activeDeletedFolders = getDeletedFolderIds().filter(id => id !== String(newFolderId));
-        localStorage.setItem('aitu_faculty_deleted_folders', JSON.stringify(activeDeletedFolders));
-
-        // Save metadata locally
-        const localFoldersMeta = getLocalFoldersMeta();
-        localFoldersMeta[newFolderId] = meta;
-        saveLocalFoldersMeta(localFoldersMeta);
-
-        const newFolder = {
-            id: newFolderId,
-            name: folderName,
-            dept: activeDept,
-            parentFolderId: currentFolderId,
-            level: activeLevel,
-            academicYear: activeAcademicYear,
-            category: category,
-            createdAt: new Date().toISOString().split('T')[0]
-        };
-
-        allFolders.unshift(newFolder);
-        // Automatically enter into newly created folder as requested ("والفولدر لما اعمله ادخل عليه و هاكذا")
-        currentFolderId = newFolder.id;
-        folderNavigationStack.push({ id: newFolder.id, name: newFolder.name });
+        // Reload from the server (single source of truth) so the new folder
+        // appears with its real id/parent, then enter it automatically.
+        await loadFoldersFromServer();
+        if (newFolderId) {
+            currentFolderId = newFolderId;
+            folderNavigationStack.push({ id: newFolderId, name: folderName });
+        }
         renderExplorer();
         showToast(isAr ? `تم إنشاء المجلد «${folderName}» والدخول إليه مباشرة!` : `Folder "${folderName}" created and opened!`);
     } catch (err) {
@@ -1422,13 +1406,8 @@ async function handleDeleteFolder(folderId) {
         }
     }
 
-    // Persist deletion so preseeded / cached folders do not reappear
-    markFolderAsDeleted(folderId);
-
-    // Also mark any files inside this folder as deleted
-    const filesInFolder = allFiles.filter(f => String(f.folderId) === String(folderId));
-    filesInFolder.forEach(f => markFileAsDeleted(f.id));
-
+    // The server has deleted it; drop it from the in-memory view too. A page
+    // reload reads fresh from the server, so nothing reappears.
     allFolders = allFolders.filter(f => String(f.id) !== String(folderId));
     allFiles = allFiles.filter(f => String(f.folderId) !== String(folderId));
 
@@ -1486,59 +1465,33 @@ async function handleUploadFileSubmit() {
         const formData = new FormData();
         formData.append('file', selectedUploadFile);
 
+        // type = FileKind ("faculty_material") keeps this tree separate from the
+        // repository and courses; category carries LECTURE/ASSIGNMENT/BOOK/LAB.
+        // Everything the card shows is now stored on the server, not localStorage.
         const uploadParams = {
             folderId: currentFolderId || 0,
-            type: category,
+            type: 'faculty_material',
             dept: activeDept,
-            customName: title
+            customName: title,
+            category: category,
+            academicYear: activeAcademicYear,
+            level: activeLevel,
+            course: course,
+            instructor: instructor,
+            deadline: deadline || '',
+            notes: notes
         };
 
-        const result = await fileService.uploadFileWithProgress(formData, uploadParams, (percent) => {
+        await fileService.uploadFileWithProgress(formData, uploadParams, (percent) => {
             if (progressFill) progressFill.style.width = `${percent}%`;
             if (progressPercent) progressPercent.textContent = `${percent}%`;
             if (progressLabel) progressLabel.textContent = isAr ? `جاري الرفع (${percent}%)...` : `Uploading (${percent}%)...`;
         });
 
-        const newFileId = result.id || Date.now();
-        const uploadDate = new Date().toISOString().split('T')[0];
-
-        // Save rich metadata locally
-        const localFilesMeta = getLocalFilesMeta();
-        localFilesMeta[newFileId] = {
-            title,
-            course,
-            instructor,
-            category,
-            deadline,
-            notes,
-            dept: activeDept,
-            level: activeLevel,
-            academicYear: activeAcademicYear,
-            folderId: currentFolderId,
-            uploadedAt: uploadDate
-        };
-        saveLocalFilesMeta(localFilesMeta);
-
-        const newFile = {
-            id: newFileId,
-            name: title,
-            size: formatFileSize(selectedUploadFile.size),
-            type: selectedUploadFile.name.split('.').pop().toUpperCase(),
-            dept: activeDept,
-            level: activeLevel,
-            academicYear: activeAcademicYear,
-            folderId: currentFolderId,
-            category,
-            instructor,
-            course,
-            deadline,
-            notes,
-            uploadedAt: uploadDate,
-            downloads: 0
-        };
-
-        allFiles.unshift(newFile);
+        // Reload files from the server so the new one shows with real server data.
+        await loadFilesFromServer();
         renderFilesGrid();
+        renderFoldersGrid();
         showToast(isAr ? 'تم رفع وإتاحة الملف الأكاديمي بنجاح!' : 'File uploaded successfully!');
     } catch (err) {
         console.error('File upload error:', err);
@@ -1609,7 +1562,6 @@ async function handleDeleteFile(item) {
         }
     }
 
-    markFileAsDeleted(item.id);
     allFiles = allFiles.filter(f => String(f.id) !== String(item.id));
     renderFilesGrid();
     renderFoldersGrid();
@@ -1631,242 +1583,4 @@ function showToast(msg, isError = false) {
     setTimeout(() => {
         toast.classList.remove('active');
     }, 3500);
-}
-
-/**
- * Local Mirror Storage Helpers
- */
-function getLocalFoldersMeta() {
-    try { return JSON.parse(localStorage.getItem('aitu_faculty_folders_meta') || '{}'); } catch { return {}; }
-}
-function saveLocalFoldersMeta(d) {
-    try { localStorage.setItem('aitu_faculty_folders_meta', JSON.stringify(d)); } catch (e) {}
-}
-
-function getLocalFilesMeta() {
-    try { return JSON.parse(localStorage.getItem('aitu_faculty_files_meta') || '{}'); } catch { return {}; }
-}
-function saveLocalFilesMeta(d) {
-    try { localStorage.setItem('aitu_faculty_files_meta', JSON.stringify(d)); } catch (e) {}
-}
-
-function getDeletedFolderIds() {
-    try { return JSON.parse(localStorage.getItem('aitu_faculty_deleted_folders') || '[]'); } catch { return []; }
-}
-function markFolderAsDeleted(id) {
-    const list = getDeletedFolderIds();
-    const strId = String(id);
-    if (!list.includes(strId)) {
-        list.push(strId);
-        try { localStorage.setItem('aitu_faculty_deleted_folders', JSON.stringify(list)); } catch (e) {}
-    }
-}
-
-function getDeletedFileIds() {
-    try { return JSON.parse(localStorage.getItem('aitu_faculty_deleted_files') || '[]'); } catch { return []; }
-}
-function markFileAsDeleted(id) {
-    const list = getDeletedFileIds();
-    const strId = String(id);
-    if (!list.includes(strId)) {
-        list.push(strId);
-        try { localStorage.setItem('aitu_faculty_deleted_files', JSON.stringify(list)); } catch (e) {}
-    }
-}
-
-/**
- * Seed initial academic curriculum folders so the system feels complete immediately
- */
-function ensurePreseededFolders() {
-    const deletedFolderIds = getDeletedFolderIds();
-    const preseeded = [
-        // Level 1 - IT (2025/2026)
-        { id: 101, name: 'محاضرات وسلايدات البرمجة الهيكلية C++', dept: 'IT', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-20' },
-        { id: 102, name: 'شيتات وتمارين الرياضيات والفيزياء', dept: 'IT', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2026-09-22' },
-        { id: 103, name: 'أدلة وتجارب معامل الحاسب الآلي', dept: 'IT', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LAB', createdAt: '2026-09-24' },
-        { id: 104, name: 'الكتب والمراجع الأكاديمية المعتمدة', dept: 'IT', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'BOOK', createdAt: '2026-09-25' },
-
-        // Level 2 - IT (2025/2026)
-        { id: 201, name: 'محاضرات هياكل البيانات والخوارزميات', dept: 'IT', level: 2, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-21' },
-        { id: 202, name: 'تكليفات ومشاريع قواعد البيانات SQL', dept: 'IT', level: 2, academicYear: '2025/2026', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2026-09-23' },
-        { id: 203, name: 'تجارب معمل شبكات الحاسب والربط السحابي', dept: 'IT', level: 2, academicYear: '2025/2026', parentFolderId: null, category: 'LAB', createdAt: '2026-09-24' },
-
-        // Level 3 - IT (2025/2026)
-        { id: 211, name: 'محاضرات أمن المعلومات والأمن السيبراني', dept: 'IT', level: 3, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-22' },
-        { id: 212, name: 'مشاريع تطوير تطبيقات الويب والنظم الموزعة', dept: 'IT', level: 3, academicYear: '2025/2026', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2026-09-23' },
-
-        // Level 4 - IT (2025/2026)
-        { id: 221, name: 'نماذج ووثائق مشاريع التخرج Graduation Projects', dept: 'IT', level: 4, academicYear: '2025/2026', parentFolderId: null, category: 'GENERAL', createdAt: '2026-09-20' },
-        { id: 222, name: 'محاضرات الذكاء الاصطناعي وتعلم الآلة AI/ML', dept: 'IT', level: 4, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-21' },
-
-        // Level 1 - EL (2025/2026)
-        { id: 301, name: 'محاضرات الدوائر الكهربائية والإلكترونية', dept: 'EL', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-21' },
-        { id: 302, name: 'دليل التجارب المعملية وأجهزة القياس', dept: 'EL', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LAB', createdAt: '2026-09-22' },
-        { id: 303, name: 'الكتب والمراجع المعتمدة للهندسة الكهربائية', dept: 'EL', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'BOOK', createdAt: '2026-09-23' },
-
-        // Level 2 - EL (2025/2026)
-        { id: 311, name: 'محاضرات الأنظمة المدمجة والمتحكمات الدقيقة', dept: 'EL', level: 2, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-22' },
-        { id: 312, name: 'شيتات وتطبيقات الطاقة والقوى الكهربائية', dept: 'EL', level: 2, academicYear: '2025/2026', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2026-09-24' },
-
-        // Level 1 - ME (2025/2026)
-        { id: 401, name: 'مبادئ الميكانيكا الهندسية والديناميكا', dept: 'ME', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-21' },
-        { id: 402, name: 'شيتات ورسومات الرسم الهندسي والـ CAD', dept: 'ME', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2026-09-23' },
-        { id: 403, name: 'دليل ورش التصنيع والتشغيل والأوتوترونكس', dept: 'ME', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LAB', createdAt: '2026-09-24' },
-
-        // Level 1 - DESIGN (2025/2026)
-        { id: 501, name: 'محاضرات التصميم الصناعي وتكنولوجيا الخامات', dept: 'DESIGN', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LECTURE', createdAt: '2026-09-22' },
-        { id: 502, name: 'أدلة معامل تشريح وتصميم الأجهزة التعويضية', dept: 'DESIGN', level: 1, academicYear: '2025/2026', parentFolderId: null, category: 'LAB', createdAt: '2026-09-24' },
-
-        // Past Academic Year: 2024/2025
-        { id: 601, name: 'أرشيف مقررات ومحاضرات 2024/2025 كاملة', dept: 'IT', level: 1, academicYear: '2024/2025', parentFolderId: null, category: 'GENERAL', createdAt: '2025-06-15' },
-        { id: 602, name: 'نماذج امتحانات وتكليفات سابقة 2024/2025', dept: 'IT', level: 1, academicYear: '2024/2025', parentFolderId: null, category: 'ASSIGNMENT', createdAt: '2025-06-20' },
-
-        // Past Academic Year: 2023/2024
-        { id: 701, name: 'أرشيف بنك الأسئلة والامتحانات المعتمدة 2023/2024', dept: 'IT', level: 1, academicYear: '2023/2024', parentFolderId: null, category: 'BOOK', createdAt: '2024-06-10' }
-    ];
-
-    preseeded.forEach(pf => {
-        if (deletedFolderIds.includes(String(pf.id))) return;
-        if (!allFolders.some(f => String(f.id) === String(pf.id))) {
-            allFolders.push(pf);
-        }
-    });
-}
-
-/**
- * Seed initial academic curriculum files
- */
-function ensurePreseededFiles() {
-    const preseeded = [
-        {
-            id: 901,
-            name: 'المحاضرة 01 - مقدمة في لغة البرمجة C++ وبيئة العمل',
-            size: '3.40 MB',
-            type: 'PDF',
-            dept: 'IT',
-            level: 1,
-            academicYear: '2025/2026',
-            folderId: 101,
-            category: 'LECTURE',
-            instructor: 'د. محمد عبد الرحمن',
-            course: 'مقدمة في البرمجة',
-            deadline: null,
-            notes: 'يرجى تثبيت بيئة Code::Blocks أو VS Code قبل المحاضرة القادمة.',
-            uploadedAt: '2026-09-26',
-            downloads: 48
-        },
-        {
-            id: 902,
-            name: 'شيت التكليف العملي 01 - التعبيرات والعمليات المنطقية',
-            size: '1.10 MB',
-            type: 'PDF',
-            dept: 'IT',
-            level: 1,
-            academicYear: '2025/2026',
-            folderId: 102,
-            category: 'ASSIGNMENT',
-            instructor: 'م. أحمد خالد',
-            course: 'مقدمة في البرمجة',
-            deadline: '2026-10-15',
-            notes: 'التسليم بصيغة ملف مضغوط يتضمن الأكواد المصدرية المصحوبة بالتقرير.',
-            uploadedAt: '2026-09-27',
-            downloads: 36
-        },
-        {
-            id: 903,
-            name: 'المرجع الشامل في الدوائر الكهربائية وتحليل الشبكات',
-            size: '14.80 MB',
-            type: 'PDF',
-            dept: 'EL',
-            level: 1,
-            academicYear: '2025/2026',
-            folderId: 301,
-            category: 'BOOK',
-            instructor: 'أ.د. محمود الشريف',
-            course: 'دوائر كهربائية 1',
-            deadline: null,
-            notes: 'المرجع الرسمي المعتمد للفصل الدراسي الأول.',
-            uploadedAt: '2026-09-28',
-            downloads: 55
-        },
-        {
-            id: 904,
-            name: 'دليل تجارب ورشة قياسات وأجهزة تشخيص أعطال السيارات',
-            size: '5.60 MB',
-            type: 'PDF',
-            dept: 'ME',
-            level: 1,
-            academicYear: '2025/2026',
-            folderId: 401,
-            category: 'LAB',
-            instructor: 'م. حسن البدري',
-            course: 'ميكانيكا السيارات',
-            deadline: null,
-            notes: 'إحضار البالطو ومهمات السلامة إلزامي في المعمل.',
-            uploadedAt: '2026-09-29',
-            downloads: 29
-        },
-        {
-            id: 905,
-            name: 'سلايدات محاضرة 02 - هياكل البيانات المتقدمة والأشجار الثنائية',
-            size: '4.20 MB',
-            type: 'PPTX',
-            dept: 'IT',
-            level: 2,
-            academicYear: '2025/2026',
-            folderId: 201,
-            category: 'LECTURE',
-            instructor: 'د. سارة عثمان',
-            course: 'هياكل البيانات',
-            deadline: null,
-            notes: 'شرح مفصل لخوارزميات الترتيب والبحث في الـ Binary Trees.',
-            uploadedAt: '2026-09-28',
-            downloads: 42
-        },
-        {
-            id: 906,
-            name: 'كتاب ومواصفات خامات الأجهزة التعويضية والأطراف الصناعية',
-            size: '18.10 MB',
-            type: 'PDF',
-            dept: 'DESIGN',
-            level: 1,
-            academicYear: '2025/2026',
-            folderId: 501,
-            category: 'BOOK',
-            instructor: 'د. عماد النجار',
-            course: 'تكنولوجيا الأطراف الصناعية',
-            deadline: null,
-            notes: 'الملف المعتمد لتوصيف خامات الكربون فايبر والسيليكون الطبي.',
-            uploadedAt: '2026-09-29',
-            downloads: 18
-        },
-        {
-            id: 907,
-            name: 'أرشيف امتحانات السنوات السابقة لمادة البرمجة 2024/2025',
-            size: '8.50 MB',
-            type: 'PDF',
-            dept: 'IT',
-            level: 1,
-            academicYear: '2024/2025',
-            folderId: 602,
-            category: 'ASSIGNMENT',
-            instructor: 'د. محمد عبد الرحمن',
-            course: 'مقدمة في البرمجة',
-            deadline: null,
-            notes: 'مجموعة نماذج امتحانات الميدترم والفاينل مع الإجابات النموذجية.',
-            uploadedAt: '2025-06-25',
-            downloads: 112
-        }
-    ];
-
-    const deletedFileIds = getDeletedFileIds();
-    const deletedFolderIds = getDeletedFolderIds();
-
-    preseeded.forEach(pf => {
-        if (deletedFileIds.includes(String(pf.id))) return;
-        if (pf.folderId && deletedFolderIds.includes(String(pf.folderId))) return;
-        if (!allFiles.some(f => String(f.id) === String(pf.id))) {
-            allFiles.push(pf);
-        }
-    });
 }
